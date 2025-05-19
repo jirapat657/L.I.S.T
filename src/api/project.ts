@@ -6,10 +6,10 @@ import {
     doc,
     getDocs,
     onSnapshot,
-    orderBy,
     query,
     Timestamp,
     updateDoc,
+    orderBy,
   } from 'firebase/firestore';
   import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
   import { db, storage } from '@/services/firebase';
@@ -31,6 +31,8 @@ import {
     editedAt?: Timestamp;
   }
   
+  const COLLECTION_NAME = 'lucasProjects';
+  
   export const addProject = async (values: ProjectFormValues) => {
     let logoUrl = '';
   
@@ -49,7 +51,7 @@ import {
       editedAt: Timestamp.now(),
     };
   
-    const docRef = await addDoc(collection(db, 'projects'), payload);
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), payload);
     return docRef.id;
   };
   
@@ -72,26 +74,27 @@ import {
       editedAt: Timestamp.now(),
     };
   
-    const docRef = doc(db, 'projects', id);
+    const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, payload);
   };
   
   export const deleteProject = async (id: string) => {
-    const docRef = doc(db, 'projects', id);
+    const docRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(docRef);
   };
   
   export const getProjects = async (): Promise<ProjectData[]> => {
-    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
   };
   
   export const listenToProjects = (callback: (projects: ProjectData[]) => void) => {
-    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
       const data: ProjectData[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
       callback(data);
     });
   };
+  
   
