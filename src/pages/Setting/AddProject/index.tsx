@@ -15,7 +15,6 @@ import {
 } from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { UploadOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { auth } from '@/services/firebase';
 import {
   addProject,
@@ -26,7 +25,6 @@ import {
 } from '@/api/project';
 
 const AddProject: React.FC = () => {
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
 
@@ -214,7 +212,7 @@ const AddProject: React.FC = () => {
               total={filteredData.length}
               onChange={setCurrentPage}
               showSizeChanger={false}
-              showTotal={(total, range) => `หน้า ${currentPage} / ${Math.ceil(total / pageSize)}`}
+              showTotal={(total) => `หน้า ${currentPage} / ${Math.ceil(total / pageSize)}`}
             />
           </div>
         )}
