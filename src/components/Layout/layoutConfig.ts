@@ -21,8 +21,10 @@ export const useLayoutStyle = createStyles(() => {
       width: 'calc(100vw - 250px)',
       backgroundColor: 'white',
       padding: '50px',
-      height: '100vh',
+      minHeight: '100vh', // ✅ ปรับให้ยืดตามเนื้อหา
+      boxSizing: 'border-box',
     },
+    
     sidebarContainer: {
       width: 250,
       backgroundColor: '#202020',
