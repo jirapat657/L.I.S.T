@@ -144,7 +144,6 @@ const AddUserPage = () => {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-  const totalPages = Math.ceil(filteredData.length / pageSize);
 
   const columns = [
     { title: 'User ID', dataIndex: 'userId', key: 'userId' },
@@ -238,10 +237,10 @@ const AddUserPage = () => {
         destroyOnHidden
       >
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
-          <Form.Item label="User Name" name="userName" rules={[{ required: true }]}> <Input /> </Form.Item>
-          <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
-          <Form.Item label="Password" name="password" rules={[{ required: !editTarget }]}> <Input.Password /> </Form.Item>
-          <Form.Item label="Role" name="role" rules={[{ required: true }]}> <Select> <Option value="Business Analyst">Business Analyst</Option> <Option value="Tester">Tester</Option> </Select> </Form.Item>
+          <Form.Item label="User Name" name="userName" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          <Form.Item label="Password" name="password" rules={[{ required: !editTarget }]}><Input.Password /></Form.Item>
+          <Form.Item label="Role" name="role" rules={[{ required: true }]}><Select><Option value="Business Analyst">Business Analyst</Option><Option value="Tester">Tester</Option></Select></Form.Item>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
             <Button onClick={handleCancel}>❌ ยกเลิก</Button>
             <Button type="primary" htmlType="submit">💾 บันทึก</Button>

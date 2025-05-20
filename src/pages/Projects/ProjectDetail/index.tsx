@@ -8,13 +8,17 @@ import {
   Table,
   Dropdown,
   Button,
+  Select,
+  message,
 } from 'antd';
-import type {MenuProps} from 'antd'
-import { useState } from 'react';
+import type { MenuProps } from 'antd';
+import { useEffect, useState } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
+import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy } from 'firebase/firestore';
+import { db } from '@/services/firebase';
 
 interface Issue {
-  key: number;
+  id: string;
   issueCode: string;
   issueDate: string;
   title: string;
@@ -46,6 +50,7 @@ const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [filters, setFilters] = useState<Filters>({
     issueCode: '',
     issueDate: null,
@@ -58,93 +63,139 @@ const ProjectDetail: React.FC = () => {
     baTest: '',
   });
 
-  const data: Issue[] = [
-    {
-      key: 1,
-      issueCode: 'ISS-001',
-      issueDate: '2024-05-01',
-      title: 'ฟีเจอร์ A',
-      description: 'ระบบล็อกอิน',
-      status: 'Done',
-      startDate: '2024-04-01',
-      dueDate: '2024-04-10',
-      completeDate: '2024-04-09',
-      onLateTime: 'On Time',
-      developer: 'คุณต้น',
-      baTest: 'คุณฝ้าย',
-      remark: 'ไม่มีปัญหา',
-      document: 'Doc.pdf',
-    },
-  ];
+  const fetchIssues = async () => {
+    try {
+      const q = query(
+        collection(db, 'lucasIssues'),
+        where('projectId', '==', id),
+        orderBy('createdAt', 'desc') // ✅ เพิ่มบรรทัดนี้เพื่อเรียงจากใหม่ไปเก่า
+      );
+  
+      const querySnapshot = await getDocs(q);
+      const issuesArray: Issue[] = [];
+  
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        issuesArray.push({ id: docSnap.id, ...(data as Omit<Issue, 'id'>) });
+      });
+  
+      setIssues(issuesArray);
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchIssues();
+  }, [id]);
 
   const handleFilterChange = (field: keyof Filters, value: any) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const filteredData = data.filter((item) => {
+  const handleDelete = async (issueId: string) => {
+    try {
+      await deleteDoc(doc(db, 'lucasIssues', issueId));
+      setIssues((prev) => prev.filter((item) => item.id !== issueId));
+      message.success('Deleted successfully');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      message.error('Failed to delete');
+    }
+  };
+
+  const handleStatusChange = async (issueId: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'lucasIssues', issueId), { status: newStatus });
+      setIssues((prev) =>
+        prev.map((item) => (item.id === issueId ? { ...item, status: newStatus } : item))
+      );
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      message.error('Status update failed');
+    }
+  };
+
+  const filteredData = issues.filter((item) => {
     return (
       item.issueCode.toLowerCase().includes(filters.issueCode.toLowerCase()) &&
       item.title.toLowerCase().includes(filters.title.toLowerCase()) &&
       item.status.toLowerCase().includes(filters.status.toLowerCase()) &&
       item.developer.toLowerCase().includes(filters.developer.toLowerCase()) &&
       item.baTest.toLowerCase().includes(filters.baTest.toLowerCase()) &&
-      (!filters.issueDate ||
-        item.issueDate === dayjs(filters.issueDate).format('YYYY-MM-DD')) &&
-      (!filters.startDate ||
-        item.startDate === dayjs(filters.startDate).format('YYYY-MM-DD')) &&
-      (!filters.dueDate ||
-        item.dueDate === dayjs(filters.dueDate).format('YYYY-MM-DD')) &&
-      (!filters.completeDate ||
-        item.completeDate ===
-          dayjs(filters.completeDate).format('YYYY-MM-DD'))
+      (!filters.issueDate || item.issueDate === dayjs(filters.issueDate).format('YYYY-MM-DD')) &&
+      (!filters.startDate || item.startDate === dayjs(filters.startDate).format('YYYY-MM-DD')) &&
+      (!filters.dueDate || item.dueDate === dayjs(filters.dueDate).format('YYYY-MM-DD')) &&
+      (!filters.completeDate || item.completeDate === dayjs(filters.completeDate).format('YYYY-MM-DD'))
     );
   });
-
-  const [tableData, setTableData] = useState<Issue[]>(data);
-
-  const handleMenuClick = (key: string, record: Issue) => {
-    const issueId = record.key;
-    if (key === 'delete') {
-      setTableData((prev) => prev.filter((item) => item.key !== issueId));
-    } else {
-      navigate(`/projects/${id}/${key}/${issueId}`);
-    }
-  };
 
   const columns = [
     {
       title: 'No.',
       dataIndex: 'no',
       key: 'no',
-      render: (_: any, __: any, index: number) => index + 1,
-    },
+      render: (_: any, __: any, index: number) => issues.length - index,
+    },    
     { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
     {
       title: 'Issue Date',
       dataIndex: 'issueDate',
       key: 'issueDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YY'),
+      render: (timestamp: any) => {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+          return dayjs(timestamp.toDate()).format('DD/MM/YY');
+        }
+        return dayjs(timestamp).format('DD/MM/YY');
+      },
     },
     { title: 'Title', dataIndex: 'title', key: 'title' },
     { title: 'Description', dataIndex: 'description', key: 'description' },
-    { title: 'Status', dataIndex: 'status', key: 'status' },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string, record: Issue) => (
+        <Select
+          value={status}
+          style={{ width: 120 }}
+          onChange={(value) => handleStatusChange(record.id, value)}
+          options={['Awaiting','Inprogress', 'Complete', 'Cancel'].map((s) => ({ label: s, value: s }))}
+        />
+      ),
+    },
     {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YY'),
+      render: (timestamp: any) => {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+          return dayjs(timestamp.toDate()).format('DD/MM/YY');
+        }
+        return dayjs(timestamp).format('DD/MM/YY');
+      },
     },
     {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YY'),
+      render: (timestamp: any) => {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+          return dayjs(timestamp.toDate()).format('DD/MM/YY');
+        }
+        return dayjs(timestamp).format('DD/MM/YY');
+      },
     },
     {
-      title: 'Complete',
+      title: 'Complete Date',
       dataIndex: 'completeDate',
       key: 'completeDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YY'),
+      render: (timestamp: any) => {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+          return dayjs(timestamp.toDate()).format('DD/MM/YY');
+        }
+        return dayjs(timestamp).format('DD/MM/YY');
+      },
     },
     { title: 'On/Late Time', dataIndex: 'onLateTime', key: 'onLateTime' },
     { title: 'Developer', dataIndex: 'developer', key: 'developer' },
@@ -161,12 +212,14 @@ const ProjectDetail: React.FC = () => {
           { key: 'duplicate', label: '📄 Duplicate' },
           { key: 'delete', label: '🗑️ Delete', danger: true },
         ];
-
         return (
           <Dropdown
             menu={{
               items,
-              onClick: ({ key }) => handleMenuClick(key, record),
+              onClick: ({ key }) => {
+                if (key === 'delete') handleDelete(record.id);
+                else navigate(`/projects/${id}/${key}/${record.id}`);
+              },
             }}
             trigger={['click']}
           >
@@ -278,12 +331,12 @@ const ProjectDetail: React.FC = () => {
             onChange={(e) => handleFilterChange('baTest', e.target.value)}
           />
         </Col>
-        <Col span={4}></Col>
       </Row>
 
       <Table
         columns={columns}
-        dataSource={filteredData.length ? filteredData : tableData}
+        dataSource={filteredData}
+        rowKey="id"
         pagination={false}
         scroll={{ x: 'max-content' }}
       />

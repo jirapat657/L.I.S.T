@@ -8,6 +8,7 @@ import {
     query,
     Timestamp,
     updateDoc,
+    getDocs
   } from 'firebase/firestore';
   import { createUserWithEmailAndPassword } from 'firebase/auth';
   import { db, auth } from '@/services/firebase';
@@ -24,7 +25,22 @@ import {
   
   export interface UserData extends Omit<UserFormValues, 'password'> {
     id: string;
+    username: string;
+    email: string;
+    role: string;
   }
+  
+  export const getAllUsers = async (): Promise<{ id: string; userName: string }[]> => {
+    const ref = collection(db, 'lucasUsers');
+    const snapshot = await getDocs(ref);
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        userName: data.userName || '', // ตรวจสอบว่ามีฟิลด์ userName หรือไม่
+      };
+    });
+  };  
   
   export const createUser = async (data: UserFormValues) => {
     await createUserWithEmailAndPassword(auth, data.email, data.password);
