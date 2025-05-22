@@ -9,7 +9,7 @@ const { Search } = Input;
 const Projects: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [projects, setProjects] = useState<ProjectData[]>([]);
-  const [loading, setLoading] = useState(true);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,8 +19,6 @@ const Projects: React.FC = () => {
         setProjects(data);
       } catch (error) {
         console.error('Error fetching projects:', error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchProjects();
