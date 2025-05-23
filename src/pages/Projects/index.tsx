@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Input, Row, Col, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { getProjects, type ProjectData } from '@/api/project';
+import { getProjects } from '@/api/project';
+import type { ProjectData } from '@/types/project';
 
 const { Search } = Input;
 
