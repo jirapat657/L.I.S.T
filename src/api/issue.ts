@@ -10,38 +10,12 @@ import {
   Timestamp,
   updateDoc,
   deleteDoc,
+  getDoc,
   doc,
 } from 'firebase/firestore';
 
-// ======================
-// INTERFACES
-// ======================
-
-export interface IssueFormValues {
-  projectId: string;
-  issueCode: string;
-  issueDate: Timestamp;
-  title?: string;
-  description?: string;
-  status?: string;
-  startDate?: Timestamp | null;
-  dueDate?: Timestamp | null;
-  completeDate?: Timestamp | null;
-  onLateTime?: string;
-  developer?: string;
-  baTest?: string;
-  remark?: string;
-  document?: string;
-}
-
-export interface SubtaskData {
-  details: string;
-  date: Timestamp | null;
-  completeDate?: Timestamp | null;
-  baTest?: string;
-  status?: string;
-  remark?: string;
-}
+// ✅ นำเข้า types
+import type { IssueFormValues, SubtaskData, IssueData, Subtask } from '@/types/issue';
 
 // ======================
 // MAIN ISSUE FUNCTIONS
@@ -122,4 +96,31 @@ export const deleteSubtask = async (
 ) => {
   const ref = doc(db, 'lucasIssues', issueId, 'subtasks', subtaskId);
   await deleteDoc(ref);
+};
+
+// ==========
+// view issue
+// ==========
+export const getIssueById = async (id: string): Promise<IssueData | null> => {
+  try {
+  const docRef = doc(db, 'lucasIssues', id); // ✅ path ถูก
+  const docSnap = await getDoc(docRef);
+
+  console.log("🔍 Fetching issue with ID:", id);
+  console.log("📄 Found:", docSnap.exists());
+  if (!docSnap.exists()) return null;
+
+  const issueData = { id: docSnap.id, ...docSnap.data() } as IssueData;
+
+  const subtaskSnap = await getDocs(collection(docRef, 'subtasks'));
+  const subtasks = subtaskSnap.docs.map((s) => ({
+    id: s.id,
+    ...(s.data() as Omit<Subtask, 'id'>),
+  }));
+
+  return { ...issueData, subtasks: subtasks ?? [] };
+  } catch (error) {
+    console.error('❌ Error loading issue by ID:', error);
+    return null;
+  }
 };
