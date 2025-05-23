@@ -14,14 +14,14 @@ import {
   Pagination,
 } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import { auth } from '@/services/firebase'
+import { auth} from '@/services/firebase'
 import {
   addProject,
   deleteProject,
   updateProject,
   getProjects,
 } from '@/api/project'
-import type { ProjectData } from '@/types/project'
+import type { ProjectData, ProjectFormValues } from '@/types/project'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 const AddProject: React.FC = () => {
@@ -44,18 +44,18 @@ const AddProject: React.FC = () => {
   })
 
   const addProjectMutation = useMutation({
-    mutationFn: addProject,
+    mutationFn: addProject, // ✅ ใช้ฟังก์ชันที่คุณเขียนไว้ด้านบน
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      message.success('เพิ่มโปรเจกต์สำเร็จ')
-      setIsModalOpen(false)
-      form.resetFields()
-      
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      message.success('เพิ่มโปรเจกต์สำเร็จ');
+      setIsModalOpen(false);
+      form.resetFields();
     },
     onError: () => {
-      message.error('ไม่สามารถเพิ่มโปรเจกต์ได้')
+      message.error('ไม่สามารถเพิ่มโปรเจกต์ได้');
     },
-  })
+  });
+
 
   const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
@@ -108,20 +108,20 @@ const AddProject: React.FC = () => {
     setIsModalOpen(false)
   }
 
-  const handleSubmit = (values: any) => {
-    const logoFile = values.logo?.file || null
-    const currentUser = auth.currentUser
-    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้'
-    addProjectMutation.mutate({
-      projectId: values.projectId,
-      projectName: values.projectName,
-      logo: logoFile,
-      createBy: displayName,
-    })
-    console.log("valueeeee", values)
-  }
+  const handleSubmit = async (values: ProjectFormValues) => {
+    const currentUser = auth.currentUser;
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
 
-  const handleUpdate = (values: any) => {
+    // เพิ่มชื่อผู้สร้างลงไปใน values ที่จะส่งเข้า mutation
+    const formWithCreator = {
+      ...values,
+      createBy: displayName,
+    };
+    // ส่งเข้า mutation → ซึ่งจะไปเรียก addProject() ที่ทำทุกอย่างให้
+    addProjectMutation.mutate(formWithCreator);
+  };
+
+  const handleUpdate = (values: ProjectFormValues) => {
     if (!viewTarget) return
     // const logoFile = viewFileList[0]?.originFileObj || null
     const logoFile = values.logo?.file || null
@@ -130,7 +130,7 @@ const AddProject: React.FC = () => {
       values: {
         projectId: values.projectId,
         projectName: values.projectName,
-        logo: logoFile,
+        logo: logoFile ? { file: logoFile } : undefined, 
       },
     })
   }
