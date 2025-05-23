@@ -1,3 +1,4 @@
+// src/pages/AddUser.tsx
 import { useState } from 'react';
 import {
   Button,
@@ -140,8 +141,8 @@ const AddUserPage = () => {
   const filteredData = users
     .filter(
       (item) =>
-        item.userId.toLowerCase().includes(searchId.toLowerCase()) &&
-        item.userName.toLowerCase().includes(searchName.toLowerCase())
+        item.userId?.toLowerCase().includes(searchId.toLowerCase()) &&
+        item.userName?.toLowerCase().includes(searchName.toLowerCase())
     )
     .sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
 

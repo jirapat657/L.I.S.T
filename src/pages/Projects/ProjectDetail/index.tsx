@@ -13,38 +13,10 @@ import {
 } from 'antd';
 import type { MenuProps } from 'antd';
 import { useEffect, useState } from 'react';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-
-interface Issue {
-  id: string;
-  issueCode: string;
-  issueDate: string;
-  title: string;
-  description: string;
-  status: string;
-  startDate: string;
-  dueDate: string;
-  completeDate: string;
-  onLateTime: string;
-  developer: string;
-  baTest: string;
-  remark: string;
-  document: string;
-}
-
-interface Filters {
-  issueCode: string;
-  issueDate: Dayjs | null;
-  title: string;
-  status: string;
-  startDate: Dayjs | null;
-  dueDate: Dayjs | null;
-  completeDate: Dayjs | null;
-  developer: string;
-  baTest: string;
-}
+import type { Issue, Filters } from '@/types/projectDetail';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();

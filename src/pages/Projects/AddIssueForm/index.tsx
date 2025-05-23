@@ -1,5 +1,5 @@
 // src/pages/Projects/AddIssueForm/index.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Form,
@@ -21,61 +21,34 @@ import dayjs from 'dayjs';
 import { getAllUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
-
-interface FormValues {
-  issueCode: string;
-  issueDate?: Dayjs;
-  title?: string;
-  description?: string;
-  status?: string;
-  startDate?: Dayjs;
-  dueDate?: Dayjs;
-  completeDate?: Dayjs;
-  developer?: string;
-  baTest?: string;
-  remark?: string;
-  document?: string;
-}
-
-interface RowData {
-  key: string;
-  details: string;
-  date: Dayjs;
-  completeDate?: Dayjs;
-  baTest?: string;
-  status?: string;
-  remark?: string;
-  showFull?: boolean;
-}
+import type { FormValues, RowData} from '@/types/issue';
+import { useQuery } from '@tanstack/react-query';
 
 const AddIssueForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
-  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
   const [data, setData] = useState<RowData[]>([]);
 
   const statusOptions = ['Awaiting', 'Inprogress', 'Complete', 'Cancel'];
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const users = await getAllUsers();
-        const uniqueUsers = users.filter(
-          (user, index, self) =>
-            index === self.findIndex((u) => u.userName === user.userName)
-        );
-        const options = uniqueUsers.map((user) => ({
-          value: user.userName,
-          label: user.userName,
-        }));
-        setUserOptions(options);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-    fetchUsers();
-  }, []);
+  const { data: users = [], isLoading, isError } = useQuery({
+    queryKey: ['users'],
+    queryFn: getAllUsers,
+  });
+  const userOptions = React.useMemo(() => {
+    const uniqueUsers = users.filter(
+      (user, index, self) =>
+        index === self.findIndex((u) => u.userName === user.userName)
+    );
+    return uniqueUsers.map((user) => ({
+      value: user.userName,
+      label: user.userName,
+    }));
+  }, [users]);
+
+  if (isLoading) return <div>Loading users...</div>;
+  if (isError) return <div>Error loading users</div>;
 
   const handleAddRow = () => {
     const newRow: RowData = {
@@ -129,17 +102,15 @@ const AddIssueForm: React.FC = () => {
       };
 
       const subtasks = data
-  .filter((row) => row.details.trim()) // ✅ เฉพาะ row ที่มี details
-  .map((row) => ({
-    details: row.details,
-    date: row.date ? Timestamp.fromDate(row.date.toDate()) : null,
-    completeDate: row.completeDate ? Timestamp.fromDate(row.completeDate.toDate()) : null,
-    baTest: row.baTest,
-    status: row.status,
-    remark: row.remark,
-  }));
-
-
+      .filter((row) => row.details.trim()) // ✅ เฉพาะ row ที่มี details
+      .map((row) => ({
+        details: row.details,
+        date: row.date ? Timestamp.fromDate(row.date.toDate()) : null,
+        completeDate: row.completeDate ? Timestamp.fromDate(row.completeDate.toDate()) : null,
+        baTest: row.baTest,
+        status: row.status,
+        remark: row.remark,
+      }));
       await addIssue(issuePayload, subtasks);
       message.success('เพิ่ม Issue สำเร็จ');
       navigate(`/projects/${id}`);
