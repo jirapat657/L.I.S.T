@@ -1,5 +1,5 @@
 // src/pages/AddProject.tsx
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Modal,
@@ -19,35 +19,75 @@ import { auth } from '@/services/firebase'
 import {
   addProject,
   deleteProject,
-  listenToProjects,
   updateProject,
-  type ProjectData,
+  getProjects,
 } from '@/api/project'
+import type { ProjectData } from '@/types/project'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 const AddProject: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form] = Form.useForm()
-
-  const [projects, setProjects] = useState<ProjectData[]>([])
+  const [viewForm] = Form.useForm()
+  
+  const [viewFileList, setViewFileList] = useState<UploadFile[]>([])
   const [searchId, setSearchId] = useState('')
   const [searchName, setSearchName] = useState('')
-  const [fileList, setFileList] = useState<UploadFile[]>([])
-  const [viewFileList, setViewFileList] = useState<UploadFile[]>([])
-
   const [deleteTarget, setDeleteTarget] = useState<ProjectData | null>(null)
   const [viewTarget, setViewTarget] = useState<ProjectData | null>(null)
-  const [viewForm] = Form.useForm()
-
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 5
 
-  useEffect(() => {
-    const unsubscribe = listenToProjects(setProjects)
-    return () => unsubscribe()
-  }, [])
+  const queryClient = useQueryClient()
+
+  const { data: projectsData = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const addProjectMutation = useMutation({
+    mutationFn: addProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      message.success('เพิ่มโปรเจกต์สำเร็จ')
+      setIsModalOpen(false)
+      form.resetFields()
+      
+    },
+    onError: () => {
+      message.error('ไม่สามารถเพิ่มโปรเจกต์ได้')
+    },
+  })
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: deleteProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      message.success('ลบโปรเจกต์สำเร็จ')
+      setDeleteTarget(null)
+    },
+    onError: () => {
+      message.error('ไม่สามารถลบโปรเจกต์ได้')
+    },
+  })
+
+  const updateProjectMutation = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: any }) => updateProject(id, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      message.success('อัปเดตโปรเจกต์สำเร็จ')
+      setViewTarget(null)
+      viewForm.resetFields()
+      setViewFileList([])
+    },
+    onError: () => {
+      message.error('ไม่สามารถอัปเดตโปรเจกต์ได้')
+    },
+  })
 
   const getNextProjectId = (): string => {
-    const sorted = [...projects].sort((a, b) => a.projectId.localeCompare(b.projectId))
+    const sorted = [...projectsData].sort((a, b) => a.projectId.localeCompare(b.projectId))
     let max = 0
     for (const p of sorted) {
       const match = p.projectId.match(/GG-(\d+)/)
@@ -56,77 +96,53 @@ const AddProject: React.FC = () => {
         if (num > max) max = num
       }
     }
-    const nextNum = (max + 1).toString().padStart(2, '0')
-    return `GG-${nextNum}`
+    return `GG-${(max + 1).toString().padStart(2, '0')}`
   }
 
   const handleOpenModal = () => {
     form.setFieldsValue({ projectId: getNextProjectId() })
-    setFileList([])
+    
     setIsModalOpen(true)
   }
 
   const handleCancel = () => {
     form.resetFields()
-    setFileList([])
+    
     setIsModalOpen(false)
   }
 
-  const handleSubmit = async (values: any) => {
-    try {
-      const logoFile = fileList[0]?.originFileObj || null
-      const currentUser = auth.currentUser
-      const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้'
-
-      await addProject({
-        projectId: values.projectId,
-        projectName: values.projectName,
-        logo: logoFile,
-        createBy: displayName,
-      })
-
-      message.success('เพิ่มโปรเจกต์สำเร็จ')
-      setIsModalOpen(false)
-      form.resetFields()
-      setFileList([])
-    } catch (error) {
-      console.error(error)
-      message.error('ไม่สามารถเพิ่มโปรเจกต์ได้')
-    }
+  const handleSubmit = (values: any) => {
+    const logoFile = values.logo?.file || null
+    const currentUser = auth.currentUser
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้'
+    addProjectMutation.mutate({
+      projectId: values.projectId,
+      projectName: values.projectName,
+      logo: logoFile,
+      createBy: displayName,
+    })
+    console.log("valueeeee", values)
   }
 
-  const handleUpdate = async (values: any) => {
+  const handleUpdate = (values: any) => {
     if (!viewTarget) return
-    try {
-      const logoFile = viewFileList[0]?.originFileObj || null
-      await updateProject(viewTarget.id, {
+    const logoFile = viewFileList[0]?.originFileObj || null
+    updateProjectMutation.mutate({
+      id: viewTarget.id,
+      values: {
         projectId: values.projectId,
         projectName: values.projectName,
         logo: logoFile,
-      })
-      message.success('อัปเดตโปรเจกต์สำเร็จ')
-      setViewTarget(null)
-      viewForm.resetFields()
-      setViewFileList([])
-    } catch (error) {
-      console.error(error)
-      message.error('ไม่สามารถอัปเดตได้')
-    }
+      },
+    })
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteTarget) return
-    try {
-      await deleteProject(deleteTarget.id)
-      message.success('ลบโปรเจกต์สำเร็จ')
-      setDeleteTarget(null)
-    } catch (error) {
-      console.error(error)
-      message.error('ไม่สามารถลบโปรเจกต์ได้')
-    }
+    deleteProjectMutation.mutate(deleteTarget.id)
   }
 
-  const filteredData = projects.filter(
+  const filteredData = projectsData.filter(
     (item) =>
       item.projectId.toLowerCase().includes(searchId.toLowerCase()) &&
       item.projectName.toLowerCase().includes(searchName.toLowerCase())
@@ -259,8 +275,6 @@ const AddProject: React.FC = () => {
           </Form.Item>
           <Form.Item label='Upload Logo' name='logo'>
             <Upload
-              fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
               beforeUpload={() => false}
               maxCount={1}
             >
@@ -316,8 +330,8 @@ const AddProject: React.FC = () => {
             Create By: {viewTarget?.createBy || 'ไม่ทราบ'}
             <br />
             แก้ไขล่าสุด:{' '}
-            {viewTarget?.editedAt
-              ? new Date(viewTarget.editedAt.seconds * 1000).toLocaleString()
+            {viewTarget?.updatedAt
+              ? new Date(viewTarget.updatedAt.seconds * 1000).toLocaleString()
               : '-'}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
