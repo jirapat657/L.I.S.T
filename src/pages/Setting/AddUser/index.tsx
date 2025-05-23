@@ -26,7 +26,7 @@ import {
   updateUser,
   updateUserStatus,
 } from '@/api/user';
-import type { UserData } from '@/types/users';
+import type { UserData, UserFormValues } from '@/types/users';
 
 const { Option } = Select;
 
@@ -102,7 +102,7 @@ const AddUserPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: UserFormValues) => {
     if (editTarget) {
       updateUserMutation.mutate({
         id: editTarget.id,
@@ -125,6 +125,7 @@ const AddUserPage = () => {
     setIsModalOpen(false);
     form.resetFields();
     setEditTarget(null);
+    console.log("saddasdas", values)
   };
 
   const handleToggleStatus = (record: UserData) => {
