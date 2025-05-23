@@ -4,7 +4,6 @@ import {
     collection,
     deleteDoc,
     doc,
-    onSnapshot,
     query,
     updateDoc,
     getDocs
@@ -29,9 +28,12 @@ import {
   };  
   
   export const createUser = async (data: UserFormValues) => {
+    if (!data.password) {
+      throw new Error("Password is required");
+    }
     await createUserWithEmailAndPassword(auth, data.email, data.password);
-    const { password, ...userData } = data;
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), userData);
+    delete data.password;
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), data);
     return docRef.id;
   };
   
@@ -52,20 +54,6 @@ import {
     const docRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(docRef);
   };
-  
-  // export const listenToUsers = (callback: (users: UserData[]) => void) => {
-  //   const q = query(collection(db, COLLECTION_NAME));
-  //   return onSnapshot(q, (snapshot) => {
-  //     const users = snapshot.docs.map(
-  //       (docSnap) =>
-  //         ({
-  //           id: docSnap.id,
-  //           ...docSnap.data(),
-  //         } as UserData)
-  //     );
-  //     callback(users);
-  //   });
-  // };
   
   export const getUsers = async (): Promise<UserData[]> => {
   const snapshot = await getDocs(query(collection(db, 'LIMUsers')))
