@@ -13,7 +13,6 @@ import {
   message,
   Pagination,
 } from 'antd'
-import type { UploadFile } from 'antd/es/upload/interface'
 import { UploadOutlined } from '@ant-design/icons'
 import { auth } from '@/services/firebase'
 import {
@@ -29,8 +28,6 @@ const AddProject: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form] = Form.useForm()
   const [viewForm] = Form.useForm()
-  
-  const [viewFileList, setViewFileList] = useState<UploadFile[]>([])
   const [searchId, setSearchId] = useState('')
   const [searchName, setSearchName] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<ProjectData | null>(null)
@@ -79,7 +76,7 @@ const AddProject: React.FC = () => {
       message.success('อัปเดตโปรเจกต์สำเร็จ')
       setViewTarget(null)
       viewForm.resetFields()
-      setViewFileList([])
+      
     },
     onError: () => {
       message.error('ไม่สามารถอัปเดตโปรเจกต์ได้')
@@ -126,7 +123,8 @@ const AddProject: React.FC = () => {
 
   const handleUpdate = (values: any) => {
     if (!viewTarget) return
-    const logoFile = viewFileList[0]?.originFileObj || null
+    // const logoFile = viewFileList[0]?.originFileObj || null
+    const logoFile = values.logo?.file || null
     updateProjectMutation.mutate({
       id: viewTarget.id,
       values: {
@@ -176,12 +174,14 @@ const AddProject: React.FC = () => {
                 viewForm.setFieldsValue({
                   projectId: record.projectId,
                   projectName: record.projectName,
+                  logo: {
+                    file: record.logo, // หรือใช้ originFileObj ถ้ามี
+                    name: 'logo.png',
+                    url: record.logo,
+                    uid: '-1',
+                    status: 'done',
+                  },
                 })
-                setViewFileList(
-                  record.logo
-                    ? [{ uid: '-1', name: 'logo.png', status: 'done', url: record.logo }]
-                    : []
-                )
               } else if (key === 'delete') {
                 setDeleteTarget(record)
               }
@@ -296,7 +296,7 @@ const AddProject: React.FC = () => {
         onCancel={() => {
           setViewTarget(null)
           viewForm.resetFields()
-          setViewFileList([])
+
         }}
         footer={null}
         destroyOnHidden
@@ -318,8 +318,7 @@ const AddProject: React.FC = () => {
           </Form.Item>
           <Form.Item label='Upload Logo' name='logo'>
             <Upload
-              fileList={viewFileList}
-              onChange={({ fileList }) => setViewFileList(fileList)}
+              
               beforeUpload={() => false}
               maxCount={1}
             >
@@ -339,7 +338,6 @@ const AddProject: React.FC = () => {
               onClick={() => {
                 setViewTarget(null)
                 viewForm.resetFields()
-                setViewFileList([])
               }}
             >
               ❌ ยกเลิก
