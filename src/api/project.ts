@@ -14,24 +14,10 @@ import {
   import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
   import { db, storage } from '@/services/firebase';
   
-  export interface ProjectFormValues {
-    projectId: string;
-    projectName: string;
-    logo: File | null;
-    createBy: string;
-  }
+  // ✅ Import interfaces จาก types
+  import type { ProjectFormValues, ProjectData } from '@/types/project';
   
-  export interface ProjectData {
-    id: string;
-    projectId: string;
-    projectName: string;
-    logo: string;
-    createBy: string;
-    createdAt: Timestamp;
-    editedAt?: Timestamp;
-  }
-  
-  const COLLECTION_NAME = 'lucasProjects';
+  const COLLECTION_NAME = 'LIMProjects';
   
   export const addProject = async (values: ProjectFormValues) => {
     let logoUrl = '';
@@ -48,7 +34,7 @@ import {
       logo: logoUrl,
       createBy: values.createBy,
       createdAt: Timestamp.now(),
-      editedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
   
     const docRef = await addDoc(collection(db, COLLECTION_NAME), payload);
@@ -71,7 +57,7 @@ import {
     const payload: Partial<ProjectData> = {
       ...rest,
       ...(logoUrl && { logo: logoUrl }),
-      editedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
   
     const docRef = doc(db, COLLECTION_NAME, id);
@@ -89,12 +75,12 @@ import {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
   };
   
-  export const listenToProjects = (callback: (projects: ProjectData[]) => void) => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      const data: ProjectData[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
-      callback(data);
-    });
-  };
+  // export const listenToProjects = (callback: (projects: ProjectData[]) => void) => {
+  //   const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
+  //   return onSnapshot(q, (snapshot) => {
+  //     const data: ProjectData[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
+  //     callback(data);
+  //   });
+  // };
   
   
