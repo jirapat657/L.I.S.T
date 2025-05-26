@@ -27,6 +27,7 @@ export interface SubtaskData {
   baTest?: string;
   status?: string;
   remark?: string;
+  createdAt?: Timestamp;
 }
 
 
@@ -64,6 +65,7 @@ export interface Subtask {
   baTest?: string;
   status?: string;
   remark?: string;
+  createdAt?: Timestamp
 }
 
 export interface IssueData {

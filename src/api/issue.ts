@@ -68,16 +68,17 @@ export const getIssuesByProjectId = async (projectId: string) => {
 // ======================
 
 // ✅ ดึง subtasks ของ Issue
-export const getSubtasksByIssueId = async (issueId: string) => {
+export const getSubtasksByIssueId = async (issueId: string): Promise<Subtask[]> => {
   const q = query(
     collection(db, COLLECTION_NAME, issueId, 'subtasks'),
     orderBy('createdAt', 'asc')
   );
 
   const snapshot = await getDocs(q);
+
   return snapshot.docs.map((doc) => ({
     id: doc.id,
-    ...doc.data(),
+    ...(doc.data() as Omit<Subtask, 'id'>),
   }));
 };
 
@@ -125,4 +126,20 @@ export const getIssueById = async (id: string): Promise<IssueData | null> => {
     console.error('❌ Error loading issue by ID:', error);
     return null;
   }
+};
+
+// ==========
+// edit issue
+// ==========
+export const updateIssue = async (id: string, data: Partial<IssueData>) => {
+  const ref = doc(db, 'LIMIssues', id);
+  await updateDoc(ref, data);
+};
+
+export const addSubtask = async (
+  issueId: string,
+  subtask: Omit<Subtask, 'id'>
+) => {
+  const ref = collection(db, 'LIMIssues', issueId, 'subtasks');
+  await addDoc(ref, subtask);
 };

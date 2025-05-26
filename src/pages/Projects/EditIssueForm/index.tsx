@@ -1,118 +1,417 @@
-//template AddIssueForm
+// src/pages/EditIssueForm/index.tsx
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, DatePicker, Button, Row, Col } from 'antd';
-import type { Dayjs } from 'dayjs';
+import {
+  Button,
+  Divider,
+  message,
+  Table,
+  Dropdown,
+  Modal,
+  Input,
+  Popconfirm,
+  DatePicker,
+  Select
+} from 'antd';
+import { useForm } from 'antd/es/form/Form';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import IssueForm from '@/components/IssueForm';
+import {
+  getIssueById,
+  updateIssue,
+  getSubtasksByIssueId,
+  updateSubtask,
+  deleteSubtask,
+  addSubtask
+} from '@/api/issue';
+import type { IssueData, Subtask, SubtaskData } from '@/types/issue';
+import dayjs from 'dayjs';
+import type { MenuProps } from 'antd';
+import { v4 as uuidv4 } from 'uuid'; // npm i uuid (หากยังไม่ได้ติดตั้ง)
+import { Timestamp } from 'firebase/firestore';
+import { getAllUsers } from '@/api/user';
 
-interface FormValues {
-  issueCode: string;
-  issueDate?: Dayjs;
-  title?: string;
-  description?: string;
-  status?: string;
-  startDate?: Dayjs;
-  dueDate?: Dayjs;
-  completeDate?: Dayjs;
-  onLateTime?: string;
-  developer?: string;
-  baTest?: string;
-  remark?: string;
-  document?: string;
-}
-
-const AddIssueForm: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const EditIssueFormPage: React.FC = () => {
+  const { issueId, projectId } = useParams<{
+    issueId: string;
+    projectId: string;
+  }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [form] = useForm();
 
-  const onFinish = (values: FormValues) => {
-    console.log('ค่าที่ส่ง:', values);
-    // TODO: ส่งข้อมูลไปยัง backend
-    navigate(`/projects/${id}`);
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [editingSubtask, setEditingSubtask] = useState<Subtask | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailInput, setDetailInput] = useState('');
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getAllUsers,
+  });
+
+  const userOptions = React.useMemo(() => {
+    const uniqueUsers = users.filter(
+      (user, index, self) =>
+        index === self.findIndex((u) => u.userName === user.userName)
+    );
+    return uniqueUsers.map((user) => ({
+      value: user.userName,
+      label: user.userName,
+    }));
+  }, [users]);
+
+    const { data: issue, isLoading } = useQuery<IssueData | null>({
+      queryKey: ['issue', issueId],
+      queryFn: () => getIssueById(issueId!),
+      enabled: !!issueId,
+    });
+
+  const mutation = useMutation({
+    mutationFn: (updatedData: Partial<IssueData>) =>
+      updateIssue(issueId!, updatedData),
+    onSuccess: () => {
+      if (!issueId) return;
+
+      queryClient.invalidateQueries({ queryKey: ['issue', issueId] });
+
+      message.success('บันทึกการแก้ไขสำเร็จ');
+      navigate(`/projects/${projectId}`);
+    },
+    onError: () => {
+      message.error('บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    },
+  });
+
+  useEffect(() => {
+    if (!issueId) return;
+    const fetchSubtasks = async () => {
+      const subs = await getSubtasksByIssueId(issueId);
+      setSubtasks(subs);
+    };
+    fetchSubtasks();
+  }, [issueId]);
+
+  const handleAddRow = () => {
+    const newRow: SubtaskData & { id: string } = {
+      id: uuidv4(), // ใช้ id ชั่วคราว ไม่ชนกับ Firebase
+      details: '',
+      date: Timestamp.fromDate(new Date()), // ✅ ถูกต้อง
+      completeDate: null,
+      baTest: '',
+      remark: '',
+      status: 'Awaitting',
+    };
+    setSubtasks((prev) => [...prev, newRow]);
   };
+
+  /**
+ * แปลงค่า Dayjs, Timestamp หรือ Date → Timestamp ของ Firestore
+ */
+const convertToTimestamp = (
+  value: Timestamp | { toDate?: () => Date } | Date | null | undefined
+): Timestamp | null => {
+  if (!value) return null;
+  if (value instanceof Timestamp) return value;
+  if (value instanceof Date) return Timestamp.fromDate(value);
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof value.toDate === 'function'
+  ) {
+    return Timestamp.fromDate(value.toDate());
+  }
+  return null;
+};
+
+/**
+ * บันทึกเฉพาะ Subtask ใหม่ที่ถูกเพิ่ม (UUID)
+ * และรีโหลด subtasks จาก Firestore หลังจากเพิ่ม
+ */
+const saveNewSubtasks = async () => {
+  if (!issueId) return;
+
+  const newSubs = subtasks.filter(
+    (s) => s.id.length > 20 && s.details.trim()
+  );
+
+  for (const sub of newSubs) {
+    try {
+      console.log('📌 Subtask ที่กำลังจะเพิ่ม:', sub);
+      await addSubtask(issueId, {
+        details: sub.details,
+        date: convertToTimestamp(sub.date),
+        completeDate: convertToTimestamp(sub.completeDate),
+        baTest: sub.baTest,
+        remark: sub.remark,
+        status: sub.status,
+        createdAt: Timestamp.now(), // ✅ บันทึก timestamp
+      });
+      console.log('✅ เพิ่ม subtask สำเร็จ:', sub.details);
+    } catch (error) {
+      console.error(`❌ เพิ่ม subtask ล้มเหลว: ${sub.details}`, error);
+      message.error('ไม่สามารถเพิ่ม Subtask ใหม่ได้');
+    }
+  }
+
+  // ✅ โหลด subtasks ใหม่จาก Firestore แล้วอัปเดต state
+  try {
+    const refreshed = await getSubtasksByIssueId(issueId);
+    setSubtasks(refreshed);
+    console.log('🔄 โหลด subtasks ใหม่สำเร็จ:', refreshed);
+  } catch (error) {
+    console.error('❌ โหลด subtasks ใหม่ไม่สำเร็จ:', error);
+    message.warning('ไม่สามารถโหลด subtasks ล่าสุดได้');
+  }
+};
+
+/**
+ * ฟังก์ชันหลักที่เรียกตอนกด “บันทึก”
+ * ทั้งอัปเดต Issue หลัก และบันทึก Subtask ใหม่
+ */
+const handleSave = async () => {
+  try {
+    const values = await form.validateFields();
+    console.log('📄 ค่า form ที่ validate แล้ว:', values);
+
+    const cleanedValues = {
+      ...values,
+      issueDate: values.issueDate?.toDate?.() ?? values.issueDate,
+      startDate: values.startDate?.toDate?.() ?? values.startDate,
+      dueDate: values.dueDate?.toDate?.() ?? values.dueDate,
+      completeDate: values.completeDate?.toDate?.() ?? values.completeDate,
+    };
+
+    console.log('🧼 ค่า cleanedValues ที่จะอัปเดต:', cleanedValues);
+    await mutation.mutateAsync(cleanedValues); // ✅ รอ mutation ให้เสร็จก่อน
+    console.log('✅ อัปเดต issue สำเร็จ');
+
+    await saveNewSubtasks(); // ✅ เพิ่ม subtasks แล้วโหลดใหม่
+
+    queryClient.invalidateQueries({ queryKey: ['issue', issueId] });
+
+    message.success('บันทึกการแก้ไขสำเร็จ');
+    navigate(`/projects/${projectId}`);
+  } catch (err) {
+    console.error('❌ Error ใน handleSave:', err);
+    message.error('บันทึกไม่สำเร็จ');
+  }
+};
+
+
+  const handleViewDetails = (sub: Subtask) => {
+    setEditingSubtask(sub);
+    setDetailInput(sub.details || '');
+    setDetailModalOpen(true);
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!issueId) return;
+    await deleteSubtask(issueId, subtaskId);
+    setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
+    message.success('ลบ Subtask สำเร็จ');
+  };
+
+  const handleUpdateDetail = async () => {
+    if (!editingSubtask || !issueId) return;
+    await updateSubtask(issueId, editingSubtask.id, { details: detailInput });
+    setSubtasks((prev) =>
+      prev.map((s) =>
+        s.id === editingSubtask.id ? { ...s, details: detailInput } : s
+      )
+    );
+    setDetailModalOpen(false);
+    message.success('อัปเดตรายละเอียดสำเร็จ');
+  };
+
+  const handleInlineUpdate = async (
+    subtaskId: string,
+    field: keyof Subtask,
+    value: any
+  ) => {
+    if (!issueId) return;
+
+    setSubtasks((prev) =>
+      prev.map((s) =>
+        s.id === subtaskId ? { ...s, [field]: value } : s
+      )
+    );
+
+    // เฉพาะแถวที่มี id จริงจาก Firebase เท่านั้นถึงจะอัปเดต DB
+    const isTemp = subtaskId.length > 20; // uuid ยาวกว่า doc id ทั่วไป
+    if (isTemp) return;
+
+    try {
+      await updateSubtask(issueId, subtaskId, { [field]: value });
+      message.success('บันทึกสำเร็จ');
+    } catch (err) {
+      console.error(err);
+      message.error('เกิดข้อผิดพลาด');
+    }
+  };
+
+
+  const subtaskColumns = [
+    {
+      title: 'Date',
+      dataIndex: 'date',
+      render: (value: any) =>
+        value?.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
+    },
+    {
+      title: 'Details',
+      dataIndex: 'details',
+      render: (text: string, record: Subtask) => (
+        <Input.TextArea
+          rows={1}
+          value={text}
+          onChange={(e) =>
+            handleInlineUpdate(record.id, 'details', e.target.value)
+          }
+        />
+      ),
+    },
+    {
+      title: 'Complete Date',
+      dataIndex: 'completeDate',
+      render: (value: any, record: Subtask) => (
+        <DatePicker
+          format="DD/MM/YY"
+          value={
+            value
+              ? value instanceof Timestamp
+                ? dayjs(value.toDate())
+                : dayjs(value)
+              : null
+          }
+          onChange={(date) =>
+            handleInlineUpdate(
+              record.id,
+              'completeDate',
+              date ? Timestamp.fromDate(date.toDate()) : null
+            )
+          }
+        />
+      ),
+    },
+    {
+      title: 'BA/Test',
+      dataIndex: 'baTest',
+      render: (text: string, record: Subtask) => (
+        <Select
+          value={text}
+          onChange={(val) => handleInlineUpdate(record.id, 'baTest', val)}
+          showSearch
+          style={{ width: 150 }}
+          options={userOptions} // 👈 ต้องเตรียม userOptions ไว้ก่อน
+          placeholder="เลือก BA/Test"
+        />
+      ),
+    },
+    {
+      title: 'Remark',
+      dataIndex: 'remark',
+      render: (text: string, record: Subtask) => (
+        <Input
+          value={text}
+          onChange={(e) =>
+            handleInlineUpdate(record.id, 'remark', e.target.value)
+          }
+        />
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      render: (text: string, record: Subtask) => (
+        <Select
+          value={text}
+          onChange={(val) => handleInlineUpdate(record.id, 'status', val)}
+          style={{ width: 120 }}
+          options={[
+            { label: 'Awaitting', value: 'Awaitting' },
+            { label: 'Complete', value: 'Complete' },
+            { label: 'Fail', value: 'Fail' },
+          ]}
+        />
+      ),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_: any, record: Subtask) => {
+        const items: MenuProps['items'] = [
+          {
+            key: 'view',
+            label: '🔍 View / Edit',
+            onClick: () => handleViewDetails(record),
+          },
+          {
+            key: 'delete',
+            label: (
+              <Popconfirm
+                title="ยืนยันการลบ Subtask นี้?"
+                onConfirm={() => handleDeleteSubtask(record.id)}
+                okText="ลบ"
+                cancelText="ยกเลิก"
+              >
+                🗑️ Delete
+              </Popconfirm>
+            ),
+          },
+        ];
+        return (
+          <Dropdown menu={{ items }} trigger={['click']}>
+            <Button size="small">⋯</Button>
+          </Dropdown>
+        );
+      },
+    },
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+  if (!issue) return <div>ไม่พบข้อมูล Issue ที่ต้องการแก้ไข</div>;
 
   return (
     <div>
-      <h2>เพิ่ม Issue ใหม่ในโปรเจกต์ #{id}</h2>
-
-      <Form layout="vertical" onFinish={onFinish}>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item label="Issue Code" name="issueCode" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Issue Date" name="issueDate">
-              <DatePicker format="DD/MM/YY" style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Title" name="title">
-              <Input />
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item label="Description" name="description">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Status" name="status">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Start Date" name="startDate">
-              <DatePicker format="DD/MM/YY" style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item label="Due Date" name="dueDate">
-              <DatePicker format="DD/MM/YY" style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Complete Date" name="completeDate">
-              <DatePicker format="DD/MM/YY" style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="On/Late Time" name="onLateTime">
-              <Input />
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item label="Developer" name="developer">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="BA/Test" name="baTest">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Remark" name="remark">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Additional Document" name="document">
-              <Input />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        {/* ปุ่มบันทึก/ยกเลิก */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button onClick={() => navigate(`/projects/${id}`)}>❌ ยกเลิก</Button>
-          <Button type="primary" htmlType="submit">💾 บันทึก</Button>
-        </div>
-      </Form>
+      <h2>แก้ไข Issue #{issueId}</h2>
+      <Divider />
+      <IssueForm issue={issue} form={form} disabled={false} />
+      <Divider>Subtasks</Divider>
+      <div style={{ textAlign: 'right', marginBottom: 16 }}>
+        <Button onClick={handleAddRow}>➕ Add Subtask</Button>
+      </div>
+      <Table
+        columns={subtaskColumns}
+        dataSource={subtasks}
+        rowKey="id"
+        pagination={false}
+        scroll={{ x: 'max-content' }}
+      />
+      <Modal
+        open={detailModalOpen}
+        onCancel={() => setDetailModalOpen(false)}
+        onOk={handleUpdateDetail}
+        title="แก้ไขรายละเอียด Subtask"
+        width="80%"
+      >
+        <Input.TextArea
+          rows={10}
+          value={detailInput}
+          onChange={(e) => setDetailInput(e.target.value)}
+        />
+      </Modal>
+      <div style={{ textAlign: 'right', marginBottom: 24 }}>
+        <Button onClick={() => navigate(-1)} style={{ marginRight: 8 }}>
+          ยกเลิก
+        </Button>
+        <Button type="primary" onClick={handleSave}>
+          💾 บันทึก
+        </Button>
+      </div>
     </div>
   );
 };
 
-export default AddIssueForm;
+export default EditIssueFormPage;
