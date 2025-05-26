@@ -17,6 +17,8 @@ import {
 // ✅ นำเข้า types
 import type { IssueFormValues, SubtaskData, IssueData, Subtask } from '@/types/issue';
 
+const COLLECTION_NAME = 'LIMIssues';
+
 // ======================
 // MAIN ISSUE FUNCTIONS
 // ======================
@@ -26,7 +28,7 @@ export const addIssue = async (
   data: IssueFormValues,
   subtasks: SubtaskData[] = []
 ) => {
-  const ref = collection(db, 'lucasIssues');
+  const ref = collection(db, COLLECTION_NAME);
 
   // เพิ่ม issue หลัก
   const issueDoc = await addDoc(ref, {
@@ -37,7 +39,7 @@ export const addIssue = async (
   // เพิ่ม subtasks ใน subcollection
   for (const sub of subtasks) {
     await addDoc(
-      collection(db, 'lucasIssues', issueDoc.id, 'subtasks'),
+      collection(db, COLLECTION_NAME, issueDoc.id, 'subtasks'),
       {
         ...sub,
         createdAt: Timestamp.now(),
@@ -49,7 +51,7 @@ export const addIssue = async (
 // ✅ ดึงข้อมูล issue ตาม projectId เรียงจากใหม่ → เก่า
 export const getIssuesByProjectId = async (projectId: string) => {
   const q = query(
-    collection(db, 'lucasIssues'),
+    collection(db, COLLECTION_NAME),
     where('projectId', '==', projectId),
     orderBy('createdAt', 'desc')
   );
@@ -68,7 +70,7 @@ export const getIssuesByProjectId = async (projectId: string) => {
 // ✅ ดึง subtasks ของ Issue
 export const getSubtasksByIssueId = async (issueId: string) => {
   const q = query(
-    collection(db, 'lucasIssues', issueId, 'subtasks'),
+    collection(db, COLLECTION_NAME, issueId, 'subtasks'),
     orderBy('createdAt', 'asc')
   );
 
@@ -85,7 +87,7 @@ export const updateSubtask = async (
   subtaskId: string,
   updates: Partial<SubtaskData>
 ) => {
-  const ref = doc(db, 'lucasIssues', issueId, 'subtasks', subtaskId);
+  const ref = doc(db, COLLECTION_NAME, issueId, 'subtasks', subtaskId);
   await updateDoc(ref, updates);
 };
 
@@ -94,7 +96,7 @@ export const deleteSubtask = async (
   issueId: string,
   subtaskId: string
 ) => {
-  const ref = doc(db, 'lucasIssues', issueId, 'subtasks', subtaskId);
+  const ref = doc(db, COLLECTION_NAME, issueId, 'subtasks', subtaskId);
   await deleteDoc(ref);
 };
 
@@ -103,7 +105,7 @@ export const deleteSubtask = async (
 // ==========
 export const getIssueById = async (id: string): Promise<IssueData | null> => {
   try {
-  const docRef = doc(db, 'lucasIssues', id); // ✅ path ถูก
+  const docRef = doc(db, COLLECTION_NAME, id); // ✅ path ถูก
   const docSnap = await getDoc(docRef);
 
   console.log("🔍 Fetching issue with ID:", id);

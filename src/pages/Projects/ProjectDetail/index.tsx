@@ -35,10 +35,12 @@ const ProjectDetail: React.FC = () => {
     baTest: '',
   });
 
+  const COLLECTION_NAME = 'LIMIssues';
+
   const fetchIssues = async () => {
     try {
       const q = query(
-        collection(db, 'lucasIssues'),
+        collection(db, COLLECTION_NAME),
         where('projectId', '==', id),
         orderBy('createdAt', 'desc') // ✅ เพิ่มบรรทัดนี้เพื่อเรียงจากใหม่ไปเก่า
       );
@@ -67,7 +69,7 @@ const ProjectDetail: React.FC = () => {
 
   const handleDelete = async (issueId: string) => {
     try {
-      await deleteDoc(doc(db, 'lucasIssues', issueId));
+      await deleteDoc(doc(db, COLLECTION_NAME, issueId));
       setIssues((prev) => prev.filter((item) => item.id !== issueId));
       message.success('Deleted successfully');
     } catch (error) {
@@ -78,7 +80,7 @@ const ProjectDetail: React.FC = () => {
 
   const handleStatusChange = async (issueId: string, newStatus: string) => {
     try {
-      await updateDoc(doc(db, 'lucasIssues', issueId), { status: newStatus });
+      await updateDoc(doc(db, COLLECTION_NAME, issueId), { status: newStatus });
       setIssues((prev) =>
         prev.map((item) => (item.id === issueId ? { ...item, status: newStatus } : item))
       );
