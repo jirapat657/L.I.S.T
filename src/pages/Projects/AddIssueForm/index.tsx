@@ -23,6 +23,7 @@ import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
 import type { FormValues, RowData} from '@/types/issue';
 import { useQuery } from '@tanstack/react-query';
+import { calculateOnLateTime } from '@/utils/dateUtils';
 
 const AddIssueForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -81,14 +82,11 @@ const AddIssueForm: React.FC = () => {
   };
 
   const onFinish = async () => {
-  const values = form.getFieldsValue(); // ✅ ดึงค่าล่าสุดทั้งหมด
+    const values = form.getFieldsValue(); // ✅ ดึงค่าล่าสุดทั้งหมด
     try {
       const { startDate, dueDate, completeDate, ...rest } = values;
-      let onLateTime = '';
-      if (completeDate && dueDate) {
-        const diff = completeDate.diff(dueDate, 'day');
-        onLateTime = diff <= 0 ? `On Time (${Math.abs(diff)} Day)` : `Late Time (${diff} Day)`;
-      }
+
+      const onLateTime = calculateOnLateTime(completeDate, dueDate); // ✅ ใช้ยูทิลฟังก์ชัน
 
       const issuePayload = {
         ...rest,
@@ -102,15 +100,16 @@ const AddIssueForm: React.FC = () => {
       };
 
       const subtasks = data
-      .filter((row) => row.details.trim()) // ✅ เฉพาะ row ที่มี details
-      .map((row) => ({
-        details: row.details,
-        date: row.date ? Timestamp.fromDate(row.date.toDate()) : null,
-        completeDate: row.completeDate ? Timestamp.fromDate(row.completeDate.toDate()) : null,
-        baTest: row.baTest,
-        status: row.status,
-        remark: row.remark,
-      }));
+        .filter((row) => row.details.trim()) // ✅ เฉพาะ row ที่มี details
+        .map((row) => ({
+          details: row.details,
+          date: row.date ? Timestamp.fromDate(row.date.toDate()) : null,
+          completeDate: row.completeDate ? Timestamp.fromDate(row.completeDate.toDate()) : null,
+          baTest: row.baTest,
+          status: row.status,
+          remark: row.remark,
+        }));
+
       await addIssue(issuePayload, subtasks);
       message.success('เพิ่ม Issue สำเร็จ');
       navigate(`/projects/${id}`);

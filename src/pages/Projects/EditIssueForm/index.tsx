@@ -30,6 +30,7 @@ import type { MenuProps } from 'antd';
 import { v4 as uuidv4 } from 'uuid'; // npm i uuid (หากยังไม่ได้ติดตั้ง)
 import { Timestamp } from 'firebase/firestore';
 import { getAllUsers } from '@/api/user';
+import { calculateOnLateTime } from '@/utils/dateUtils';
 
 const EditIssueFormPage: React.FC = () => {
   const { issueId, projectId } = useParams<{
@@ -181,6 +182,7 @@ const handleSave = async () => {
       startDate: values.startDate?.toDate?.() ?? values.startDate,
       dueDate: values.dueDate?.toDate?.() ?? values.dueDate,
       completeDate: values.completeDate?.toDate?.() ?? values.completeDate,
+      onLateTime: calculateOnLateTime(values.completeDate, values.dueDate),
     };
 
     console.log('🧼 ค่า cleanedValues ที่จะอัปเดต:', cleanedValues);
