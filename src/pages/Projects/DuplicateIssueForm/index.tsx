@@ -13,8 +13,9 @@ import {
   Popconfirm,
   DatePicker,
   Select,
-  Form, // ✅ เพิ่มบรรทัดนี้เข้าไป
+  Form,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
@@ -24,11 +25,12 @@ import IssueForm from '@/components/IssueForm';
 import {
   getIssueById,
   addIssue,
-  addSubtask,
   getSubtasksByIssueId,
+  deleteSubtask,
+  updateSubtask
 } from '@/api/issue';
 import { getAllUsers } from '@/api/user';
-import type { IssueData, Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
+import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 
 const DuplicateIssueForm: React.FC = () => {
@@ -75,6 +77,45 @@ const DuplicateIssueForm: React.FC = () => {
     if (value instanceof Date) return Timestamp.fromDate(value);
     if (typeof value.toDate === 'function') return Timestamp.fromDate(value.toDate());
     return null;
+  };
+
+  const handleAddRow = () => {
+      const newRow: SubtaskData & { id: string } = {
+        id: uuidv4(), // ใช้ id ชั่วคราว ไม่ชนกับ Firebase
+        details: '',
+        date: Timestamp.fromDate(new Date()), // ✅ ถูกต้อง
+        completeDate: null,
+        baTest: '',
+        remark: '',
+        status: 'Awaitting',
+      };
+      setSubtasks((prev) => [...prev, newRow]);
+    };
+
+  const handleViewDetails = (sub: Subtask) => {
+      setEditingSubtask(sub);
+      setDetailInput(sub.details || '');
+      setDetailModalOpen(true);
+      console.log(sub,"subbbbbbb")
+    };
+  
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!issueId) return;
+    await deleteSubtask(issueId, subtaskId);
+    setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
+    message.success('ลบ Subtask สำเร็จ');
+  };
+
+  const handleUpdateDetail = async () => {
+    if (!editingSubtask || !issueId) return;
+    await updateSubtask(issueId, editingSubtask.id, { details: detailInput });
+    setSubtasks((prev) =>
+      prev.map((s) =>
+        s.id === editingSubtask.id ? { ...s, details: detailInput } : s
+      )
+    );
+    setDetailModalOpen(false);
+    message.success('อัปเดตรายละเอียดสำเร็จ');
   };
 
   const handleDuplicate = async () => {
@@ -196,6 +237,37 @@ const DuplicateIssueForm: React.FC = () => {
         />
       ),
     },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_: any, record: Subtask) => {
+        const items: MenuProps['items'] = [
+          {
+            key: 'view',
+            label: '🔍 View / Edit',
+            onClick: () => handleViewDetails(record),
+          },
+          {
+            key: 'delete',
+            label: (
+              <Popconfirm
+                title="ยืนยันการลบ Subtask นี้?"
+                onConfirm={() => handleDeleteSubtask(record.id)}
+                okText="ลบ"
+                cancelText="ยกเลิก"
+              >
+                🗑️ Delete
+              </Popconfirm>
+            ),
+          },
+        ];
+        return (
+          <Dropdown menu={{ items }} trigger={['click']}>
+            <Button size="small">⋯</Button>
+          </Dropdown>
+        );
+      },
+    },
   ];
 
   if (isLoading || !issue) return <div>Loading...</div>;
@@ -206,6 +278,9 @@ const DuplicateIssueForm: React.FC = () => {
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
       <Divider>Subtasks</Divider>
+      <div style={{ textAlign: 'right', marginBottom: 16 }}>
+        <Button onClick={handleAddRow}>➕ Add Subtask</Button>
+      </div>
       <Table
         columns={columns}
         dataSource={subtasks}
@@ -213,6 +288,19 @@ const DuplicateIssueForm: React.FC = () => {
         pagination={false}
         scroll={{ x: 'max-content' }}
       />
+      <Modal
+        open={detailModalOpen}
+        onCancel={() => setDetailModalOpen(false)}
+        onOk={handleUpdateDetail}
+        title="แก้ไขรายละเอียด Subtask"
+        width="80%"
+      >
+        <Input.TextArea
+          rows={10}
+          value={detailInput}
+          onChange={(e) => setDetailInput(e.target.value)}
+        />
+      </Modal>
       <Divider />
       <div style={{ textAlign: 'right' }}>
         <Button onClick={() => navigate(-1)} style={{ marginRight: 8 }}>

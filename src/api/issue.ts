@@ -132,7 +132,7 @@ export const getIssueById = async (id: string): Promise<IssueData | null> => {
 // edit issue
 // ==========
 export const updateIssue = async (id: string, data: Partial<IssueData>) => {
-  const ref = doc(db, 'LIMIssues', id);
+  const ref = doc(db, COLLECTION_NAME, id);
   await updateDoc(ref, data);
 };
 
@@ -140,6 +140,6 @@ export const addSubtask = async (
   issueId: string,
   subtask: Omit<Subtask, 'id'>
 ) => {
-  const ref = collection(db, 'LIMIssues', issueId, 'subtasks');
+  const ref = collection(db, COLLECTION_NAME, issueId, 'subtasks');
   await addDoc(ref, subtask);
 };
