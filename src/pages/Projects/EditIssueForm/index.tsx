@@ -396,12 +396,14 @@ const handleSave = async () => {
         onCancel={() => setDetailModalOpen(false)}
         onOk={handleUpdateDetail}
         title="แก้ไขรายละเอียด Subtask"
-        width="80%"
+        width="80%" // ✅ เต็มหน้าจอเกือบสุด
+        bodyStyle={{ height: '60vh' }} // ✅ เพิ่มความสูง
       >
         <Input.TextArea
-          rows={10}
+          rows={15}
           value={detailInput}
           onChange={(e) => setDetailInput(e.target.value)}
+          style={{ height: '100%' }}
         />
       </Modal>
       <div style={{ textAlign: 'right', marginBottom: 24 }}>

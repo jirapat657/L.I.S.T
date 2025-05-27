@@ -14,6 +14,7 @@ import {
   Dropdown,
   Menu,
   Table,
+  Modal
 } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
@@ -30,6 +31,10 @@ const AddIssueForm: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
   const [data, setData] = useState<RowData[]>([]);
+
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [detailInput, setDetailInput] = useState('');
 
   const statusOptions = ['Awaiting', 'Inprogress', 'Complete', 'Cancel'];
 
@@ -57,6 +62,7 @@ const AddIssueForm: React.FC = () => {
       details: '',
       showFull: false,
       date: dayjs(),
+      status: 'Awaiting',
     };
     setData((prev) => [...prev, newRow]);
   };
@@ -75,6 +81,24 @@ const AddIssueForm: React.FC = () => {
       })
     );
   };
+
+  const handleViewDetails = (record: RowData) => {
+    setEditingKey(record.key);
+    setDetailInput(record.details);
+    setDetailModalOpen(true);
+  };
+
+  const handleUpdateDetail = () => {
+    if (!editingKey) return;
+
+    setData((prev) =>
+      prev.map((row) =>
+        row.key === editingKey ? { ...row, details: detailInput, showFull: true } : row
+      )
+    );
+    setDetailModalOpen(false);
+  };
+
 
   const handleDelete = (key: string) => {
     setData((prev) => prev.filter((row) => row.key !== key));
@@ -198,7 +222,7 @@ const AddIssueForm: React.FC = () => {
             <Menu
               onClick={({ key }) => {
                 if (key === 'delete') handleDelete(record.key);
-                else if (key === 'view') message.info(JSON.stringify(record, null, 2));
+                else if (key === 'view') handleViewDetails(record);
               }}
               items={[
                 { key: 'view', label: '🔍 View' },
@@ -208,7 +232,7 @@ const AddIssueForm: React.FC = () => {
           }
           trigger={['click']}
         >
-          <Button icon={<MoreOutlined />} />
+          <Button size="small">...</Button>
         </Dropdown>
       ),
     },
@@ -285,6 +309,21 @@ const AddIssueForm: React.FC = () => {
           pagination={false}
           scroll={{ x: 'max-content' }}
         />
+        <Modal
+          open={detailModalOpen}
+          onCancel={() => setDetailModalOpen(false)}
+          onOk={handleUpdateDetail}
+          title="แก้ไขรายละเอียด Subtask"
+          width="80%" // ✅ เต็มหน้าจอเกือบสุด
+          bodyStyle={{ height: '60vh' }} // ✅ เพิ่มความสูง
+        >
+          <Input.TextArea
+            rows={15}
+            value={detailInput}
+            onChange={(e) => setDetailInput(e.target.value)}
+            style={{ height: '100%' }}
+          />
+        </Modal>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
           <Button onClick={() => navigate(`/projects/${id}`)}>❌ ยกเลิก</Button>
