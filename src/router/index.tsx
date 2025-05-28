@@ -23,7 +23,6 @@ import ViewIssue from '@/pages/Projects/ViewIssue';
 import EditIssueForm from '@/pages/Projects/EditIssueForm';
 import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
 import ScopeOfWork from '@/pages/ScopeOfWork';
-import AddScopeOfWork from '@/pages/ScopeOfWork/AddScopeOfWork';
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
 
@@ -161,14 +160,6 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.SCOPE}>
               <ScopeOfWork />
-            </PageContainer>
-          ),
-        },
-        {
-          path: PATH.SCOPE_ADD,
-          element: (
-            <PageContainer title={PAGE_TITLE.SCOPE_ADD}>
-              <AddScopeOfWork />
             </PageContainer>
           ),
         },

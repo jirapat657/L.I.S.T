@@ -36,6 +36,7 @@ const Projects: React.FC = () => {
         allowClear
         enterButton="ค้นหา"
         size="large"
+        onChange={(e) => setSearchTerm(e.target.value)} // เพิ่มการค้นหาแบบทันที
         onSearch={(value) => setSearchTerm(value)}
         style={{ marginBottom: 24, maxWidth: 400 }}
       />

@@ -29,39 +29,40 @@ import PublicRoute from './components/PublicRoute';
 
 // Ant Design
 import 'antd/dist/reset.css';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntdApp } from 'antd';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <ConfigProvider>
-      <UserProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* ⬅️ Routes ที่ไม่ใช้ Layout หลัก */}
-            <Route path="/login" element={<PublicRoute><SignIn /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-
-            {/* ⬅️ Routes ที่ใช้ Layout หลัก */}
-            <Route path="/" element={<ProtectedRoute><App /></ProtectedRoute>}>
-              <Route index element={<Home />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="projects/:id" element={<ProjectDetail />} />
-              <Route path="projects/:id/add" element={<AddIssueForm />} />
-              <Route path="projects/:id/view/:issueId" element={<ViewIssue />} />
-              <Route path="projects/:id/edit/:issueId" element={<EditIssue />} />
-              <Route path="projects/:id/duplicate/:issueId" element={<DuplicateIssue />} />
-              <Route path="scope" element={<ScopeOfWork />} />
-              <Route path="settings/add-project" element={<AddProject />} />
-              <Route path="settings/add-user" element={<AddUser />} />
-              <Route path="scope/add" element={<AddScopeOfWork />} />
-              <Route path="projects/view/:projectId" element={<ViewProject />} />
-              <Route path="edit-profile" element={<EditProfile />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </UserProvider>
+      <AntdApp>
+        <UserProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* ⬅️ Routes ที่ไม่ใช้ Layout หลัก */}
+              <Route path="/login" element={<PublicRoute><SignIn /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+              {/* ⬅️ Routes ที่ใช้ Layout หลัก */}
+              <Route path="/" element={<ProtectedRoute><App /></ProtectedRoute>}>
+                <Route index element={<Home />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="projects/:id" element={<ProjectDetail />} />
+                <Route path="projects/:id/add" element={<AddIssueForm />} />
+                <Route path="projects/:id/view/:issueId" element={<ViewIssue />} />
+                <Route path="projects/:id/edit/:issueId" element={<EditIssue />} />
+                <Route path="projects/:id/duplicate/:issueId" element={<DuplicateIssue />} />
+                <Route path="scope" element={<ScopeOfWork />} />
+                <Route path="settings/add-project" element={<AddProject />} />
+                <Route path="settings/add-user" element={<AddUser />} />
+                <Route path="scope/add" element={<AddScopeOfWork />} />
+                <Route path="projects/view/:projectId" element={<ViewProject />} />
+                <Route path="edit-profile" element={<EditProfile />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </UserProvider>
+      </AntdApp>
     </ConfigProvider>
   </React.StrictMode>
 );

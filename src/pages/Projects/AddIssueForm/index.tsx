@@ -16,7 +16,6 @@ import {
   Table,
   Modal
 } from 'antd';
-import { MoreOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { getAllUsers } from '@/api/user';
