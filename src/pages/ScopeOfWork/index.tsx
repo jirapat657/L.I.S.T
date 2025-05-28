@@ -158,7 +158,6 @@ const ScopeOfWork = () => {
 
   return (
     <div>
-      <h2>รายการ Scope of Work</h2>
 
       <Input.Search
         placeholder="ค้นหา Project"

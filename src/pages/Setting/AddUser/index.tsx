@@ -201,6 +201,17 @@ const AddUserPage = () => {
         </Button>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button
+          onClick={() => {
+            setSearchId('')
+            setSearchName('')
+          }}
+        >
+          🧹 ล้างการค้นหา
+        </Button>
+      </div>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
           <Input
