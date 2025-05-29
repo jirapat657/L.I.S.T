@@ -39,22 +39,27 @@ export const deleteScopeById = async (id: string) => {
   await deleteDoc(docRef);
 };
 
+const removeUndefined = (obj: Record<string, any>) => {
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+};
+
+
 export const updateScopeById = async (id: string, data: Partial<ScopeData>) => {
-  const payload = {
+  const payload = removeUndefined({
     ...data,
     docDate: data.docDate ? Timestamp.fromDate(data.docDate.toDate()) : null,
     updatedAt: Timestamp.now(),
-  };
-
-  console.log('📤 Payload to Firestore:', payload);
-    console.log('🟢 Updating ID:', id);
+  });
 
   return await setDoc(doc(db, COLLECTION_NAME, id), payload, { merge: true });
 };
 
 export const createScope = async (data: ScopePayload) => {
-  return await addDoc(collection(db, COLLECTION_NAME), {
+  const payload = removeUndefined({
     ...data,
     createdAt: Timestamp.now(),
   });
+
+  return await addDoc(collection(db, COLLECTION_NAME), payload);
 };
+
