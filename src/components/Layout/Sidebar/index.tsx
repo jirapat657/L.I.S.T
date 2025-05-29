@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth'
 import React, { useState } from 'react'
 import { BsTable } from 'react-icons/bs'
 import { BiLogOut } from 'react-icons/bi'
-import { SettingOutlined } from '@ant-design/icons'
+import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { Flex, Layout, Menu, Space, Typography } from 'antd'
 
@@ -54,9 +54,9 @@ export default function Sidebar() {
 
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
-    getItem('Projects', 'projects', <BsTable />),
-    getItem('Scope of Work', 'scope', <BsTable />),
-    getItem('Setting', 'setting', <SettingOutlined />, [
+    getItem('Projects', 'projects', <UnorderedListOutlined />),
+    getItem('Scope of Work', 'scope', <FileTextOutlined />),
+    getItem(<span style={{ color: 'white' }}>Setting</span>,'setting', <SettingOutlined />, [
       getItem(
         <Link to={PATH.SETTING_ADD_PROJECT} style={{ color: 'white' }}>
           Add Project

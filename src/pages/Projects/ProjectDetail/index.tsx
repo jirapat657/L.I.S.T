@@ -17,6 +17,7 @@ import dayjs from 'dayjs';
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Issue, Filters } from '@/types/projectDetail';
+import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -181,10 +182,10 @@ const ProjectDetail: React.FC = () => {
       key: 'actions',
       render: (_: any, record: Issue) => {
         const items: MenuProps['items'] = [
-          { key: 'view', label: '🔍 View' },
-          { key: 'edit', label: '✏️ Edit' },
-          { key: 'duplicate', label: '📄 Duplicate' },
-          { key: 'delete', label: '🗑️ Delete', danger: true },
+          { key: 'view', label: (<><EyeOutlined /> View</>) },
+          { key: 'edit', label: (<><EditOutlined /> Edit</>) },
+          { key: 'duplicate', label: (<><CopyOutlined /> Duplicate</>) },
+          { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
         ];
         return (
           <Dropdown
@@ -197,7 +198,7 @@ const ProjectDetail: React.FC = () => {
             }}
             trigger={['click']}
           >
-            <Button>⋯</Button>
+            <Button><MoreOutlined /></Button>
           </Dropdown>
         );
       },
@@ -210,7 +211,7 @@ const ProjectDetail: React.FC = () => {
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" onClick={() => navigate(`/projects/${id}/add`)}>
-          ➕ Add Issue
+          <PlusOutlined /> Add Issue
         </Button>
       </div>
 
@@ -230,7 +231,7 @@ const ProjectDetail: React.FC = () => {
             })
           }
         >
-          🧹 ล้างการค้นหา
+          <SyncOutlined /> ล้างการค้นหา
         </Button>
       </div>
 

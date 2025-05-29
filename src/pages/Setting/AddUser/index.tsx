@@ -28,6 +28,7 @@ import {
   updateUserStatus,
 } from '@/api/user';
 import type { UserData, UserFormValues } from '@/types/users';
+import { DeleteOutlined, EditOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -178,8 +179,8 @@ const AddUserPage = () => {
         <Dropdown
           menu={{
             items: [
-              { key: 'edit', label: '📝 Edit' },
-              { key: 'delete', label: '🗑️ Delete', danger: true },
+              { key: 'edit', label: (<><EditOutlined /> Edit</>) },
+              { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
             ],
             onClick: ({ key }) => {
               if (key === 'edit') handleEdit(record);
@@ -197,7 +198,7 @@ const AddUserPage = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type='primary' onClick={handleOpenModal}>
-          ➕ Add User
+          <PlusOutlined /> Add User
         </Button>
       </div>
 
@@ -208,7 +209,7 @@ const AddUserPage = () => {
             setSearchName('')
           }}
         >
-          🧹 ล้างการค้นหา
+          <SyncOutlined /> ล้างการค้นหา
         </Button>
       </div>
 
@@ -266,8 +267,8 @@ const AddUserPage = () => {
             <Form.Item label='Password' name='password' rules={[{ required: true }]}><Input.Password /></Form.Item>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-            <Button onClick={() => setIsModalOpen(false)}>❌ ยกเลิก</Button>
-            <Button type='primary' htmlType='submit'>💾 บันทึก</Button>
+            <Button onClick={() => setIsModalOpen(false)}>ยกเลิก</Button>
+            <Button type='primary' htmlType='submit'>บันทึก</Button>
           </div>
         </Form>
       </Modal>

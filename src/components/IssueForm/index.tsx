@@ -53,13 +53,13 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
       }}
     >
       <Row gutter={16}>
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Issue Code" name="issueCode">
             <Input disabled={disabled} />
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Issue Date" name="issueDate">
             <DatePicker
               format="DD/MM/YY"
@@ -69,7 +69,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={24}>
           <Form.Item label="Title" name="title">
             <Input disabled={disabled} />
           </Form.Item>
@@ -77,11 +77,11 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
 
         <Col span={24}>
           <Form.Item label="Description" name="description">
-            <Input.TextArea disabled={disabled} rows={3} />
+            <Input.TextArea rows={4} disabled={disabled}/>
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Status" name="status">
             <Select disabled={disabled}>
               <Select.Option value="Open">Open</Select.Option>
@@ -91,7 +91,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Start Date" name="startDate">
             <DatePicker
               format="DD/MM/YY"
@@ -101,7 +101,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Due Date" name="dueDate">
             <DatePicker
               format="DD/MM/YY"
@@ -111,7 +111,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Complete Date" name="completeDate">
             <DatePicker
               format="DD/MM/YY"
@@ -121,7 +121,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="Developer" name="developer">
                 <Select
                 showSearch
@@ -132,7 +132,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
             </Form.Item>
         </Col>
 
-        <Col span={8}>
+        <Col span={12}>
           <Form.Item label="BA/Test" name="baTest">
                 <Select
                 showSearch
@@ -145,13 +145,13 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
 
         <Col span={12}>
           <Form.Item label="Remark" name="remark">
-            <Input.TextArea disabled={disabled} rows={2} />
+            <Input.TextArea rows={4} disabled={disabled} />
           </Form.Item>
         </Col>
 
         <Col span={12}>
           <Form.Item label="Additional Document" name="document">
-            <Input disabled={disabled} />
+            <Input.TextArea rows={4} disabled={disabled} />
           </Form.Item>
         </Col>
       </Row>

@@ -17,10 +17,12 @@ import IssueForm from '@/components/IssueForm';
 import { getIssueById } from '@/api/issue';
 import type { IssueData, Subtask } from '@/types/issue';
 import type { ColumnsType } from 'antd/es/table';
+import { CaretLeftOutlined } from '@ant-design/icons';
 
 const { Text, Title } = Typography;
 
 const ViewIssuePage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const { issueId } = useParams<{ issueId: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -100,7 +102,7 @@ const ViewIssuePage: React.FC = () => {
 
       <IssueForm issue={issue} form={form} disabled />
 
-      <Divider>Subtasks</Divider>
+      <Divider orientation="left">Child Work Item</Divider>
 
       <Table<Subtask>
         columns={columns}
@@ -111,10 +113,9 @@ const ViewIssuePage: React.FC = () => {
       />
 
       <Divider />
-
       <div style={{ textAlign: 'right' }}>
         <Space>
-          <Button onClick={() => navigate(-1)}>🔙 กลับ</Button>
+          <Button onClick={() => navigate(`/projects/${id}`)}><CaretLeftOutlined /> กลับ</Button>
         </Space>
       </div>
 

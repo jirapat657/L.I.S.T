@@ -31,6 +31,7 @@ import { v4 as uuidv4 } from 'uuid'; // npm i uuid (หากยังไม่�
 import { Timestamp } from 'firebase/firestore';
 import { getAllUsers } from '@/api/user';
 import { calculateOnLateTime } from '@/utils/dateUtils';
+import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 
 const EditIssueFormPage: React.FC = () => {
   const { issueId, projectId } = useParams<{
@@ -346,7 +347,7 @@ const handleSave = async () => {
         const items: MenuProps['items'] = [
           {
             key: 'view',
-            label: '🔍 View / Edit',
+            label: (<><EyeOutlined /> View</>),
             onClick: () => handleViewDetails(record),
           },
           {
@@ -358,14 +359,14 @@ const handleSave = async () => {
                 okText="ลบ"
                 cancelText="ยกเลิก"
               >
-                🗑️ Delete
+                <DeleteOutlined /> Delete
               </Popconfirm>
             ),
           },
         ];
         return (
           <Dropdown menu={{ items }} trigger={['click']}>
-            <Button size="small">⋯</Button>
+            <Button size="small"><MoreOutlined /></Button>
           </Dropdown>
         );
       },
@@ -380,9 +381,9 @@ const handleSave = async () => {
       <h2>แก้ไข Issue #{issueId}</h2>
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
-      <Divider>Subtasks</Divider>
+      <Divider orientation="left">Child Work Item</Divider>
       <div style={{ textAlign: 'right', marginBottom: 16 }}>
-        <Button onClick={handleAddRow}>➕ Add Subtask</Button>
+        <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
       <Table
         columns={subtaskColumns}
@@ -406,13 +407,10 @@ const handleSave = async () => {
           style={{ height: '100%' }}
         />
       </Modal>
-      <div style={{ textAlign: 'right', marginBottom: 24 }}>
-        <Button onClick={() => navigate(-1)} style={{ marginRight: 8 }}>
-          ยกเลิก
-        </Button>
-        <Button type="primary" onClick={handleSave}>
-          💾 บันทึก
-        </Button>
+      <Divider />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+        <Button onClick={() => navigate(`/projects/${projectId}`)}>ยกเลิก</Button>
+        <Button type="primary" htmlType="submit" onClick={handleSave}>บันทึก</Button>
       </div>
     </div>
   );

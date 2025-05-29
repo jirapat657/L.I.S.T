@@ -4,6 +4,7 @@ export const useLayoutStyle = createStyles(() => {
   return {
     authContainer: {
       minHeight: '100vh',
+      backgroundImage: 'url(/images/login-background.jpg)', //backgroundหน้าlogin,forget pass
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',

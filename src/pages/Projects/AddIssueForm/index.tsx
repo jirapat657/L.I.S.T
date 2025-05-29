@@ -24,6 +24,7 @@ import { addIssue } from '@/api/issue';
 import type { FormValues, RowData} from '@/types/issue';
 import { useQuery } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
+import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 
 const AddIssueForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -224,14 +225,14 @@ const AddIssueForm: React.FC = () => {
                 else if (key === 'view') handleViewDetails(record);
               }}
               items={[
-                { key: 'view', label: '🔍 View' },
-                { key: 'delete', label: '🗑️ Delete', danger: true },
+                { key: 'view', label: (<><EyeOutlined /> View</>) },
+                { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
               ]}
             />
           }
           trigger={['click']}
         >
-          <Button size="small">...</Button>
+          <Button size="small"><MoreOutlined /></Button>
         </Dropdown>
       ),
     },
@@ -248,19 +249,19 @@ const AddIssueForm: React.FC = () => {
         initialValues={{ issueDate: dayjs() }}
       >
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={12}>
             <Form.Item label="Issue Code" name="issueCode" rules={[{ required: true }]}><Input /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Issue Date" name="issueDate"><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Issue Date" name="issueDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Title" name="title"><Input /></Form.Item>
+          <Col span={24}>
+            <Form.Item label="Title" name="title" rules={[{ required: true }]}><Input /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Description" name="description"><Input /></Form.Item>
+          <Col span={24}>
+            <Form.Item label="Description" name="description" rules={[{ required: true }]}><Input.TextArea rows={4}/></Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={12}>
             <Form.Item label="Status" name="status" rules={[{ required: true }]} initialValue="Awaiting">
               <Select placeholder="เลือกสถานะ">
                 {statusOptions.map((s) => (
@@ -269,37 +270,37 @@ const AddIssueForm: React.FC = () => {
               </Select>
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Start Date" name="startDate"><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Start Date" name="startDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Due Date" name="dueDate"><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Due Date" name="dueDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Complete Date" name="completeDate"><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Complete Date" name="completeDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Developer" name="developer">
+          <Col span={12}>
+            <Form.Item label="Developer" name="developer" rules={[{ required: true }]}>
               <Select showSearch placeholder="เลือก Developer" options={userOptions} />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="BA/Test" name="baTest">
+          <Col span={12}>
+            <Form.Item label="BA/Test" name="baTest" rules={[{ required: true }]}>
               <Select showSearch placeholder="เลือก BA/Test" options={userOptions} />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Remark" name="remark"><Input /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Remark" name="remark" rules={[{ required: true }]}><Input.TextArea rows={4} /></Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Additional Document" name="document"><Input /></Form.Item>
+          <Col span={12}>
+            <Form.Item label="Additional Document" name="document" rules={[{ required: true }]}><Input.TextArea rows={4}/></Form.Item>
           </Col>
         </Row>
 
-        <Divider>Subtasks</Divider>
+        <Divider orientation="left">Child Work Item</Divider>
 
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
-          <Button onClick={handleAddRow}>➕ Add Subtask</Button>
+          <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
         </div>
         <Table
           columns={columns}
@@ -325,8 +326,8 @@ const AddIssueForm: React.FC = () => {
         </Modal>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button onClick={() => navigate(`/projects/${id}`)}>❌ ยกเลิก</Button>
-          <Button type="primary" htmlType="submit">💾 บันทึก</Button>
+          <Button onClick={() => navigate(`/projects/${id}`)}>ยกเลิก</Button>
+          <Button type="primary" htmlType="submit">บันทึก</Button>
         </div>
       </Form>
     </div>

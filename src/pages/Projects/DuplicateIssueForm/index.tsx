@@ -32,6 +32,7 @@ import {
 import { getAllUsers } from '@/api/user';
 import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
+import { CopyOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 
 const DuplicateIssueForm: React.FC = () => {
   const { issueId, projectId } = useParams<{ issueId: string; projectId: string }>();
@@ -244,7 +245,7 @@ const DuplicateIssueForm: React.FC = () => {
         const items: MenuProps['items'] = [
           {
             key: 'view',
-            label: '🔍 View / Edit',
+            label: (<><EyeOutlined /> View</>),
             onClick: () => handleViewDetails(record),
           },
           {
@@ -256,14 +257,14 @@ const DuplicateIssueForm: React.FC = () => {
                 okText="ลบ"
                 cancelText="ยกเลิก"
               >
-                🗑️ Delete
+                <DeleteOutlined /> Delete
               </Popconfirm>
             ),
           },
         ];
         return (
           <Dropdown menu={{ items }} trigger={['click']}>
-            <Button size="small">⋯</Button>
+            <Button size="small"><MoreOutlined /></Button>
           </Dropdown>
         );
       },
@@ -274,12 +275,12 @@ const DuplicateIssueForm: React.FC = () => {
 
   return (
     <div>
-      <h2>📄 สร้างสำเนา Issue #{issueId}</h2>
+      <h2><CopyOutlined /> สร้างสำเนา Issue #{issueId}</h2>
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
-      <Divider>Subtasks</Divider>
+      <Divider orientation="left">Child Work Item</Divider>
       <div style={{ textAlign: 'right', marginBottom: 16 }}>
-        <Button onClick={handleAddRow}>➕ Add Subtask</Button>
+        <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
       <Table
         columns={columns}
@@ -303,14 +304,10 @@ const DuplicateIssueForm: React.FC = () => {
           style={{ height: '100%' }}
         />
       </Modal>
-      <Divider />
-      <div style={{ textAlign: 'right' }}>
-        <Button onClick={() => navigate(-1)} style={{ marginRight: 8 }}>
-          ยกเลิก
-        </Button>
-        <Button type="primary" onClick={handleDuplicate}>
-          💾 บันทึกสำเนา
-        </Button>
+      <Divider />   
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+        <Button onClick={() => navigate(`/projects/${projectId}`)}>ยกเลิก</Button>
+        <Button type="primary" htmlType="submit" onClick={handleDuplicate}>บันทึกสำเนา</Button>
       </div>
     </div>
   );

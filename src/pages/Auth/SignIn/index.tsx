@@ -29,7 +29,7 @@ const useStyle = createStyles(() => {
     title: {
       fontSize: 36,
       fontWeight: 700,
-      color: '#2B3674',
+      color: '#080808',
     },
     form: {
       textAlign: 'center',
@@ -57,7 +57,7 @@ const useStyle = createStyles(() => {
       marginBottom: 50,
     },
     textForget: {
-      color: '#045F96',
+      color: '#FC0A18',
       fontSize: 14,
       fontWeight: 500,
       marginRight: 20,
@@ -66,7 +66,6 @@ const useStyle = createStyles(() => {
       fontSize: 14,
       fontWeight: 500,
       color: '#ffffff',
-      backgroundColor: '#42B4E7',
       borderRadius: 16,
       padding: 25,
     },
@@ -94,8 +93,13 @@ export default function LoginForm() {
   }
 
   return (
+    <>
     <Card className={styles.card}>
       <Flex className={styles.header} gap={30}>
+        <img src='/icons/logoLogin.png' alt='Logo' className={styles.logo} />
+        <div>
+          <h2>ISSUE MANAGEMENT</h2>
+        </div>
         <Text className={styles.title}>Sign In</Text>
       </Flex>
       <Form layout='vertical' onFinish={handleLogin} className={styles.form}>
@@ -133,10 +137,11 @@ export default function LoginForm() {
             Forget password?
           </Link>
         </div>
-        <Button htmlType='submit' size='large' block loading={isLoading} className={styles.button}>
+        <Button type='primary' htmlType='submit' size='large' block loading={isLoading} className={styles.button}>
           Sign In
         </Button>
       </Form>
     </Card>
+    </>
   )
 }

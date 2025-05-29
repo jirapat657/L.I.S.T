@@ -13,7 +13,7 @@ import {
   message,
   Pagination,
 } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EyeOutlined, PlusOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons'
 import { auth} from '@/services/firebase'
 import {
   addProject,
@@ -165,8 +165,8 @@ const AddProject: React.FC = () => {
         <Dropdown
           menu={{
             items: [
-              { key: 'view', label: '🔍 View' },
-              { key: 'delete', label: '🗑️ Delete', danger: true },
+              { key: 'view', label: (<><EyeOutlined /> View</>) },
+              { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
             ],
             onClick: ({ key }) => {
               if (key === 'view') {
@@ -198,7 +198,7 @@ const AddProject: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type='primary' onClick={handleOpenModal}>
-          ➕ Add Project
+          <PlusOutlined /> Add Project
         </Button>
       </div>
 
@@ -209,7 +209,7 @@ const AddProject: React.FC = () => {
             setSearchName('')
           }}
         >
-          🧹 ล้างการค้นหา
+          <SyncOutlined /> ล้างการค้นหา
         </Button>
       </div>
 
@@ -282,9 +282,9 @@ const AddProject: React.FC = () => {
             </Upload>
           </Form.Item>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-            <Button onClick={handleCancel}>❌ ยกเลิก</Button>
+            <Button onClick={handleCancel}>ยกเลิก</Button>
             <Button type='primary' htmlType='submit'>
-              💾 บันทึก
+              บันทึก
             </Button>
           </div>
         </Form>
@@ -340,10 +340,10 @@ const AddProject: React.FC = () => {
                 viewForm.resetFields()
               }}
             >
-              ❌ ยกเลิก
+              ยกเลิก
             </Button>
             <Button type='primary' htmlType='submit'>
-              💾 บันทึก
+              บันทึก
             </Button>
           </div>
         </Form>

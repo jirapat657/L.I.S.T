@@ -31,14 +31,12 @@ const Projects: React.FC = () => {
 
   return (
     <div>
-      <Search
-        placeholder="ค้นหาโปรเจกต์ตามชื่อ..."
+      <Input.Search
+        placeholder="Project Name"
         allowClear
-        enterButton="ค้นหา"
-        size="large"
-        onChange={(e) => setSearchTerm(e.target.value)} // เพิ่มการค้นหาแบบทันที
+        onChange={(e) => setSearchTerm(e.target.value)}
         onSearch={(value) => setSearchTerm(value)}
-        style={{ marginBottom: 24, maxWidth: 400 }}
+        style={{ marginBottom: 16, maxWidth: 300 }}
       />
 
       <Row gutter={[16, 16]}>
@@ -46,7 +44,6 @@ const Projects: React.FC = () => {
           <Col key={item.id} xs={24} sm={12} md={8} lg={6} xl={4}>
             <Card
               hoverable
-              title={item.projectName}
               onClick={() => navigate(`/projects/${item.id}`)}
               cover={
                 item.logo ? (
@@ -58,8 +55,7 @@ const Projects: React.FC = () => {
                 ) : null
               }
             >
-              <p><strong>ID:</strong> {item.projectId}</p>
-              <p><strong>By:</strong> {item.createBy}</p>
+              <p style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8, textAlign:'center'}}>{item.projectName}</p>
             </Card>
           </Col>
         ))}

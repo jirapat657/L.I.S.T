@@ -1,9 +1,9 @@
 // src/pages/ScopeOfWork/index.tsx
-import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload } from 'antd';
+import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Select, Pagination } from 'antd';
 import type { MenuProps } from 'antd';
-import { UploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAllScopes, deleteScopeById, updateScopeById } from '@/api/scope';
+import { getAllScopes, deleteScopeById, updateScopeById, createScope } from '@/api/scope';
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -59,7 +59,7 @@ const ScopeOfWork = () => {
         const items: MenuProps['items'] = [
           {
             key: 'view',
-            label: '🔍 View / Edit',
+            label: (<><EyeOutlined /> View/Edit</>),
             onClick: () => {
               setEditingScope(record);
               setUploadFiles(record.files || []);
@@ -71,7 +71,7 @@ const ScopeOfWork = () => {
           },
           {
             key: 'delete',
-            label: '🗑️ Delete',
+            label: (<><DeleteOutlined /> Delete</>),
             danger: true,
             onClick: () => handleDelete(record.id),
           },
@@ -146,26 +146,22 @@ const ScopeOfWork = () => {
       if (editingScope?.id) {
         await updateScopeById(editingScope.id, payload);
         message.success('อัปเดตสำเร็จ');
+      } else {
+        await createScope(payload); // ✅ เพิ่มส่วนนี้เพื่อสร้างใหม่
+        message.success('เพิ่มข้อมูลสำเร็จ');
       }
+
       setEditingScope(null);
       setUploadFiles([]);
       queryClient.invalidateQueries({ queryKey: ['scopes'] });
     } catch (err) {
-      console.error('อัปเดตล้มเหลว', err);
+      console.error('บันทึกล้มเหลว', err);
       message.error('เกิดข้อผิดพลาดในการบันทึก');
     }
   };
 
   return (
     <div>
-
-      <Input.Search
-        placeholder="ค้นหา Project"
-        allowClear
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: 16, maxWidth: 300 }}
-      />
-
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
         <Button
           type="primary"
@@ -178,9 +174,16 @@ const ScopeOfWork = () => {
             setUploadFiles([]);
           }}
         >
-          ➕ Add SOW
+          <PlusOutlined /> Add SOW
         </Button>
       </div>
+
+      <Input.Search
+        placeholder="Project Name"
+        allowClear
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 16, maxWidth: 300 }}
+      />
 
       <Table
         columns={columns}
@@ -188,8 +191,16 @@ const ScopeOfWork = () => {
         rowKey="id"
         loading={isLoading}
         scroll={{ x: 'max-content' }}
+        pagination={false} // ❗ ปิด pagination ของ Table
+        footer={() => (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px' }}>
+            <div>ทั้งหมด {filteredScopes.length} รายการ</div>
+            <Pagination
+              showSizeChanger={false}
+            />
+          </div>
+        )}
       />
-
       <Modal
         open={fileModalOpen}
         onCancel={() => setFileModalOpen(false)}
@@ -211,7 +222,7 @@ const ScopeOfWork = () => {
       <Modal
         open={!!editingScope}
         onCancel={() => setEditingScope(null)}
-        title={editingScope?.id ? '🔧 แก้ไข Scope' : '➕ เพิ่ม Scope'}
+        title={editingScope?.id ? (<><EditOutlined /> แก้ไข Scope</>) : (<><PlusOutlined /> เพิ่ม Scope</>)}
         footer={null}
         width={600}
         destroyOnClose
@@ -222,13 +233,20 @@ const ScopeOfWork = () => {
           onFinish={handleFinish}
           initialValues={{ docType: 'Scope of work' }}
         >
-          <Form.Item name="docNo" label="Doc No" rules={[{ required: true }]}> <Input /> </Form.Item>
-          <Form.Item name="docDate" label="Doc Date"> <DatePicker style={{ width: '100%' }} /> </Form.Item>
-          <Form.Item name="docType" label="Doc Type"> <Input disabled /> </Form.Item>
-          <Form.Item name="project" label="Project" rules={[{ required: true }]}> <Input /> </Form.Item>
-          <Form.Item name="customer" label="Customer" rules={[{ required: true }]}> <Input /> </Form.Item>
-          <Form.Item name="description" label="Description"> <Input.TextArea rows={3} /> </Form.Item>
-          <Form.Item name="remark" label="Remark"> <Input.TextArea rows={2} /> </Form.Item>
+          <Form.Item name="docNo" label="Doc No" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="docDate" label="Doc Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="docType" label="Doc Type" rules={[{ required: true }]}>
+            <Select
+              placeholder="เลือกประเภทเอกสาร"
+              options={[
+                { label: 'Scope of Work', value: 'Scope of Work' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="customer" label="Customer" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
+          <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
           <Form.Item label="อัปโหลดไฟล์">
             <Upload
               customRequest={handleCustomUpload}
@@ -260,7 +278,7 @@ const ScopeOfWork = () => {
           </Form.Item>
           <Form.Item>
             <Button htmlType="submit" type="primary" block>
-              💾 บันทึก
+              บันทึก
             </Button>
           </Form.Item>
         </Form>

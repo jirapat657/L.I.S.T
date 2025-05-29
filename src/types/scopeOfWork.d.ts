@@ -34,6 +34,7 @@ export interface ScopeData {
   createdAt: Timestamp;
 }
 
+// ใช้ใน <Form />
 export interface ScopePayload {
   docNo: string;
   docDate: Timestamp | null;
