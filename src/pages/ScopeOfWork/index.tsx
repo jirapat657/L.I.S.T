@@ -1,7 +1,7 @@
 // src/pages/ScopeOfWork/index.tsx
 import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Select, Pagination } from 'antd';
 import type { MenuProps } from 'antd';
-import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAllScopes, deleteScopeById, updateScopeById, createScope } from '@/api/scope';
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
@@ -79,7 +79,7 @@ const ScopeOfWork = () => {
 
         return (
           <Dropdown menu={{ items }} trigger={['click']}>
-            <Button size="small">⋯</Button>
+            <Button ><MoreOutlined /></Button>
           </Dropdown>
         );
       },

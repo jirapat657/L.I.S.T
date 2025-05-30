@@ -5,8 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { getProjects } from '@/api/project';
 import type { ProjectData } from '@/types/project';
 
-const { Search } = Input;
-
 const Projects: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [projects, setProjects] = useState<ProjectData[]>([]);

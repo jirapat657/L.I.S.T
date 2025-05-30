@@ -1,6 +1,7 @@
 import { db } from '@/services/firebase';
 import { collection, addDoc, getDocs, Timestamp, query, orderBy, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import type { ScopeData, ScopePayload } from '@/types/scopeOfWork';
+import { removeUndefined } from '@/utils/object';
 
 const COLLECTION_NAME = 'LIMScopeOfWork';
 
@@ -38,11 +39,6 @@ export const deleteScopeById = async (id: string) => {
   const docRef = doc(db, COLLECTION_NAME, id);
   await deleteDoc(docRef);
 };
-
-const removeUndefined = (obj: Record<string, any>) => {
-  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
-};
-
 
 export const updateScopeById = async (id: string, data: Partial<ScopeData>) => {
   const payload = removeUndefined({

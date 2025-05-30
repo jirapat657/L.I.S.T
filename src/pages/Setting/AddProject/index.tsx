@@ -13,7 +13,7 @@ import {
   message,
   Pagination,
 } from 'antd'
-import { DeleteOutlined, EyeOutlined, PlusOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons'
 import { auth} from '@/services/firebase'
 import {
   addProject,
@@ -188,7 +188,7 @@ const AddProject: React.FC = () => {
             },
           }}
         >
-          <Button>⋯</Button>
+          <Button><MoreOutlined /></Button>
         </Dropdown>
       ),
     },

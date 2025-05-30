@@ -17,6 +17,8 @@ import {
 // ✅ นำเข้า types
 import type { IssueFormValues, SubtaskData, IssueData, Subtask } from '@/types/issue';
 
+import { removeUndefined } from '@/utils/object';
+
 const COLLECTION_NAME = 'LIMIssues';
 
 // ======================
@@ -31,19 +33,19 @@ export const addIssue = async (
   const ref = collection(db, COLLECTION_NAME);
 
   // เพิ่ม issue หลัก
-  const issueDoc = await addDoc(ref, {
+  const issueDoc = await addDoc(ref, removeUndefined({
     ...data,
     createdAt: Timestamp.now(),
-  });
+  }));
 
   // เพิ่ม subtasks ใน subcollection
   for (const sub of subtasks) {
     await addDoc(
       collection(db, COLLECTION_NAME, issueDoc.id, 'subtasks'),
-      {
+      removeUndefined({
         ...sub,
         createdAt: Timestamp.now(),
-      }
+      })
     );
   }
 };
@@ -89,7 +91,7 @@ export const updateSubtask = async (
   updates: Partial<SubtaskData>
 ) => {
   const ref = doc(db, COLLECTION_NAME, issueId, 'subtasks', subtaskId);
-  await updateDoc(ref, updates);
+  await updateDoc(ref, removeUndefined(updates));
 };
 
 // ✅ ลบ Subtask รายตัว
@@ -133,7 +135,7 @@ export const getIssueById = async (id: string): Promise<IssueData | null> => {
 // ==========
 export const updateIssue = async (id: string, data: Partial<IssueData>) => {
   const ref = doc(db, COLLECTION_NAME, id);
-  await updateDoc(ref, data);
+  await updateDoc(ref, removeUndefined(data));
 };
 
 export const addSubtask = async (
@@ -141,5 +143,8 @@ export const addSubtask = async (
   subtask: Omit<Subtask, 'id'>
 ) => {
   const ref = collection(db, COLLECTION_NAME, issueId, 'subtasks');
-  await addDoc(ref, subtask);
+  await addDoc(ref, removeUndefined({
+    ...subtask,
+    createdAt: Timestamp.now(),
+  }));
 };

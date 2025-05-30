@@ -93,17 +93,18 @@ const ProjectDetail: React.FC = () => {
 
   const filteredData = issues.filter((item) => {
     return (
-      item.issueCode.toLowerCase().includes(filters.issueCode.toLowerCase()) &&
-      item.title.toLowerCase().includes(filters.title.toLowerCase()) &&
-      item.status.toLowerCase().includes(filters.status.toLowerCase()) &&
-      item.developer.toLowerCase().includes(filters.developer.toLowerCase()) &&
-      item.baTest.toLowerCase().includes(filters.baTest.toLowerCase()) &&
+      (item.issueCode ?? '').toLowerCase().includes((filters.issueCode ?? '').toLowerCase()) &&
+      (item.title ?? '').toLowerCase().includes((filters.title ?? '').toLowerCase()) &&
+      (item.status ?? '').toLowerCase().includes((filters.status ?? '').toLowerCase()) &&
+      (item.developer ?? '').toLowerCase().includes((filters.developer ?? '').toLowerCase()) &&
+      (item.baTest ?? '').toLowerCase().includes((filters.baTest ?? '').toLowerCase()) &&
       (!filters.issueDate || item.issueDate === dayjs(filters.issueDate).format('YYYY-MM-DD')) &&
       (!filters.startDate || item.startDate === dayjs(filters.startDate).format('YYYY-MM-DD')) &&
       (!filters.dueDate || item.dueDate === dayjs(filters.dueDate).format('YYYY-MM-DD')) &&
       (!filters.completeDate || item.completeDate === dayjs(filters.completeDate).format('YYYY-MM-DD'))
     );
   });
+
 
   const columns = [
     {

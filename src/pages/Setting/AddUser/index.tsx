@@ -28,7 +28,7 @@ import {
   updateUserStatus,
 } from '@/api/user';
 import type { UserData, UserFormValues } from '@/types/users';
-import { DeleteOutlined, EditOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -188,7 +188,7 @@ const AddUserPage = () => {
             },
           }}
         >
-          <Button>⋯</Button>
+          <Button><MoreOutlined /></Button>
         </Dropdown>
       ),
     },
