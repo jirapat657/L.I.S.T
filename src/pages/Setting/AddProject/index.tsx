@@ -20,6 +20,7 @@ import {
   deleteProject,
   updateProject,
   getProjects,
+  checkProjectIdExists,
 } from '@/api/project'
 import type { ProjectData, ProjectFormValues } from '@/types/project'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -83,22 +84,9 @@ const AddProject: React.FC = () => {
     },
   })
 
-  const getNextProjectId = (): string => {
-    const sorted = [...projectsData].sort((a, b) => a.projectId.localeCompare(b.projectId))
-    let max = 0
-    for (const p of sorted) {
-      const match = p.projectId.match(/GG-(\d+)/)
-      if (match) {
-        const num = parseInt(match[1])
-        if (num > max) max = num
-      }
-    }
-    return `GG-${(max + 1).toString().padStart(2, '0')}`
-  }
+  
 
   const handleOpenModal = () => {
-    form.setFieldsValue({ projectId: getNextProjectId() })
-    
     setIsModalOpen(true)
   }
 
@@ -109,16 +97,27 @@ const AddProject: React.FC = () => {
   }
 
   const handleSubmit = async (values: ProjectFormValues) => {
-    const currentUser = auth.currentUser;
-    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
+    try {
+      // เช็คว่า projectId ซ้ำหรือไม่
+      const exists = await checkProjectIdExists(values.projectId);
+      if (exists) {
+        message.error('Project ID นี้ถูกใช้ไปแล้ว กรุณาใช้ ID อื่น');
+        return;
+      }
 
-    // เพิ่มชื่อผู้สร้างลงไปใน values ที่จะส่งเข้า mutation
-    const formWithCreator = {
-      ...values,
-      createBy: displayName,
-    };
-    // ส่งเข้า mutation → ซึ่งจะไปเรียก addProject() ที่ทำทุกอย่างให้
-    addProjectMutation.mutate(formWithCreator);
+      const currentUser = auth.currentUser;
+      const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
+
+      const formWithCreator = {
+        ...values,
+        createBy: displayName,
+      };
+
+      addProjectMutation.mutate(formWithCreator);
+    } catch (error) {
+      console.error('Error checking project ID:', error);
+      message.error('เกิดข้อผิดพลาดในการตรวจสอบ Project ID');
+    }
   };
 
   const handleUpdate = (values: ProjectFormValues) => {
@@ -260,9 +259,21 @@ const AddProject: React.FC = () => {
       >
         <Form layout='vertical' form={form} onFinish={handleSubmit}>
           <Form.Item
-            label='Project ID*'
+            label='Project ID'
             name='projectId'
-            rules={[{ required: true, message: 'กรุณาระบุ Project ID' }]}
+            rules={[
+              { required: true, message: 'กรุณาระบุ Project ID' },
+              {
+                validator: async (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const exists = await checkProjectIdExists(value); // 🔍 เรียกฟังก์ชันเช็ค
+                  if (exists) {
+                    return Promise.reject(new Error('Project ID นี้มีอยู่แล้ว กรุณาใช้ค่าอื่น'));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
             <Input />
           </Form.Item>

@@ -25,6 +25,8 @@ import type { FormValues, RowData} from '@/types/issue';
 import { useQuery } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
+import { getProjects } from '@/api/project';
 
 const AddIssueForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -105,16 +107,31 @@ const AddIssueForm: React.FC = () => {
     message.success('ลบแถวแล้ว');
   };
 
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
   const onFinish = async () => {
     const values = form.getFieldsValue(); // ✅ ดึงค่าล่าสุดทั้งหมด
+
     try {
       const { startDate, dueDate, completeDate, ...rest } = values;
 
       const onLateTime = calculateOnLateTime(completeDate, dueDate); // ✅ ใช้ยูทิลฟังก์ชัน
 
+      // ✅ ดึง projectCode (เช่น "GG2") จาก projectDocId (เช่น "mOlmPj6KY...")
+      const currentProject = projects.find((p) => p.id === id);
+      const projectCode = currentProject?.projectId;
+
+      if (!projectCode) {
+        message.error('ไม่พบ projectId (code)');
+        return;
+      }
+
       const issuePayload = {
         ...rest,
-        projectId: id!,
+        projectId: projectCode, // ✅ ใช้ projectId แบบ code เช่น GG2
         issueDate: values.issueDate ? Timestamp.fromDate(values.issueDate.toDate()) : Timestamp.now(),
         startDate: startDate ? Timestamp.fromDate(startDate.toDate()) : null,
         dueDate: dueDate ? Timestamp.fromDate(dueDate.toDate()) : null,
@@ -142,6 +159,10 @@ const AddIssueForm: React.FC = () => {
       message.error('เกิดข้อผิดพลาดในการเพิ่ม Issue');
     }
   };
+
+
+  // ✨ เรียก hook สร้าง issueCode อัตโนมัติ
+  useGenerateIssueCode(id, form);
 
   const columns = [
     {

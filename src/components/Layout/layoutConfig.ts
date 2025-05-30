@@ -4,12 +4,16 @@ export const useLayoutStyle = createStyles(() => {
   return {
     authContainer: {
       minHeight: '100vh',
-      backgroundImage: 'url(/images/login-background.jpg)', //backgroundหน้าlogin,forget pass
+      width: '100vw',
+      backgroundImage: 'url(/images/login-background.jpg)',
+      backgroundRepeat: 'no-repeat',         // ✅ ไม่ให้ภาพซ้ำ
+      backgroundSize: 'cover',               // ✅ ขยายภาพให้ครอบคลุมพื้นที่
+      backgroundPosition: 'center',          // ✅ จัดภาพให้อยู่ตรงกลางเสมอ
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      width: '100vw',
     },
+
     authContent: {
       display: 'flex',
       justifyContent: 'center',

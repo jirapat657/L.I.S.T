@@ -1,6 +1,5 @@
 // src/api/project.ts
 import {
-    addDoc,
     collection,
     deleteDoc,
     doc,
@@ -9,6 +8,8 @@ import {
     Timestamp,
     updateDoc,
     orderBy,
+    setDoc,
+    getDoc,
   } from 'firebase/firestore';
   import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
   import { db, storage } from '@/services/firebase';
@@ -19,12 +20,12 @@ import {
   const COLLECTION_NAME = 'LIMProjects';
   
   export const addProject = async (values: ProjectFormValues & { createBy: string }) => {
-     // 🔍 DEBUG ตรงนี้
-  console.log("🧾 logo (UploadFile[]):", values.logo);
-  console.log("📦 originFileObj:", values.logo?.[0]?.originFileObj);
-    let logoUrl = '';
+    console.log("🧾 logo (UploadFile[]):", values.logo);
+    console.log("📦 originFileObj:", values.logo?.[0]?.originFileObj);
 
+    let logoUrl = '';
     const file = values.logo?.file;
+
     if (file) {
       const storageRef = ref(storage, `project-logos/${Date.now()}-${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
@@ -40,12 +41,14 @@ import {
       updatedAt: Timestamp.now(),
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), payload);
-    return docRef.id; // ถ้าอยาก return project เต็มก็เปลี่ยนตรงนี้
+    const docRef = doc(db, COLLECTION_NAME, values.projectId); // ✅ ใช้ projectId เป็น doc ID
+    await setDoc(docRef, payload); // ✅ ใช้ setDoc แทน addDoc
+
+    return values.projectId; // ✅ คืน ID เดิมที่ส่งเข้าไป
   };
-
-
   
+
+
   export const updateProject = async (
     id: string,
     values: Partial<ProjectFormValues>
@@ -82,5 +85,11 @@ import {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ProjectData));
   };
   
+  export const checkProjectIdExists = async (projectId: string): Promise<boolean> => {
+    const docRef = doc(db, COLLECTION_NAME, projectId);
+    const snap = await getDoc(docRef);
+    return snap.exists();
+  };
+    
   
   

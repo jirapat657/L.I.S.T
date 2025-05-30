@@ -27,18 +27,18 @@ const COLLECTION_NAME = 'LIMIssues';
 
 // ✅ เพิ่ม Issue พร้อม Subtasks (เป็น subcollection)
 export const addIssue = async (
-  data: IssueFormValues,
+  data: IssueFormValues & { projectId?: string; projectCode?: string },
   subtasks: SubtaskData[] = []
 ) => {
   const ref = collection(db, COLLECTION_NAME);
 
-  // เพิ่ม issue หลัก
   const issueDoc = await addDoc(ref, removeUndefined({
     ...data,
+    ...(data.projectId && { projectId: data.projectId }),     // ✅ ใส่เฉพาะถ้ามี
+    ...(data.projectCode && { projectCode: data.projectCode }), // ✅ ใส่เฉพาะถ้ามี
     createdAt: Timestamp.now(),
   }));
 
-  // เพิ่ม subtasks ใน subcollection
   for (const sub of subtasks) {
     await addDoc(
       collection(db, COLLECTION_NAME, issueDoc.id, 'subtasks'),
@@ -50,11 +50,12 @@ export const addIssue = async (
   }
 };
 
-// ✅ ดึงข้อมูล issue ตาม projectId เรียงจากใหม่ → เก่า
-export const getIssuesByProjectId = async (projectId: string) => {
+
+// ดึง issue ทั้งหมดในโปรเจกต์นั้น (โดยอิงจาก doc.id)
+export const getIssuesByProjectId = async (projectId: string): Promise<IssueData[]> => {
   const q = query(
     collection(db, COLLECTION_NAME),
-    where('projectId', '==', projectId),
+    where('projectId', '==', projectId), // ✅ ใช้ doc.id ที่แน่นอน
     orderBy('createdAt', 'desc')
   );
 
@@ -62,7 +63,22 @@ export const getIssuesByProjectId = async (projectId: string) => {
   return snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  }));
+  } as IssueData));
+};
+
+export const getIssuesByProjectCode = async (projectCode: string): Promise<IssueData[]> => {
+  const q = query(
+    collection(db, 'LIMIssues'),
+    where('projectId', '==', projectCode), // 🔍 ใช้รหัสของโปรเจกต์ เช่น GG2
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  } as IssueData));
 };
 
 // ======================
