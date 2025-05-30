@@ -253,17 +253,25 @@ const AddIssueForm: React.FC = () => {
             <Form.Item label="Issue Code" name="issueCode" rules={[{ required: true }]}><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Issue Date" name="issueDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+            <Form.Item label="Issue Date" name="issueDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item label="Title" name="title" rules={[{ required: true }]}><Input /></Form.Item>
+            <Form.Item label="Title" name="title" ><Input /></Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item label="Description" name="description" rules={[{ required: true }]}><Input.TextArea rows={4}/></Form.Item>
+            <Form.Item label="Description" name="description" ><Input.TextArea rows={4}/></Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item label="Status" name="status" rules={[{ required: true }]} initialValue="Awaiting">
-              <Select placeholder="เลือกสถานะ">
+              <Select placeholder="เลือกสถานะ"
+              onChange={(value) => {
+                const now = dayjs();
+                if (value === 'Inprogress') {
+                  form.setFieldsValue({ startDate: now });
+                } else if (value === 'Complete') {
+                  form.setFieldsValue({ completeDate: now });
+                }
+              }}>
                 {statusOptions.map((s) => (
                   <Select.Option key={s} value={s}>{s}</Select.Option>
                 ))}
@@ -271,29 +279,29 @@ const AddIssueForm: React.FC = () => {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Start Date" name="startDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+            <Form.Item label="Start Date" name="startDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Due Date" name="dueDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+            <Form.Item label="Due Date" name="dueDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Complete Date" name="completeDate" rules={[{ required: true }]}><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
+            <Form.Item label="Complete Date" name="completeDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Developer" name="developer" rules={[{ required: true }]}>
+            <Form.Item label="Developer" name="developer" >
               <Select showSearch placeholder="เลือก Developer" options={userOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="BA/Test" name="baTest" rules={[{ required: true }]}>
+            <Form.Item label="BA/Test" name="baTest" >
               <Select showSearch placeholder="เลือก BA/Test" options={userOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Remark" name="remark" rules={[{ required: true }]}><Input.TextArea rows={4} /></Form.Item>
+            <Form.Item label="Remark" name="remark" ><Input.TextArea rows={4} /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Additional Document" name="document" rules={[{ required: true }]}><Input.TextArea rows={4}/></Form.Item>
+            <Form.Item label="Additional Document" name="document" ><Input.TextArea rows={4}/></Form.Item>
           </Col>
         </Row>
 

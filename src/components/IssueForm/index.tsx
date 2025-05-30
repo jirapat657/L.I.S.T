@@ -32,6 +32,12 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         label: user.userName,
     }));
     }, [users]);
+    const statusOptions = [
+        { label: 'Awaiting', value: 'Awaiting' },
+        { label: 'Inprogress', value: 'Inprogress' },
+        { label: 'Complete', value: 'Complete' },
+        { label: 'Cancel', value: 'Cancel' },
+        ];
 
   return (
     <Form
@@ -54,7 +60,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
     >
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item label="Issue Code" name="issueCode">
+          <Form.Item label="Issue Code" name="issueCode" rules={[{ required: true }]}>
             <Input disabled={disabled} />
           </Form.Item>
         </Col>
@@ -82,12 +88,16 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         </Col>
 
         <Col span={12}>
-          <Form.Item label="Status" name="status">
-            <Select disabled={disabled}>
-              <Select.Option value="Open">Open</Select.Option>
-              <Select.Option value="In Progress">In Progress</Select.Option>
-              <Select.Option value="Closed">Closed</Select.Option>
-            </Select>
+          <Form.Item label="Status" name="status" rules={[{ required: true }]}>
+            <Select disabled={disabled} options={statusOptions}
+            onChange={(value) => {
+                            const now = dayjs();
+                            if (value === 'Inprogress') {
+                              form.setFieldsValue({ startDate: now });
+                            } else if (value === 'Complete') {
+                              form.setFieldsValue({ completeDate: now });
+                            }
+                          }}></Select>
           </Form.Item>
         </Col>
 
