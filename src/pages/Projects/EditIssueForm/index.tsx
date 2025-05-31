@@ -32,6 +32,8 @@ import { Timestamp } from 'firebase/firestore';
 import { getAllUsers } from '@/api/user';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import SubtaskTable from '@/components/SubtaskTable';
+import { duplicateSubtask } from '@/utils/subtaskUtils';
 
 const EditIssueFormPage: React.FC = () => {
   const { issueId, projectId } = useParams<{
@@ -95,16 +97,18 @@ const EditIssueFormPage: React.FC = () => {
   }, [issueId]);
 
   const handleAddRow = () => {
-    const newRow: SubtaskData & { id: string } = {
-      id: uuidv4(), // ใช้ id ชั่วคราว ไม่ชนกับ Firebase
+    const newRow: Subtask & { id: string } = {
+      id: uuidv4(), // ใช้ UUID เป็น id ชั่วคราว
       details: '',
-      date: Timestamp.fromDate(new Date()), // ✅ ถูกต้อง
+      date: Timestamp.fromDate(new Date()),
       completeDate: null,
       baTest: '',
       remark: '',
-      status: 'Awaitting',
+      status: 'Awaiting',
+      createdAt: Timestamp.now(), // 👈 เพิ่ม timestamp ทันที
     };
-    setSubtasks((prev) => [...prev, newRow]);
+
+    setSubtasks((prev) => [newRow, ...prev]); // 👈 แทรกไว้ข้างหน้า
   };
 
   /**
@@ -333,7 +337,7 @@ const handleSave = async () => {
           onChange={(val) => handleInlineUpdate(record.id, 'status', val)}
           style={{ width: 120 }}
           options={[
-            { label: 'Awaitting', value: 'Awaitting' },
+            { label: 'Awaiting', value: 'Awaiting' },
             { label: 'Complete', value: 'Complete' },
             { label: 'Fail', value: 'Fail' },
           ]}
@@ -385,12 +389,17 @@ const handleSave = async () => {
       <div style={{ textAlign: 'right', marginBottom: 16 }}>
         <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
-      <Table
-        columns={subtaskColumns}
-        dataSource={subtasks}
-        rowKey="id"
-        pagination={false}
-        scroll={{ x: 'max-content' }}
+      <SubtaskTable
+        subtasks={subtasks}
+        userOptions={userOptions}
+        onUpdate={handleInlineUpdate}
+        onDelete={handleDeleteSubtask}
+        onView={handleViewDetails}
+        onDuplicate={(row) => {
+          const newRow = duplicateSubtask(row);
+          setSubtasks((prev) => [newRow, ...prev]);
+          message.success('คัดลอก Subtask แล้ว');
+        }}
       />
       <Modal
         open={detailModalOpen}

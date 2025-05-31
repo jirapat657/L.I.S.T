@@ -21,18 +21,22 @@ import dayjs from 'dayjs';
 import { getAllUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
-import type { FormValues, RowData} from '@/types/issue';
+import type { FormValues, SubtaskData} from '@/types/issue';
 import { useQuery } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
 import { getProjects } from '@/api/project';
+import SubtaskTable from '@/components/SubtaskTable';
+import { duplicateSubtask } from '@/utils/subtaskUtils';
+// ใช้ใน AddIssueForm (ขยายแบบ local)
+type SubtaskDraft = SubtaskData & { id: string; showFull?: boolean };
 
 const AddIssueForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
-  const [data, setData] = useState<RowData[]>([]);
+  const [data, setData] = useState<SubtaskDraft[]>([]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -59,20 +63,24 @@ const AddIssueForm: React.FC = () => {
   if (isError) return <div>Error loading users</div>;
 
   const handleAddRow = () => {
-    const newRow: RowData = {
-      key: `${Date.now()}`,
+    const newRow: SubtaskDraft = {
+      id: `${Date.now()}`,
       details: '',
-      showFull: false,
-      date: dayjs(),
+      date: Timestamp.fromDate(new Date()),
+      completeDate: null,
+      baTest: '',
       status: 'Awaiting',
+      remark: '',
+      createdAt: Timestamp.now(),
+      showFull: false,
     };
     setData((prev) => [...prev, newRow]);
   };
 
-  const handleChange = (key: string, field: keyof RowData, value: any) => {
+  const handleChange = (id: string, field: keyof SubtaskDraft, value: any) => {
     setData((prev) =>
       prev.map((row) => {
-        if (row.key === key) {
+        if (row.id === id) {
           const updatedRow = { ...row, [field]: value };
           if (field === 'details' && value.trim()) {
             updatedRow.showFull = true;
@@ -84,26 +92,27 @@ const AddIssueForm: React.FC = () => {
     );
   };
 
-  const handleViewDetails = (record: RowData) => {
-    setEditingKey(record.key);
+
+  const handleViewDetails = (record: SubtaskDraft) => {
+    setEditingKey(record.id);
     setDetailInput(record.details);
     setDetailModalOpen(true);
   };
 
   const handleUpdateDetail = () => {
     if (!editingKey) return;
-
     setData((prev) =>
       prev.map((row) =>
-        row.key === editingKey ? { ...row, details: detailInput, showFull: true } : row
+        row.id === editingKey ? { ...row, details: detailInput, showFull: true } : row
       )
     );
     setDetailModalOpen(false);
   };
 
 
-  const handleDelete = (key: string) => {
-    setData((prev) => prev.filter((row) => row.key !== key));
+
+  const handleDelete = (id: string) => {
+    setData((prev) => prev.filter((row) => row.id !== id));
     message.success('ลบแถวแล้ว');
   };
 
@@ -141,14 +150,15 @@ const AddIssueForm: React.FC = () => {
       };
 
       const subtasks = data
-        .filter((row) => row.details.trim()) // ✅ เฉพาะ row ที่มี details
+        .filter((row) => row.details.trim())
         .map((row) => ({
           details: row.details,
-          date: row.date ? Timestamp.fromDate(row.date.toDate()) : null,
-          completeDate: row.completeDate ? Timestamp.fromDate(row.completeDate.toDate()) : null,
+          date: row.date,
+          completeDate: row.completeDate,
           baTest: row.baTest,
           status: row.status,
           remark: row.remark,
+          createdAt: row.createdAt ?? Timestamp.now(),
         }));
 
       await addIssue(issuePayload, subtasks);
@@ -164,100 +174,7 @@ const AddIssueForm: React.FC = () => {
   // ✨ เรียก hook สร้าง issueCode อัตโนมัติ
   useGenerateIssueCode(id, form);
 
-  const columns = [
-    {
-      title: 'No.',
-      render: (_: any, __: any, index: number) => index + 1,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      render: (value: Dayjs, record: RowData) => (
-        <DatePicker value={value} onChange={(date) => handleChange(record.key, 'date', date)} />
-      ),
-    },
-    {
-      title: 'Details',
-      dataIndex: 'details',
-      render: (text: string, record: RowData) => (
-        <Input
-          value={text}
-          placeholder="Enter detail"
-          onChange={(e) => handleChange(record.key, 'details', e.target.value)}
-        />
-      ),
-    },
-    {
-      title: 'Complete Date',
-      dataIndex: 'completeDate',
-      render: (_: any, record: RowData) =>
-        record.details ? (
-          <DatePicker
-            value={record.completeDate}
-            onChange={(date) => handleChange(record.key, 'completeDate', date)}
-          />
-        ) : null,
-    },
-    {
-      title: 'BA/Test',
-      dataIndex: 'baTest',
-      render: (_: any, record: RowData) =>
-        record.details ? (
-          <Select
-            value={record.baTest}
-            onChange={(val) => handleChange(record.key, 'baTest', val)}
-            options={userOptions}
-            style={{ width: 120 }}
-          />
-        ) : null,
-    },
-    {
-      title: 'Remark',
-      dataIndex: 'remark',
-      render: (_: any, record: RowData) =>
-        record.details ? (
-          <Input
-            value={record.remark}
-            onChange={(e) => handleChange(record.key, 'remark', e.target.value)}
-          />
-        ) : null,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (_: any, record: RowData) =>
-        record.details ? (
-          <Select
-            value={record.status}
-            onChange={(val) => handleChange(record.key, 'status', val)}
-            options={statusOptions.map((s) => ({ label: s, value: s }))}
-            style={{ width: 120 }}
-          />
-        ) : null,
-    },
-    {
-      title: '',
-      render: (_: any, record: RowData) => (
-        <Dropdown
-          overlay={
-            <Menu
-              onClick={({ key }) => {
-                if (key === 'delete') handleDelete(record.key);
-                else if (key === 'view') handleViewDetails(record);
-              }}
-              items={[
-                { key: 'view', label: (<><EyeOutlined /> View</>) },
-                { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
-              ]}
-            />
-          }
-          trigger={['click']}
-        >
-          <Button size="small"><MoreOutlined /></Button>
-        </Dropdown>
-      ),
-    },
-  ];
+  
 
   return (
     <div>
@@ -331,12 +248,21 @@ const AddIssueForm: React.FC = () => {
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
         </div>
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="key"
-          pagination={false}
-          scroll={{ x: 'max-content' }}
+        <SubtaskTable
+          subtasks={[...data].sort(
+            (a, b) =>
+              (b.createdAt?.toDate?.()?.getTime?.() ?? 0) -
+              (a.createdAt?.toDate?.()?.getTime?.() ?? 0)
+          )}
+          userOptions={userOptions}
+          onUpdate={(id, field, value) => handleChange(id, field, value)}
+          onDelete={handleDelete}
+          onView={handleViewDetails}
+          onDuplicate={(row) => {
+            const newRow = duplicateSubtask(row);
+            setData((prev) => [newRow, ...prev]);
+            message.success('คัดลอก Subtask แล้ว');
+          }}
         />
         <Modal
           open={detailModalOpen}

@@ -6,7 +6,6 @@ import {
   Button,
   Divider,
   message,
-  Table,
   Dropdown,
   Modal,
   Input,
@@ -33,6 +32,8 @@ import { getAllUsers } from '@/api/user';
 import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { CopyOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import SubtaskTable from '@/components/SubtaskTable';
+import { duplicateSubtask } from '@/utils/subtaskUtils';
 
 const DuplicateIssueForm: React.FC = () => {
   const { issueId, projectId } = useParams<{ issueId: string; projectId: string }>();
@@ -88,9 +89,10 @@ const DuplicateIssueForm: React.FC = () => {
         completeDate: null,
         baTest: '',
         remark: '',
-        status: 'Awaitting',
+        status: 'Awaiting',
+        createdAt: Timestamp.now(), // 👈 เพิ่ม timestamp ทันที
       };
-      setSubtasks((prev) => [...prev, newRow]);
+      setSubtasks((prev) => [newRow, ...prev]); // 👈 แทรกไว้ข้างหน้า
     };
 
   const handleViewDetails = (sub: Subtask) => {
@@ -159,117 +161,7 @@ const DuplicateIssueForm: React.FC = () => {
     );
   };
 
-  const columns = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      render: (value: any, record: Subtask) => (
-        <DatePicker
-          value={value?.toDate ? dayjs(value.toDate()) : null}
-          onChange={(date) =>
-            handleInlineUpdate(record.id, 'date', date ? Timestamp.fromDate(date.toDate()) : null)
-          }
-        />
-      ),
-    },
-    {
-      title: 'Details',
-      dataIndex: 'details',
-      render: (text: string, record: Subtask) => (
-        <Input.TextArea
-          value={text}
-          onChange={(e) => handleInlineUpdate(record.id, 'details', e.target.value)}
-          rows={1}
-        />
-      ),
-    },
-    {
-      title: 'Complete Date',
-      dataIndex: 'completeDate',
-      render: (value: any, record: Subtask) => (
-        <DatePicker
-          value={value?.toDate ? dayjs(value.toDate()) : null}
-          onChange={(date) =>
-            handleInlineUpdate(
-              record.id,
-              'completeDate',
-              date ? Timestamp.fromDate(date.toDate()) : null
-            )
-          }
-        />
-      ),
-    },
-    {
-      title: 'BA/Test',
-      dataIndex: 'baTest',
-      render: (text: string, record: Subtask) => (
-        <Select
-          value={text}
-          onChange={(val) => handleInlineUpdate(record.id, 'baTest', val)}
-          options={userOptions}
-          style={{ width: 150 }}
-          showSearch
-        />
-      ),
-    },
-    {
-      title: 'Remark',
-      dataIndex: 'remark',
-      render: (text: string, record: Subtask) => (
-        <Input
-          value={text}
-          onChange={(e) => handleInlineUpdate(record.id, 'remark', e.target.value)}
-        />
-      ),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (text: string, record: Subtask) => (
-        <Select
-          value={text}
-          onChange={(val) => handleInlineUpdate(record.id, 'status', val)}
-          style={{ width: 120 }}
-          options={[
-            { label: 'Awaiting', value: 'Awaiting' },
-            { label: 'Complete', value: 'Complete' },
-            { label: 'Fail', value: 'Fail' },
-          ]}
-        />
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: any, record: Subtask) => {
-        const items: MenuProps['items'] = [
-          {
-            key: 'view',
-            label: (<><EyeOutlined /> View</>),
-            onClick: () => handleViewDetails(record),
-          },
-          {
-            key: 'delete',
-            label: (
-              <Popconfirm
-                title="ยืนยันการลบ Subtask นี้?"
-                onConfirm={() => handleDeleteSubtask(record.id)}
-                okText="ลบ"
-                cancelText="ยกเลิก"
-              >
-                <DeleteOutlined /> Delete
-              </Popconfirm>
-            ),
-          },
-        ];
-        return (
-          <Dropdown menu={{ items }} trigger={['click']}>
-            <Button size="small"><MoreOutlined /></Button>
-          </Dropdown>
-        );
-      },
-    },
-  ];
+  
 
   if (isLoading || !issue) return <div>Loading...</div>;
 
@@ -282,12 +174,17 @@ const DuplicateIssueForm: React.FC = () => {
       <div style={{ textAlign: 'right', marginBottom: 16 }}>
         <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
-      <Table
-        columns={columns}
-        dataSource={subtasks}
-        rowKey="id"
-        pagination={false}
-        scroll={{ x: 'max-content' }}
+      <SubtaskTable
+        subtasks={subtasks}
+        userOptions={userOptions}
+        onUpdate={handleInlineUpdate}
+        onDelete={handleDeleteSubtask}
+        onView={handleViewDetails}
+        onDuplicate={(row) => {
+          const newRow = duplicateSubtask(row);
+          setSubtasks((prev) => [newRow, ...prev]);
+          message.success('คัดลอก Subtask แล้ว');
+        }}
       />
       <Modal
         open={detailModalOpen}

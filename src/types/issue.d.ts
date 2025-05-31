@@ -21,8 +21,9 @@ export interface IssueFormValues {
 }
 
 export interface SubtaskData {
+  id?: string; // เพิ่มได้แม้ใน Firestore จะไม่ได้ใช้
   details: string;
-  date: Timestamp | null;
+  date?: Timestamp | null;
   completeDate?: Timestamp | null;
   baTest?: string;
   status?: string;
@@ -44,17 +45,6 @@ export interface FormValues {
   baTest?: string;
   remark?: string;
   document?: string;
-}
-
-export interface RowData {
-  key: string;
-  details: string;
-  date: Dayjs;
-  completeDate?: Dayjs;
-  baTest?: string;
-  status?: string;
-  remark?: string;
-  showFull?: boolean;
 }
 
 export interface Subtask {

@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getProjects } from '@/api/project';
-import { getIssuesByProjectId } from '@/api/issue';
 import dayjs from 'dayjs';
 import type { FormInstance } from 'antd';
 import { getIssuesByProjectCode } from '@/api/issue'; // ✅ ใช้ตัวใหม่
@@ -14,7 +13,6 @@ export const useGenerateIssueCode = (
   // ดึง projects ทั้งหมด
   const {
     data: projects = [],
-    isLoading: isLoadingProjects,
   } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
