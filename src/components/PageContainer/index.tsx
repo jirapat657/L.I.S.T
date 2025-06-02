@@ -64,7 +64,9 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
             <div style={{ fontWeight: 500  , color: '#7D0012'}}>{user.userName}</div>
             <div style={{ fontSize: 12, color: '#888' }}>{user.jobPosition}</div>
           </div>
-          <Avatar>{firstChar}</Avatar>
+          <Avatar style={{ backgroundColor: 'black', color: 'white' }}>
+              {firstChar}
+          </Avatar>
         </div>
       </Flex>
 
@@ -74,11 +76,14 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
+        
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           {/* รูปตรงกลาง */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Avatar size={64}>{firstChar}</Avatar>
+            <Avatar size={64} style={{ backgroundColor: 'black', color: 'white' }}>
+              {firstChar}
+            </Avatar>
           </div>
           {/* Email ตรงกลาง */}
           <div style={{ textAlign: 'center' }}>
@@ -94,7 +99,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
               border: '1px solid #d9d9d9',
               borderRadius: 8,
               padding: 16,
-              backgroundColor: '#fafafa',
+              backgroundColor: '#F0F0F0',
             }}
           >
             <Typography.Text strong>ข้อมูลบัญชี</Typography.Text>
@@ -111,7 +116,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
           </div>
 
           {/* ปุ่ม logout */}
-          <Button danger block onClick={handleSignOut}>
+          <Button type='primary' danger block onClick={handleSignOut}>
             <BiLogOut></BiLogOut>Log out
           </Button>
         </Space>

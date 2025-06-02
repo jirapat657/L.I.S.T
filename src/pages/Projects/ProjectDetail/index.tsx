@@ -131,14 +131,36 @@ const ProjectDetail: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string, record: Issue) => (
-        <Select
-          value={status}
-          style={{ width: 120 }}
-          onChange={(value) => handleStatusChange(record.id, value)}
-          options={['Awaiting','Inprogress', 'Complete', 'Cancel'].map((s) => ({ label: s, value: s }))}
-        />
-      ),
+      render: (status: string, record: Issue) => {
+        const getColor = (status: string) => {
+          switch (status) {
+            case 'Complete':
+              return 'green';
+            case 'Inprogress':
+              return 'orange';
+            case 'Cancel':
+              return 'red';
+            default:
+              return 'gray';
+          }
+        };
+
+        const color = getColor(status);
+
+        return (
+          <div style={{ color }}>
+            <Select
+              value={status}
+              style={{ width: 120 }}
+              onChange={(value) => handleStatusChange(record.id, value)}
+              options={['Awaiting', 'Inprogress', 'Complete', 'Cancel'].map((s) => ({
+                label: <span style={{ color: getColor(s) }}>{s}</span>,
+                value: s,
+              }))}
+            />
+          </div>
+        );
+      },
     },
     {
       title: 'Start Date',
@@ -173,7 +195,18 @@ const ProjectDetail: React.FC = () => {
         return dayjs(timestamp).format('DD/MM/YY');
       },
     },
-    { title: 'On/Late Time', dataIndex: 'onLateTime', key: 'onLateTime' },
+    {
+      title: 'On/Late Time',
+      dataIndex: 'onLateTime',
+      key: 'onLateTime',
+      render: (value: string) => {
+        const isOnTime = value.startsWith('On Time');
+        const isLateTime = value.startsWith('Late Time');
+        const color = isOnTime ? 'green' : isLateTime ? 'red' : undefined;
+
+        return <span style={{ color }}>{value}</span>;
+      },
+    },
     { title: 'Developer', dataIndex: 'developer', key: 'developer' },
     { title: 'BA/Test', dataIndex: 'baTest', key: 'baTest' },
     { title: 'Remark', dataIndex: 'remark', key: 'remark' },

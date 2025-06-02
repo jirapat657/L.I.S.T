@@ -8,6 +8,7 @@ import {
   Dropdown,
   Button,
   Popconfirm,
+  Typography,
 } from 'antd';
 import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
@@ -120,55 +121,113 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
         ),
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (_: any, record: Subtask) => {
-        const items: MenuProps['items'] = [];
-
-        items.push({
-            key: 'view',
-            label: (
-            <div onClick={() => onView(record)}>
-                <EyeOutlined /> View
+        title: 'Status',
+        dataIndex: 'status',
+        render: (value: string, record: Subtask) =>
+            readOnly ? (
+            <Typography.Text
+                type={
+                value === 'Complete'
+                    ? 'success'
+                    : value === 'Fail'
+                    ? 'danger'
+                    : undefined
+                }
+            >
+                {value || 'Awaiting'}
+            </Typography.Text>
+            ) : (
+            <div
+                style={{
+                width: 120,
+                color:
+                    value === 'Complete'
+                    ? 'green'
+                    : value === 'Fail'
+                    ? 'red'
+                    : undefined,
+                }}
+            >
+                <Select
+                value={value || 'Awaiting'}
+                onChange={(val) => onUpdate(record.id, 'status', val)}
+                options={[
+                    {
+                    label: (
+                        <span style={{ color: 'gray' }}>Awaiting</span>
+                    ),
+                    value: 'Awaiting',
+                    },
+                    {
+                    label: (
+                        <span style={{ color: 'green' }}>Complete</span>
+                    ),
+                    value: 'Complete',
+                    },
+                    {
+                    label: (
+                        <span style={{ color: 'red' }}>Fail</span>
+                    ),
+                    value: 'Fail',
+                    },
+                ]}
+                style={{
+                    width: '100%',
+                    // สำคัญ: ตัว Select ไม่รับ color ตรง ๆ แต่เราครอบด้วย div ด้านนอกแทน
+                }}
+                />
             </div>
             ),
-        });
+        },
+        {
+        title: '',
+        key: 'actions',
+        render: (_: any, record: Subtask) => {
+            const items: MenuProps['items'] = [];
 
-        if (!readOnly) {
             items.push({
-            key: 'duplicate',
+            key: 'view',
             label: (
-                <div onClick={() => onDuplicate(record)}>
-                <PlusOutlined /> Duplicate
+                <div onClick={() => onView(record)}>
+                <EyeOutlined /> View
                 </div>
             ),
             });
 
+            if (!readOnly) {
             items.push({
-            key: 'delete',
-            label: (
-                <Popconfirm
-                title="ยืนยันการลบ Subtask นี้?"
-                onConfirm={() => onDelete(record.id)}
-                okText="ลบ"
-                cancelText="ยกเลิก"
-                >
-                <DeleteOutlined /> Delete
-                </Popconfirm>
-            ),
+                key: 'duplicate',
+                label: (
+                <div onClick={() => onDuplicate(record)}>
+                    <PlusOutlined /> Duplicate
+                </div>
+                ),
             });
-        }
 
-        return (
+            items.push({
+                key: 'delete',
+                label: (
+                <Popconfirm
+                    title="ยืนยันการลบ Subtask นี้?"
+                    onConfirm={() => onDelete(record.id)}
+                    okText="ลบ"
+                    cancelText="ยกเลิก"
+                >
+                    <DeleteOutlined /> Delete
+                </Popconfirm>
+                ),
+            });
+            }
+
+            return (
             <Dropdown menu={{ items }} trigger={['click']}>
-            <Button>
+                <Button>
                 <MoreOutlined />
-            </Button>
+                </Button>
             </Dropdown>
-        );
+            );
         },
-
-    },
+        },
   ];
 
   return (
