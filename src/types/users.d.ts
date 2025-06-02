@@ -14,7 +14,8 @@ export interface UserFormValues {
 
 export interface UserData extends Omit<UserFormValues, 'password'> {
   id: string;
-  username: string;
+  userName: string;
   email: string;
   role: string;
+  jobPosition: string;
 }

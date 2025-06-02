@@ -1,12 +1,13 @@
 // src/api/user.ts
 import {
-    addDoc,
     collection,
     deleteDoc,
     doc,
     query,
     updateDoc,
-    getDocs
+    getDocs,
+    setDoc,
+    where
   } from 'firebase/firestore';
   import { createUserWithEmailAndPassword } from 'firebase/auth';
   import { db, auth } from '@/services/firebase';
@@ -31,10 +32,27 @@ import {
     if (!data.password) {
       throw new Error("Password is required");
     }
-    await createUserWithEmailAndPassword(auth, data.email, data.password);
-    delete data.password;
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), data);
-    return docRef.id;
+
+    // 🔍 ตรวจสอบว่า userId ซ้ำหรือไม่
+    const q = query(collection(db, COLLECTION_NAME), where('userId', '==', data.userId));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      throw new Error(`User ID "${data.userId}" is already in use.`);
+    }
+
+    // ✅ สร้างผู้ใช้ใน Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    const uid = userCredential.user.uid;
+
+    // 🔐 ลบ password ออกก่อนบันทึกลง Firestore
+    const { password, ...userData } = data;
+
+    // ✅ ใช้ setDoc เพื่อให้ UID เป็น docId
+    const docRef = doc(db, COLLECTION_NAME, uid);
+    await setDoc(docRef, userData);
+
+    return uid;
   };
   
   export const updateUser = async (
@@ -56,9 +74,21 @@ import {
   };
   
   export const getUsers = async (): Promise<UserData[]> => {
-  const snapshot = await getDocs(query(collection(db, 'LIMUsers')))
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as UserData[]
-}
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    return snapshot.docs.map((doc) => ({
+      id: doc.id, // ✅ ยังใช้ doc.id ได้ (คือ userId)
+      ...(doc.data() as Omit<UserData, 'id'>),
+    }));
+  };
+
+  export const getUserByEmail = async (email: string): Promise<UserData | null> => {
+    const q = query(collection(db, COLLECTION_NAME), where('email', '==', email));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+
+    const docSnap = snapshot.docs[0];
+    return {
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<UserData, 'id'>),
+    };
+  };

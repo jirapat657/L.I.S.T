@@ -74,17 +74,19 @@ const getDocumentByDocId = async <T>(
   collectionName: string,
   docId: string
 ): Promise<Partial<T & { docId: string }>> => {
-  const docRef: DocumentReference<DocumentData, DocumentData> = doc(db, collectionName, docId)
-  const docSnap: DocumentSnapshot = await getDoc(docRef)
+  const docRef = doc(db, collectionName, docId)
+  const docSnap = await getDoc(docRef)
 
   if (!docSnap.exists()) {
     throw new Error(`No document exists at ${docRef.path}`)
   }
 
   const getData = convertQueryData(docSnap.data())
+  console.log('🧪 [getDocumentByDocId] getData:', getData) // 👈 DEBUG สำคัญที่สุด
 
   return { ...getData, docId: docSnap.id } as Partial<T & { docId: string }>
 }
+
 
 const createDocument = async (
   collectionName: string,

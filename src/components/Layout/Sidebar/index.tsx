@@ -1,17 +1,14 @@
 // ✅ src/components/Layout/Sidebar/index.tsx
 import type { MenuProps } from 'antd'
-import { signOut } from 'firebase/auth'
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
-import { BiLogOut } from 'react-icons/bi'
 import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { Flex, Layout, Menu, Space, Typography } from 'antd'
 
 import { PATH } from '@/constants/enums'
-import { auth } from '@/services/firebase'
-
 import { useLayoutStyle } from '@/components/Layout/layoutConfig'
+import { AuthContext } from '@/context/AuthContext'
 
 type MenuItem = Required<MenuProps>['items'][number]
 
@@ -28,18 +25,17 @@ function getItem(
   children?: MenuItem[],
   onClick?: () => void
 ): MenuItem {
-  const isSignOut = key === 'sign-out'
   return {
     key,
     icon: <span style={{ fontSize: 20, color: 'white' }}>{icon}</span>,
     label: children ? (
       label
     ) : (
-      <Link to={isSignOut ? '' : getPathFromKey(key)} style={{ color: 'white' }}>
+      <Link to={getPathFromKey(key)} style={{ color: 'white' }}>
         {label}
       </Link>
     ),
-    onClick: isSignOut ? () => signOut(auth) : onClick,
+    onClick,
     children,
   } as MenuItem
 }
@@ -52,39 +48,50 @@ export default function Sidebar() {
     return path || 'dashboard'
   })
 
+  const { currentUser } = useContext(AuthContext)
+  const role = currentUser?.profile?.role
+
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
     getItem('Scope of Work', 'scope', <FileTextOutlined />),
-    getItem(<span style={{ color: 'white' }}>Setting</span>,'setting', <SettingOutlined />, [
-      getItem(
-        <Link to={PATH.SETTING_ADD_PROJECT} style={{ color: 'white' }}>
-          Add Project
-        </Link>,
-        'setting/add-project',
-        null
-      ),
-      getItem(
-        <Link to={PATH.SETTING_ADD_USER} style={{ color: 'white' }}>
-          Add User
-        </Link>,
-        'setting/add-user',
-        null
-      ),
-    ]),
-    getItem('Sign Out', 'sign-out', <BiLogOut style={{ fontSize: 20, color: '#A3AED0' }} />),
+    getItem(
+      <span style={{ color: 'white' }}>Setting</span>,
+      'setting',
+      <SettingOutlined />,
+      [
+        getItem(
+          <Link to={PATH.SETTING_ADD_PROJECT} style={{ color: 'white' }}>
+            Add Project
+          </Link>,
+          'setting/add-project',
+          null
+        ),
+        ...(role === 'Admin'
+          ? [
+              getItem(
+                <Link to={PATH.SETTING_ADD_USER} style={{ color: 'white' }}>
+                  Add User
+                </Link>,
+                'setting/add-user',
+                null
+              ),
+            ]
+          : []),
+      ]
+    ),
   ]
 
   return (
     <Layout.Sider className={styles.sidebarContainer}>
-      <Space direction='vertical'>
+      <Space direction="vertical">
         <Typography.Text className={styles.sidebarTitle}>ISSUE</Typography.Text>
         <Typography.Text className={styles.sidebarTitle}>MANAGEMENT</Typography.Text>
       </Space>
-      <Flex vertical align='center' style={{ height: '100%' }}>
+      <Flex vertical align="center" style={{ height: '100%' }}>
         <Menu
           selectedKeys={[selectedKey]}
-          mode='inline'
+          mode="inline"
           items={items}
           onClick={(e) => setSelectedKey(e.key)}
           className={styles.sidebarMenuItem}

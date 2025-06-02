@@ -18,6 +18,8 @@ import { getIssueById } from '@/api/issue';
 import type { IssueData, Subtask } from '@/types/issue';
 import type { ColumnsType } from 'antd/es/table';
 import { CaretLeftOutlined } from '@ant-design/icons';
+import SubtaskTable from '@/components/SubtaskTable';
+
 
 const { Text, Title } = Typography;
 
@@ -40,6 +42,10 @@ const ViewIssuePage: React.FC = () => {
 
   if (isLoading) return <div>Loading...</div>;
   if (!issue) return <div>ไม่พบข้อมูล Issue นี้</div>;
+
+  const userOptions = issue.subtasks?.map((s) => s.baTest)
+    .filter((val, idx, arr) => val && arr.indexOf(val) === idx)
+    .map((val) => ({ label: val!, value: val! })) ?? [];
 
   const columns: ColumnsType<Subtask> = [
     {
@@ -104,12 +110,16 @@ const ViewIssuePage: React.FC = () => {
 
       <Divider orientation="left">Child Work Item</Divider>
 
-      <Table<Subtask>
-        columns={columns}
-        dataSource={issue.subtasks ?? []}
-        rowKey={(record) => record.id}
-        pagination={false}
-        scroll={{ x: 'max-content' }}
+      <SubtaskTable
+        subtasks={issue.subtasks ?? []}
+        userOptions={userOptions}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+        onDuplicate={() => {}}
+        onView={(record) =>
+          setDetailModal({ visible: true, content: record.details || '—' })
+        }
+        readOnly
       />
 
       <Divider />

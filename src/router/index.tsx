@@ -44,6 +44,18 @@ export function Router() {
     return null
   }
 
+  function adminOnlyLoader({ request }: LoaderFunctionArgs) {
+    if (!currentUser && !loading) {
+      const params = new URLSearchParams()
+      params.set('from', new URL(request.url).pathname)
+      return redirect('/sign-in?' + params.toString())
+    } else if (!loading && currentUser?.profile?.role !== 'Admin') {
+      return redirect('/unauthorized') // หรือหน้าที่คุณเตรียมไว้
+    } else {
+      return { currentUser }
+    }
+  }
+
   function protectedLoader({ request }: LoaderFunctionArgs) {
     if (!currentUser && !loading) {
       const params = new URLSearchParams()
@@ -178,6 +190,7 @@ export function Router() {
               <AddUserSetting />
             </PageContainer>
           ),
+          loader: adminOnlyLoader,
         },
       ],
     },
