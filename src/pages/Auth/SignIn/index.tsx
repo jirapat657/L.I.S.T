@@ -23,13 +23,18 @@ const useStyle = createStyles(() => {
       flexDirection: 'column',
     },
     logo: {
-      width: 184,
+      width: 300,
       height: 'auto',
     },
     title: {
-      fontSize: 36,
+      fontSize: 32,
       fontWeight: 700,
       color: '#080808',
+    },
+    subtitle:{
+      fontSize: 16,
+      fontWeight: 700,
+      color: 'rgba(8, 8, 8, 0.6)',
     },
     form: {
       textAlign: 'center',
@@ -95,12 +100,10 @@ export default function LoginForm() {
   return (
     <>
     <Card className={styles.card}>
-      <Flex className={styles.header} gap={30}>
-        <img src='/icons/logoLogin.png' alt='Logo' className={styles.logo} />
-        <div>
-          <h2>ISSUE MANAGEMENT</h2>
-        </div>
-        <Text className={styles.title}>Sign In</Text>
+      <Flex className={styles.header} gap={10}>
+        <img src='/icons/logoLogin.png' alt='Logo' className={styles.logo}/>
+        <Text className={styles.title}>Log in to your LS account</Text>
+        <Text className={styles.subtitle}>For LS team members only</Text>
       </Flex>
       <Form layout='vertical' onFinish={handleLogin} className={styles.form}>
         <Form.Item

@@ -22,7 +22,7 @@ const useStyle = createStyles(() => {
       flexDirection: 'column',
     },
     logo: {
-      width: 184,
+      width: 300,
       height: 'auto',
     },
     textHeader: {
@@ -90,9 +90,6 @@ export default function ForgetPasswordForm() {
     <Card className={styles.card}>
       <Flex className={styles.header} gap={30}>
         <img src='/icons/logoLogin.png' alt='Logo' className={styles.logo} />
-        <div>
-          <h2>ISSUE MANAGEMENT</h2>
-        </div>
         <Flex className={styles.textHeader} gap={5}>
           <Text className={styles.title}>Forgot Password?</Text>
           <Text className={styles.subTitle}>

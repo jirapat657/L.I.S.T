@@ -50,5 +50,9 @@ export const useLayoutStyle = createStyles(() => {
         color: 'white',
       },
     },
+    logo: {
+      width: 200,
+      height: 'auto',
+    },
   }
 })

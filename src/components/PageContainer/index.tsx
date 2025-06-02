@@ -1,22 +1,31 @@
-import React, { useContext, useState } from 'react';
-import { Flex, Typography, Avatar, Modal, Space, Button, Divider } from 'antd';
+// src/components/PageContainer/index.tsx
+
+import React, { useContext } from 'react';
+import {
+  Flex,
+  Typography,
+  Avatar,
+  Space,
+  Button,
+  Divider,
+  Dropdown,
+} from 'antd';
 import { AuthContext } from '@/context/AuthContext';
 import { useStyle } from '@/components/PageContainer/config';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/services/firebase';
 import { useNavigate } from 'react-router-dom';
 import { BiLogOut } from 'react-icons/bi';
+import type { MenuProps } from 'antd';
 
 type PageContainerProps = {
   children: React.ReactNode;
   title: string;
 };
 
-
 export default function PageContainer({ children, title = '' }: PageContainerProps) {
   const { styles } = useStyle();
   const { currentUser, loading } = useContext(AuthContext);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   if (loading || !currentUser || !currentUser.profile) return null;
@@ -27,101 +36,108 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      navigate('/sign-in'); // เปลี่ยนเป็น path หน้า login ตามโปรเจกต์ของคุณ
+      navigate('/sign-in'); // เปลี่ยนเส้นทางไปหน้าล็อกอิน
     } catch (error) {
       console.error('Sign out failed:', error);
     }
   };
 
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'avatar',
+      label: (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+          <Avatar size={64} style={{ backgroundColor: 'black', color: 'white' }}>
+            {firstChar}
+          </Avatar>
+        </div>
+      ),
+      disabled: true,
+    },
+    {
+      key: 'email',
+      label: (
+        <div style={{ fontWeight: 500, color: '#7D0012', textAlign: 'center' }}>
+          {currentUser.email}
+        </div>
+      ),
+      disabled: true,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'username',
+      label: (
+        <div>
+          <strong>ชื่อ:</strong> {user.userName}
+        </div>
+      ),
+      disabled: true,
+    },
+    {
+      key: 'position',
+      label: (
+        <div>
+          <strong>ตำแหน่ง:</strong> {user.jobPosition}
+        </div>
+      ),
+      disabled: true,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      label: (
+        <span style={{ color: 'red' }}>
+          <BiLogOut style={{ marginRight: 8 }} />
+          Log out
+        </span>
+      ),
+      onClick: handleSignOut,
+    },
+  ];
+
   return (
     <>
       <Flex justify="space-between" align="center" style={{ height: 48 }}>
         <Typography.Text className={styles.title}>{title}</Typography.Text>
-        <div
-          onClick={() => setIsModalOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'pointer',
-            gap: 24,
-            padding: '4px 24px',
-            borderRadius: 50,
-            border: '1px solid #d9d9d9',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-            backgroundColor: '#fff',
-            transition: 'background 0.3s, box-shadow 0.3s',
-            marginBottom:'20px'
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = '#f5f5f5';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = '#fff';
-          }}
 
-        >
-          <div>
-            <div style={{ fontWeight: 500  , color: '#7D0012'}}>{user.userName}</div>
-            <div style={{ fontSize: 12, color: '#888' }}>{user.jobPosition}</div>
-          </div>
-          <Avatar style={{ backgroundColor: 'black', color: 'white' }}>
-              {firstChar}
-          </Avatar>
-        </div>
-      </Flex>
-
-      {children}
-
-      <Modal
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        
-      >
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          {/* รูปตรงกลาง */}
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Avatar size={64} style={{ backgroundColor: 'black', color: 'white' }}>
+        <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              gap: 24,
+              padding: '4px 24px',
+              borderRadius: 50,
+              border: '1px solid #7F7F7F',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+              backgroundColor: '#fff',
+              transition: 'background 0.3s, box-shadow 0.3s',
+              marginBottom: '20px',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#f5f5f5';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#fff';
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 500, color: '#7D0012' }}>{user.userName}</div>
+              <div style={{ fontSize: 12, color: '#888' }}>{user.jobPosition}</div>
+            </div>
+            <Avatar style={{ backgroundColor: 'black', color: 'white' }}>
               {firstChar}
             </Avatar>
           </div>
-          {/* Email ตรงกลาง */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 500  , color: '#7D0012'}}>
-                {currentUser.email}
-            </div>
-            
-          </div>
+        </Dropdown>
+      </Flex>
 
-          {/* กล่องข้อมูลบัญชี */}
-          <div
-            style={{
-              border: '1px solid #d9d9d9',
-              borderRadius: 8,
-              padding: 16,
-              backgroundColor: '#F0F0F0',
-            }}
-          >
-            <Typography.Text strong>ข้อมูลบัญชี</Typography.Text>
-            <Divider style={{margin: '5px'}}></Divider>
-            <div>
-              <Typography.Text strong>ชื่อ: </Typography.Text>
-              {user.userName}
-            </div>
-            <Divider style={{margin: '5px'}}></Divider>
-            <div>
-              <Typography.Text strong>ตำแหน่ง: </Typography.Text>
-              {user.jobPosition}
-            </div>
-          </div>
-
-          {/* ปุ่ม logout */}
-          <Button type='primary' danger block onClick={handleSignOut}>
-            <BiLogOut></BiLogOut>Log out
-          </Button>
-        </Space>
-      </Modal>
-
+      {children}
     </>
   );
 }

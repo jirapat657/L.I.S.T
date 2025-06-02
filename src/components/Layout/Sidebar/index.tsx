@@ -4,7 +4,7 @@ import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
 import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
-import { Flex, Layout, Menu, Space, Typography } from 'antd'
+import { Divider, Flex, Layout, Menu, Space, Typography } from 'antd'
 
 import { PATH } from '@/constants/enums'
 import { useLayoutStyle } from '@/components/Layout/layoutConfig'
@@ -85,9 +85,15 @@ export default function Sidebar() {
   return (
     <Layout.Sider className={styles.sidebarContainer}>
       <Space direction="vertical">
-        <Typography.Text className={styles.sidebarTitle}>ISSUE</Typography.Text>
-        <Typography.Text className={styles.sidebarTitle}>MANAGEMENT</Typography.Text>
+        <img src='/icons/headerSidebar.png' alt='Logo' className={styles.logo} />
       </Space>
+      <Divider
+        style={{
+          borderColor: 'white',   // เปลี่ยนสีเส้นเป็นขาว
+          margin: '8px 0',        // ลดระยะห่างบนล่าง (default คือ 24px)
+        }}
+      />
+
       <Flex vertical align="center" style={{ height: '100%' }}>
         <Menu
           selectedKeys={[selectedKey]}
