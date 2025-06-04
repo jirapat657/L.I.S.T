@@ -72,3 +72,14 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* เปลี่ยนสีลูกศรของ Submenu (Setting) ให้เป็นสีขาว */
+.ant-menu-submenu-arrow::before,
+.ant-menu-submenu-arrow::after {
+  background-color: white !important;
+}
+
+.ant-menu-submenu-expand-icon,
+.ant-menu-submenu-arrow {
+  color: white !important;
+}

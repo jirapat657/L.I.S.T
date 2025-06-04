@@ -23,13 +23,18 @@ const useStyle = createStyles(() => {
       flexDirection: 'column',
     },
     logo: {
-      width: 184,
+      width: 300,
       height: 'auto',
     },
     title: {
-      fontSize: 36,
+      fontSize: 32,
       fontWeight: 700,
-      color: '#2B3674',
+      color: '#080808',
+    },
+    subtitle:{
+      fontSize: 16,
+      fontWeight: 700,
+      color: 'rgba(8, 8, 8, 0.6)',
     },
     form: {
       textAlign: 'center',
@@ -57,7 +62,7 @@ const useStyle = createStyles(() => {
       marginBottom: 50,
     },
     textForget: {
-      color: '#045F96',
+      color: '#FC0A18',
       fontSize: 14,
       fontWeight: 500,
       marginRight: 20,
@@ -66,7 +71,6 @@ const useStyle = createStyles(() => {
       fontSize: 14,
       fontWeight: 500,
       color: '#ffffff',
-      backgroundColor: '#42B4E7',
       borderRadius: 16,
       padding: 25,
     },
@@ -94,9 +98,12 @@ export default function LoginForm() {
   }
 
   return (
+    <>
     <Card className={styles.card}>
-      <Flex className={styles.header} gap={30}>
-        <Text className={styles.title}>Sign In</Text>
+      <Flex className={styles.header} gap={10}>
+        <img src='/icons/logoLogin.png' alt='Logo' className={styles.logo}/>
+        <Text className={styles.title}>Log in to your LS account</Text>
+        <Text className={styles.subtitle}>For LS team members only</Text>
       </Flex>
       <Form layout='vertical' onFinish={handleLogin} className={styles.form}>
         <Form.Item
@@ -133,10 +140,11 @@ export default function LoginForm() {
             Forget password?
           </Link>
         </div>
-        <Button htmlType='submit' size='large' block loading={isLoading} className={styles.button}>
+        <Button type='primary' htmlType='submit' size='large' block loading={isLoading} className={styles.button}>
           Sign In
         </Button>
       </Form>
     </Card>
+    </>
   )
 }

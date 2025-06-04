@@ -1,15 +1,14 @@
+// ✅ src/components/Layout/Sidebar/index.tsx
 import type { MenuProps } from 'antd'
-import { signOut } from 'firebase/auth'
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
-import { BiLogOut } from 'react-icons/bi'
+import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
-import { Flex, Layout, Menu, Space, Typography } from 'antd'
+import { Divider, Flex, Layout, Menu, Space, Typography } from 'antd'
 
 import { PATH } from '@/constants/enums'
-import { auth } from '@/services/firebase'
-
 import { useLayoutStyle } from '@/components/Layout/layoutConfig'
+import { AuthContext } from '@/context/AuthContext'
 
 type MenuItem = Required<MenuProps>['items'][number]
 
@@ -19,17 +18,25 @@ function getPathFromKey(key: React.Key): string {
     : ''
 }
 
-function getItem(label: React.ReactNode, key: React.Key, icon: React.ReactNode): MenuItem {
-  const isSignOut = key === 'sign-out'
+function getItem(
+  label: React.ReactNode,
+  key: React.Key,
+  icon: React.ReactNode,
+  children?: MenuItem[],
+  onClick?: () => void
+): MenuItem {
   return {
     key,
     icon: <span style={{ fontSize: 20, color: 'white' }}>{icon}</span>,
-    label: (
-      <Link to={isSignOut ? '' : getPathFromKey(key)} style={{ color: 'white' }}>
+    label: children ? (
+      label
+    ) : (
+      <Link to={getPathFromKey(key)} style={{ color: 'white' }}>
         {label}
       </Link>
     ),
-    onClick: () => (isSignOut ? signOut(auth) : null),
+    onClick,
+    children,
   } as MenuItem
 }
 
@@ -41,21 +48,56 @@ export default function Sidebar() {
     return path || 'dashboard'
   })
 
+  const { currentUser } = useContext(AuthContext)
+  const role = currentUser?.profile?.role
+
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
-    getItem('Sign Out', 'sign-out', <BiLogOut style={{ fontSize: 20, color: '#A3AED0' }} />),
+    getItem('Projects', 'projects', <UnorderedListOutlined />),
+    getItem('Scope of Work', 'scope', <FileTextOutlined />),
+    getItem(
+      <span style={{ color: 'white' }}>Setting</span>,
+      'setting',
+      <SettingOutlined />,
+      [
+        getItem(
+          <Link to={PATH.SETTING_ADD_PROJECT} style={{ color: 'white' }}>
+            Add Project
+          </Link>,
+          'setting/add-project',
+          null
+        ),
+        ...(role === 'Admin'
+          ? [
+              getItem(
+                <Link to={PATH.SETTING_ADD_USER} style={{ color: 'white' }}>
+                  Add User
+                </Link>,
+                'setting/add-user',
+                null
+              ),
+            ]
+          : []),
+      ]
+    ),
   ]
 
   return (
     <Layout.Sider className={styles.sidebarContainer}>
-      <Space direction='vertical'>
-        <Typography.Text className={styles.sidebarTitle}>ISSUE</Typography.Text>
-        <Typography.Text className={styles.sidebarTitle}>MANAGEMENT</Typography.Text>
+      <Space direction="vertical">
+        <img src='/icons/headerSidebar.png' alt='Logo' className={styles.logo} />
       </Space>
-      <Flex vertical align='center' style={{ height: '100%' }}>
+      <Divider
+        style={{
+          borderColor: 'white',   // เปลี่ยนสีเส้นเป็นขาว
+          margin: '8px 0',        // ลดระยะห่างบนล่าง (default คือ 24px)
+        }}
+      />
+
+      <Flex vertical align="center" style={{ height: '100%' }}>
         <Menu
           selectedKeys={[selectedKey]}
-          mode='inline'
+          mode="inline"
           items={items}
           onClick={(e) => setSelectedKey(e.key)}
           className={styles.sidebarMenuItem}

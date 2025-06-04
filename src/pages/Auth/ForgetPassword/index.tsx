@@ -22,7 +22,7 @@ const useStyle = createStyles(() => {
       flexDirection: 'column',
     },
     logo: {
-      width: 184,
+      width: 300,
       height: 'auto',
     },
     textHeader: {
@@ -33,7 +33,7 @@ const useStyle = createStyles(() => {
     title: {
       fontSize: 36,
       fontWeight: 700,
-      color: '#2B3674',
+      color: '#080808',
     },
     subTitle: {
       fontSize: 16,
@@ -60,7 +60,6 @@ const useStyle = createStyles(() => {
       fontSize: 14,
       fontWeight: 500,
       color: '#ffffff',
-      backgroundColor: '#42B4E7',
       borderRadius: 16,
       padding: 25,
     },
@@ -94,7 +93,7 @@ export default function ForgetPasswordForm() {
         <Flex className={styles.textHeader} gap={5}>
           <Text className={styles.title}>Forgot Password?</Text>
           <Text className={styles.subTitle}>
-            No problem. Just provide your email, and we’ll send you a password reset link.
+            No problem. Just let us know your email address and we'll email you a password reset link that will allow you to choose a new one.
           </Text>
         </Flex>
       </Flex>
@@ -110,7 +109,7 @@ export default function ForgetPasswordForm() {
         </Form.Item>
 
         <Form.Item>
-          <Button htmlType='submit' block loading={isLoading} className={styles.button}>
+          <Button type='primary' htmlType='submit' block loading={isLoading} className={styles.button}>
             Sign Up
           </Button>
         </Form.Item>

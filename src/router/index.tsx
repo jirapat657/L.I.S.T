@@ -16,6 +16,15 @@ import AuthLayout from '@/components/Layout/authLayout'
 import ForgetPassword from '@/pages/Auth/ForgetPassword'
 import PageContainer from '@/components/PageContainer'
 import Dashboard from '@/pages/Dashboard'
+import Projects from '@/pages/Projects'
+import ProjectDetail from '@/pages/Projects/ProjectDetail'
+import AddIssueForm from '@/pages/Projects/AddIssueForm';
+import ViewIssue from '@/pages/Projects/ViewIssue';
+import EditIssueForm from '@/pages/Projects/EditIssueForm';
+import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
+import ScopeOfWork from '@/pages/ScopeOfWork';
+import AddProjectSetting from '@/pages/Setting/AddProject';
+import AddUserSetting from '@/pages/Setting/AddUser';
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -33,6 +42,18 @@ export function Router() {
       return redirect('/')
     }
     return null
+  }
+
+  function adminOnlyLoader({ request }: LoaderFunctionArgs) {
+    if (!currentUser && !loading) {
+      const params = new URLSearchParams()
+      params.set('from', new URL(request.url).pathname)
+      return redirect('/sign-in?' + params.toString())
+    } else if (!loading && currentUser?.profile?.role !== 'Admin') {
+      return redirect('/unauthorized') // หรือหน้าที่คุณเตรียมไว้
+    } else {
+      return { currentUser }
+    }
   }
 
   function protectedLoader({ request }: LoaderFunctionArgs) {
@@ -97,6 +118,79 @@ export function Router() {
               <Dashboard />
             </PageContainer>
           ),
+        },
+        {
+          path: PATH.PROJECTS,
+          element: (
+            <PageContainer title={PAGE_TITLE.PROJECTS}>
+              <Projects />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.PROJECT_DETAIL,
+          element: (
+            <PageContainer title={PAGE_TITLE.PROJECT_DETAIL}>
+              <ProjectDetail />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.PROJECT_ADD,
+          element: (
+            <PageContainer title="Add Issue">
+              <AddIssueForm />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.PROJECT_VIEW,
+          element: (
+            <PageContainer title="View Issue">
+              <ViewIssue />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.PROJECT_EDIT,
+          element: (
+            <PageContainer title="Edit Issue">
+              <EditIssueForm />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.PROJECT_DUPLICATE,
+          element: (
+            <PageContainer title="Duplicate Issue">
+              <DuplicateIssueForm />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SCOPE,
+          element: (
+            <PageContainer title={PAGE_TITLE.SCOPE}>
+              <ScopeOfWork />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SETTING_ADD_PROJECT,
+          element: (
+            <PageContainer title={PAGE_TITLE.SETTING_ADD_PROJECT}>
+              <AddProjectSetting />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SETTING_ADD_USER,
+          element: (
+            <PageContainer title={PAGE_TITLE.SETTING_ADD_USER}>
+              <AddUserSetting />
+            </PageContainer>
+          ),
+          loader: adminOnlyLoader,
         },
       ],
     },

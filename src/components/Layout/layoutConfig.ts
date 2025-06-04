@@ -4,11 +4,16 @@ export const useLayoutStyle = createStyles(() => {
   return {
     authContainer: {
       minHeight: '100vh',
+      width: '100vw',
+      backgroundImage: 'url(/images/login-background.jpg)',
+      backgroundRepeat: 'no-repeat',         // ✅ ไม่ให้ภาพซ้ำ
+      backgroundSize: 'cover',               // ✅ ขยายภาพให้ครอบคลุมพื้นที่
+      backgroundPosition: 'center',          // ✅ จัดภาพให้อยู่ตรงกลางเสมอ
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      width: '100vw',
     },
+
     authContent: {
       display: 'flex',
       justifyContent: 'center',
@@ -21,8 +26,10 @@ export const useLayoutStyle = createStyles(() => {
       width: 'calc(100vw - 250px)',
       backgroundColor: 'white',
       padding: '50px',
-      height: '100vh',
+      minHeight: '100vh', // ✅ ปรับให้ยืดตามเนื้อหา
+      boxSizing: 'border-box',
     },
+    
     sidebarContainer: {
       width: 250,
       backgroundColor: '#202020',
@@ -42,6 +49,10 @@ export const useLayoutStyle = createStyles(() => {
         backgroundColor: '#FC0A18',
         color: 'white',
       },
+    },
+    logo: {
+      width: 200,
+      height: 'auto',
     },
   }
 })
