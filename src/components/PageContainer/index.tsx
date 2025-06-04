@@ -46,7 +46,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
     {
       key: 'avatar',
       label: (
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, paddingInline:120 }}>
           <Avatar size={64} style={{ backgroundColor: 'black', color: 'white' }}>
             {firstChar}
           </Avatar>
@@ -66,24 +66,23 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
     {
       type: 'divider',
     },
-    {
+   {
       key: 'username',
       label: (
-        <div>
+        <div style={{ pointerEvents: 'none', fontWeight: 500, color: '#000' }}>
           <strong>ชื่อ:</strong> {user.userName}
         </div>
       ),
-      disabled: true,
     },
     {
       key: 'position',
       label: (
-        <div>
+        <div style={{ pointerEvents: 'none', fontWeight: 500, color: '#000' }}>
           <strong>ตำแหน่ง:</strong> {user.jobPosition}
         </div>
       ),
-      disabled: true,
     },
+
     {
       type: 'divider',
     },

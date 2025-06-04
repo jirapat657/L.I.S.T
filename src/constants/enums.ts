@@ -25,6 +25,6 @@ export const PAGE_TITLE = Object.freeze({
   PROJECT_EDIT: 'Edit Issue',
   PROJECT_DUPLICATE: 'Duplicate Issue',
   SCOPE: 'Scope of Work',
-  SETTING_ADD_PROJECT: 'Add Project Setting',
-  SETTING_ADD_USER: 'Add User Setting',
+  SETTING_ADD_PROJECT: 'Add Project',
+  SETTING_ADD_USER: 'Add User',
 });
