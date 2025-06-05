@@ -8,14 +8,13 @@ import {
   Table,
   Dropdown,
   Button,
-  Select,
   message,
   Tooltip,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Issue, Filters } from '@/types/projectDetail';
 import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
@@ -73,7 +72,6 @@ const ProjectDetail: React.FC = () => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-
   const handleDelete = async (issueId: string) => {
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, issueId));
@@ -82,18 +80,6 @@ const ProjectDetail: React.FC = () => {
     } catch (error) {
       console.error('Delete failed:', error);
       message.error('Failed to delete');
-    }
-  };
-
-  const handleStatusChange = async (issueId: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, COLLECTION_NAME, issueId), { status: newStatus });
-      setIssues((prev) =>
-        prev.map((item) => (item.id === issueId ? { ...item, status: newStatus } : item))
-      );
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      message.error('Status update failed');
     }
   };
 
@@ -171,7 +157,7 @@ const ProjectDetail: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string, record: Issue) => {
+      render: (status: string) => {
         const getColor = (status: string) => {
           switch (status) {
             case 'Complete':
@@ -185,21 +171,7 @@ const ProjectDetail: React.FC = () => {
           }
         };
 
-        const color = getColor(status);
-
-        return (
-          <div style={{ color }}>
-            <Select
-              value={status}
-              style={{ width: 120 }}
-              onChange={(value) => handleStatusChange(record.id, value)}
-              options={['Awaiting', 'Inprogress', 'Complete', 'Cancel'].map((s) => ({
-                label: <span style={{ color: getColor(s) }}>{s}</span>,
-                value: s,
-              }))}
-            />
-          </div>
-        );
+        return <span style={{ color: getColor(status) }}>{status}</span>;
       },
     },
     {
