@@ -71,7 +71,7 @@ const AddProject: React.FC = () => {
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: any }) => updateProject(id, values),
+    mutationFn: ({ id, values }: { id: string; values: ProjectFormValues }) => updateProject(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       message.success('อัปเดตโปรเจกต์สำเร็จ')
@@ -160,7 +160,7 @@ const AddProject: React.FC = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: ProjectData) => (
+      render: (_: unknown, record: ProjectData) => (
         <Dropdown
           menu={{
             items: [

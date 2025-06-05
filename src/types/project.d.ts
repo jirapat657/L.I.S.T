@@ -1,6 +1,5 @@
 // src/types/project.d.ts
 import { Timestamp } from 'firebase/firestore';
-import type { UploadFile } from 'antd/es/upload/interface';
 
 // 👇 ฟอร์มกรอกข้อมูล
 export interface ProjectFormValues {
@@ -8,7 +7,7 @@ export interface ProjectFormValues {
   projectName: string;
   logo?: {
     file: File;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

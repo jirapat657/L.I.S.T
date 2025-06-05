@@ -53,17 +53,22 @@ const AddUserPage = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('สร้างบัญชีผู้ใช้สำเร็จ');
     },
-    onError: (error: any) => {
-      if (error.code === 'auth/email-already-in-use') {
-        message.error('อีเมลนี้ถูกใช้งานแล้ว');
+    onError: (error: unknown) => {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const err = error as { code: string };
+        if (err.code === 'auth/email-already-in-use') {
+          message.error('อีเมลนี้ถูกใช้งานแล้ว');
+        } else {
+          message.error('ไม่สามารถสร้างบัญชีผู้ใช้ได้');
+        }
       } else {
-        message.error('ไม่สามารถสร้างบัญชีผู้ใช้ได้');
+        message.error('เกิดข้อผิดพลาดที่ไม่รู้จัก');
       }
     },
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: any }) =>
+    mutationFn: ({ id, values }: { id: string; values: UserFormValues }) =>
       updateUser(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -175,7 +180,7 @@ const AddUserPage = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: UserData) => (
+      render: (_: unknown, record: UserData) => (
         <Dropdown
           menu={{
             items: [
