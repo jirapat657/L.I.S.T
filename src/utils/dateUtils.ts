@@ -1,5 +1,6 @@
 // src/utils/dateUtils.ts
 import dayjs, { Dayjs } from 'dayjs';
+import type { Timestamp } from 'firebase/firestore';
 
 /**
  * คืนข้อความ “On Time” หรือ “Late Time” พร้อมจำนวนวัน
@@ -19,4 +20,20 @@ export const calculateOnLateTime = (
   return diff <= 0
     ? `On Time (${Math.abs(diff)} Day)`
     : `Late Time (${diff} Day)`;
+};
+
+export const formatTimestamp = (
+  value: Timestamp | string | null | undefined
+): string => {
+  if (!value) return '-';
+
+  if (typeof value === 'string') {
+    return dayjs(value).format('DD/MM/YY');
+  }
+
+  if (typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+    return dayjs(value.toDate()).format('DD/MM/YY');
+  }
+
+  return '-';
 };

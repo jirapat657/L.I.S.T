@@ -6,18 +6,12 @@ import {
   Button,
   Divider,
   message,
-  Dropdown,
   Modal,
   Input,
-  Popconfirm,
-  DatePicker,
-  Select,
   Form,
 } from 'antd';
-import type { MenuProps } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { v4 as uuidv4 } from 'uuid';
-import dayjs from 'dayjs';
 import { Timestamp } from 'firebase/firestore';
 
 import IssueForm from '@/components/IssueForm';
@@ -31,9 +25,10 @@ import {
 import { getAllUsers } from '@/api/user';
 import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
-import { CopyOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import { CopyOutlined, PlusOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
+import type { FirestoreDateInput } from '@/types/common';
 
 const DuplicateIssueForm: React.FC = () => {
   const { issueId, projectId } = useParams<{ issueId: string; projectId: string }>();
@@ -73,7 +68,7 @@ const DuplicateIssueForm: React.FC = () => {
     }
   }, [issueId]);
 
-  const convertToTimestamp = (value: any): Timestamp | null => {
+  const convertToTimestamp = (value: FirestoreDateInput): Timestamp | null => {
     if (!value) return null;
     if (value instanceof Timestamp) return value;
     if (value instanceof Date) return Timestamp.fromDate(value);
@@ -155,13 +150,15 @@ const DuplicateIssueForm: React.FC = () => {
     }
   };
 
-  const handleInlineUpdate = (id: string, field: keyof Subtask, value: any) => {
+  const handleInlineUpdate = <K extends keyof Subtask>(
+    id: string,
+    field: K,
+    value: Subtask[K]
+  ) => {
     setSubtasks((prev) =>
       prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );
   };
-
-  
 
   if (isLoading || !issue) return <div>Loading...</div>;
 

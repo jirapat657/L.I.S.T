@@ -5,7 +5,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Divider,
   Typography,
-  Table,
   Button,
   Space,
   Modal,
@@ -15,11 +14,9 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import IssueForm from '@/components/IssueForm';
 import { getIssueById } from '@/api/issue';
-import type { IssueData, Subtask } from '@/types/issue';
-import type { ColumnsType } from 'antd/es/table';
+import type { IssueData } from '@/types/issue';
 import { CaretLeftOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
-
 
 const { Text, Title } = Typography;
 
@@ -46,52 +43,12 @@ const ViewIssuePage: React.FC = () => {
   const userOptions = issue.subtasks?.map((s) => s.baTest)
     .filter((val, idx, arr) => val && arr.indexOf(val) === idx)
     .map((val) => ({ label: val!, value: val! })) ?? [];
-
-  const columns: ColumnsType<Subtask> = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      render: (value: any) =>
-        value && value.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
-    },
-    {
-      title: 'Details',
-      dataIndex: 'details',
-      ellipsis: true,
-    },
-    {
-      title: 'Complete Date',
-      dataIndex: 'completeDate',
-      render: (value: any) =>
-        value && value.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
-    },
-    {
-      title: 'BA/Test',
-      dataIndex: 'baTest',
-    },
-    {
-      title: 'Remark',
-      dataIndex: 'remark',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: any, record: Subtask) => (
-        <Button
-          size="small"
-          onClick={() =>
-            setDetailModal({ visible: true, content: record.details || '—' })
-          }
-        >
-          View
-        </Button>
-      ),
-    },
-  ];
+  
+  const sortedSubtasks = [...(issue.subtasks ?? [])].sort(
+    (a, b) =>
+      (a.createdAt?.toDate?.()?.getTime?.() ?? 0) -
+      (b.createdAt?.toDate?.()?.getTime?.() ?? 0)  
+  );
 
   return (
     <div>
@@ -111,7 +68,7 @@ const ViewIssuePage: React.FC = () => {
       <Divider orientation="left">Child Work Item</Divider>
 
       <SubtaskTable
-        subtasks={issue.subtasks ?? []}
+        subtasks={sortedSubtasks}
         userOptions={userOptions}
         onUpdate={() => {}}
         onDelete={() => {}}

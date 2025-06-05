@@ -12,12 +12,13 @@ import {
   message,
 } from 'antd';
 import type { MenuProps } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Issue, Filters } from '@/types/projectDetail';
 import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,35 +39,39 @@ const ProjectDetail: React.FC = () => {
 
   const COLLECTION_NAME = 'LIMIssues';
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
         where('projectId', '==', id),
-        orderBy('createdAt', 'desc') // ✅ เพิ่มบรรทัดนี้เพื่อเรียงจากใหม่ไปเก่า
+        orderBy('createdAt', 'desc')
       );
-  
+
       const querySnapshot = await getDocs(q);
       const issuesArray: Issue[] = [];
-  
+
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         issuesArray.push({ id: docSnap.id, ...(data as Omit<Issue, 'id'>) });
       });
-  
+
       setIssues(issuesArray);
     } catch (error) {
       console.error('Error fetching issues:', error);
     }
-  };
+  }, [id]); // ✅ ใส่ dependency ของฟังก์ชัน
 
   useEffect(() => {
-    fetchIssues();
-  }, [id]);
+    fetchIssues(); // ✅ ใช้ได้ปลอดภัย
+  }, [fetchIssues]); // ✅ ใช้ fetchIssues เป็น dependency
 
-  const handleFilterChange = (field: keyof Filters, value: any) => {
+  const handleFilterChange = <K extends keyof Filters>(
+    field: K,
+    value: Filters[K]
+  ) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
+
 
   const handleDelete = async (issueId: string) => {
     try {
@@ -111,19 +116,15 @@ const ProjectDetail: React.FC = () => {
       title: 'No.',
       dataIndex: 'no',
       key: 'no',
-      render: (_: any, __: any, index: number) => issues.length - index,
+      render: (_: unknown, __: unknown, index: number) => issues.length - index,
     },    
     { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
     {
       title: 'Issue Date',
       dataIndex: 'issueDate',
       key: 'issueDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     { title: 'Title', dataIndex: 'title', key: 'title' },
     { title: 'Description', dataIndex: 'description', key: 'description' },
@@ -166,34 +167,22 @@ const ProjectDetail: React.FC = () => {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'Complete Date',
       dataIndex: 'completeDate',
       key: 'completeDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'On/Late Time',
@@ -214,7 +203,7 @@ const ProjectDetail: React.FC = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: Issue) => {
+      render: (_: unknown, record: Issue) => {
         const items: MenuProps['items'] = [
           { key: 'view', label: (<><EyeOutlined /> View</>) },
           { key: 'edit', label: (<><EditOutlined /> Edit</>) },

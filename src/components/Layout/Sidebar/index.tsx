@@ -4,7 +4,7 @@ import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
 import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
-import { Divider, Flex, Layout, Menu, Space, Typography } from 'antd'
+import { Divider, Flex, Layout, Menu, Space } from 'antd'
 
 import { PATH } from '@/constants/enums'
 import { useLayoutStyle } from '@/components/Layout/layoutConfig'
