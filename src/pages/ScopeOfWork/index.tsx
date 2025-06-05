@@ -7,10 +7,12 @@ import { getAllScopes, deleteScopeById, updateScopeById, createScope } from '@/a
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
 import dayjs from 'dayjs';
 import { useState } from 'react';
-import type { ScopeData, FileData, ScopePayload } from '@/types/scopeOfWork';
+import type { ScopeData, FileData, ScopePayload, ScopeFormValues } from '@/types/scopeOfWork';
 import { Timestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { formatFirestoreDate } from '@/utils/dateUtils';
+import type { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
 
 const ScopeOfWork = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
@@ -35,7 +37,7 @@ const ScopeOfWork = () => {
     {
       title: 'Doc.Date',
       dataIndex: 'docDate',
-      render: (val: any) => val?.toDate ? dayjs(val.toDate()).format('DD/MM/YY') : '-',
+      render: (val: Timestamp | Date | null | undefined) => formatFirestoreDate(val),
     },
     { title: 'Doc.No.', dataIndex: 'docNo' },
     { title: 'Project', dataIndex: 'project' },
@@ -55,7 +57,7 @@ const ScopeOfWork = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: ScopeData) => {
+      render: (_: unknown, record: ScopeData) => {
         const items: MenuProps['items'] = [
           {
             key: 'view',
@@ -113,33 +115,46 @@ const ScopeOfWork = () => {
       setUploadFiles((prev) => prev.filter((file) => file.url !== url));
       message.success('ลบไฟล์แล้ว');
     } catch (err) {
-      message.error('ลบไฟล์ไม่สำเร็จ');
-    }
+    console.error('ลบไฟล์ไม่สำเร็จ', err);
+    message.error('ลบไฟล์ไม่สำเร็จ');
+  }
   };
 
-  const handleCustomUpload = async ({ file, onSuccess, onError }: any) => {
+  const handleCustomUpload = async ({
+    file,
+    onSuccess,
+    onError,
+  }: UploadRequestOption) => {
     const storage = getStorage();
-    const uniqueName = `${uuidv4()}-${file.name}`;
+    const uniqueName = `${uuidv4()}-${(file as RcFile).name}`;
     const storageRef = ref(storage, `scope-files/${uniqueName}`);
 
     try {
-      const uploadTask = uploadBytesResumable(storageRef, file);
-      uploadTask.on('state_changed', null, onError, async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        const newFile = { name: file.name, url: downloadURL };
-        setUploadFiles((prev) => [...prev, newFile]);
-        onSuccess(null, file);
-      });
+      const uploadTask = uploadBytesResumable(storageRef, file as File);
+      uploadTask.on(
+        'state_changed',
+        undefined,
+        (error) => {
+          onError?.(error as Error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          const newFile = { name: (file as RcFile).name, url: downloadURL };
+          setUploadFiles((prev) => [...prev, newFile]);
+          onSuccess?.(null, file);
+        }
+      );
     } catch (error) {
-      onError(error);
+      onError?.(error as Error);
     }
   };
 
-  const handleFinish = async (values: any) => {
+  const handleFinish = async (values: ScopeFormValues) => {
     const payload: ScopePayload = {
       ...values,
       files: uploadFiles,
       docDate: values.docDate ? Timestamp.fromDate(values.docDate.toDate()) : null,
+      createdAt: editingScope?.createdAt ?? Timestamp.now(), // ✅ สำคัญ
     };
 
     try {

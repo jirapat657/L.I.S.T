@@ -1,6 +1,6 @@
 // src/utils/dateUtils.ts
 import dayjs, { Dayjs } from 'dayjs';
-import type { Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 /**
  * คืนข้อความ “On Time” หรือ “Late Time” พร้อมจำนวนวัน
@@ -45,4 +45,14 @@ export const safeDate = (
   date: Timestamp | null | undefined
 ): Dayjs | null => {
   return date?.toDate ? dayjs(date.toDate()) : null;
+};
+
+
+export const formatFirestoreDate = (
+  input: Timestamp | Date | null | undefined,
+  format = 'DD/MM/YY'
+): string => {
+  if (!input) return '-';
+  const date = input instanceof Timestamp ? input.toDate() : input;
+  return dayjs(date).format(format);
 };
