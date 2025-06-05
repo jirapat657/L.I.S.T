@@ -37,3 +37,12 @@ export const formatTimestamp = (
 
   return '-';
 };
+
+/**
+ * แปลง Firebase Timestamp → Dayjs อย่างปลอดภัย
+ */
+export const safeDate = (
+  date: Timestamp | null | undefined
+): Dayjs | null => {
+  return date?.toDate ? dayjs(date.toDate()) : null;
+};
