@@ -107,7 +107,7 @@ export const updateSubtask = async (
   updates: Partial<SubtaskData>
 ) => {
   const ref = doc(db, COLLECTION_NAME, issueId, 'subtasks', subtaskId);
-  await updateDoc(ref, removeUndefined(updates));
+  await updateDoc(ref, removeUndefined(updates) as Partial<IssueData>);
 };
 
 // ✅ ลบ Subtask รายตัว
@@ -151,7 +151,7 @@ export const getIssueById = async (id: string): Promise<IssueData | null> => {
 // ==========
 export const updateIssue = async (id: string, data: Partial<IssueData>) => {
   const ref = doc(db, COLLECTION_NAME, id);
-  await updateDoc(ref, removeUndefined(data));
+  await updateDoc(ref, removeUndefined(data) as Partial<IssueData>);
 };
 
 export const addSubtask = async (

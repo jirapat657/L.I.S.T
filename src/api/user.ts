@@ -45,7 +45,8 @@ import {
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
     const uid = userCredential.user.uid;
 
-    // 🔐 ลบ password ออกก่อนบันทึกลง Firestore
+    // 🔐 ลบ password ออกก่อนบันทึกลง Firestore (ห้ามเก็บ password ใน Firestore เด็ดขาด)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userData } = data;
 
     // ✅ ใช้ setDoc เพื่อให้ UID เป็น docId
