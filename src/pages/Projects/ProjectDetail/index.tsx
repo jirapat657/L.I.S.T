@@ -10,6 +10,7 @@ import {
   Button,
   Select,
   message,
+  Tooltip,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
@@ -126,8 +127,46 @@ const ProjectDetail: React.FC = () => {
       render: (timestamp: Timestamp | string | null | undefined) =>
         formatTimestamp(timestamp),
     },
-    { title: 'Title', dataIndex: 'title', key: 'title' },
-    { title: 'Description', dataIndex: 'description', key: 'description' },
+    {
+      title: 'Title',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text: string) =>
+        text ? (
+          <Tooltip title={text}>
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
+              }}
+            >
+              {text}
+            </div>
+          </Tooltip>
+        ) : null,
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string) =>
+        text ? (
+          <Tooltip title={text}>
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
+              }}
+            >
+              {text}
+            </div>
+          </Tooltip>
+        ) : null,
+    },
     {
       title: 'Status',
       dataIndex: 'status',

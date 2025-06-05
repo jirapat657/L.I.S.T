@@ -210,7 +210,9 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
                     okText="ลบ"
                     cancelText="ยกเลิก"
                 >
-                    <DeleteOutlined /> Delete
+                    <span style={{ color: 'red' }}>
+                      <DeleteOutlined /> Delete
+                    </span>
                 </Popconfirm>
                 ),
             });

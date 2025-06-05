@@ -41,6 +41,7 @@ const AddUserPage = () => {
   const [searchName, setSearchName] = useState('');
   const pageSize = 5;
   const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null)
 
   const { data: users = [] } = useQuery<UserData[]>({
     queryKey: ['users'],
@@ -82,6 +83,7 @@ const AddUserPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('ลบบัญชีสำเร็จ');
+      setDeleteTarget(null); // ✅ ปิด Modal หลังลบ
     },
     onError: () => message.error('ไม่สามารถลบได้'),
   });
@@ -162,7 +164,7 @@ const AddUserPage = () => {
     { title: 'User Name', dataIndex: 'userName', key: 'userName' },
     { title: 'Email', dataIndex: 'email', key: 'email' },
     { title: 'Role', dataIndex: 'role', key: 'role' },
-    { title: 'Job Position', dataIndex: 'jobPosition', key: 'jobPostion' },
+    { title: 'Job Position', dataIndex: 'jobPosition', key: 'jobPosition' },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -189,7 +191,9 @@ const AddUserPage = () => {
             ],
             onClick: ({ key }) => {
               if (key === 'edit') handleEdit(record);
-              if (key === 'delete') handleDelete(record);
+              if (key === 'delete') {
+                setDeleteTarget(record); // ✅ เตรียม record สำหรับ modal confirm
+              }
             },
           }}
         >
@@ -276,6 +280,24 @@ const AddUserPage = () => {
             <Button type='primary' htmlType='submit'>บันทึก</Button>
           </div>
         </Form>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        footer={null}
+        centered
+        width={400} // ✅ ปรับขนาด modal ตรงนี้
+      >
+        <p style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
+          ต้องการลบบัญชีผู้ใช้ <strong>{deleteTarget?.userName}</strong> หรือไม่?
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+          <Button type='primary' onClick={() => handleDelete(deleteTarget!)}>
+            Yes
+          </Button>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+        </div>
       </Modal>
     </div>
   );

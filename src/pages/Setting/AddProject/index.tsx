@@ -360,17 +360,22 @@ const AddProject: React.FC = () => {
         </Form>
       </Modal>
 
-      <Modal open={!!deleteTarget} onCancel={() => setDeleteTarget(null)} footer={null} centered>
-        <p style={{ fontSize: 16, fontWeight: 'bold' }}>
+      <Modal
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        footer={null}
+        centered
+        width={400} // ✅ ปรับขนาด modal ตรงนี้
+      >
+        <p style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
           ต้องการลบโปรเจกต์ <strong>{deleteTarget?.projectId}</strong> หรือไม่?
         </p>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button danger onClick={handleDelete}>
-            ✅ Yes
-          </Button>
-          <Button onClick={() => setDeleteTarget(null)}>❌ Cancel</Button>
+          <Button type='primary' onClick={handleDelete}>Yes</Button>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
         </div>
       </Modal>
+
     </div>
   )
 }
