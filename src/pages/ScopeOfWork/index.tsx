@@ -44,15 +44,18 @@ const ScopeOfWork = () => {
     {
       title: 'Description',
       dataIndex: 'description',
-      render: (desc: string, record: ScopeData) => (
-        desc ? (
-          <Typography.Link onClick={() => handleDescriptionClick(record.files)}>
-            {desc}
-          </Typography.Link>
-        ) : (
-          <span style={{ color: '#aaa' }}>ไม่มีคำอธิบาย</span>
-        )
-      ),
+      render: (desc: string, record: ScopeData) => {
+        // ถ้ามีไฟล์ให้กดได้, ถ้าไม่มีไฟล์ให้เป็นข้อความปกติ
+        if (record.files && record.files.length > 0) {
+          return (
+            <Typography.Link onClick={() => handleDescriptionClick(record.files)}>
+              {desc}
+            </Typography.Link>
+          );
+        }
+        // ไม่มีไฟล์ → เป็นข้อความสีจางและคลิกไม่ได้
+        return <span style={{  cursor: 'not-allowed' }}>{desc || 'No Description'}</span>;
+      },
     },
     {
       title: '',
