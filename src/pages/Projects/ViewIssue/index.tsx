@@ -18,7 +18,7 @@ import type { IssueData } from '@/types/issue';
 import { CaretLeftOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const ViewIssuePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +52,7 @@ const ViewIssuePage: React.FC = () => {
 
   return (
     <div>
-      <Title level={3}>แสดง Issue #{issueId}</Title>
+
 
       <Text type="secondary">
         สร้างเมื่อ:{' '}

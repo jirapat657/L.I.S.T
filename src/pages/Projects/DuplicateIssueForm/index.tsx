@@ -25,7 +25,7 @@ import {
 import { getAllUsers } from '@/api/user';
 import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
-import { CopyOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
 import type { FirestoreDateInput } from '@/types/common';
@@ -164,7 +164,7 @@ const DuplicateIssueForm: React.FC = () => {
 
   return (
     <div>
-      <h2><CopyOutlined /> สร้างสำเนา Issue #{issueId}</h2>
+
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
       <Divider orientation="left">Child Work Item</Divider>

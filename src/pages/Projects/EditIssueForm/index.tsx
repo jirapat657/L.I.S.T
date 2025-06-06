@@ -255,7 +255,7 @@ const handleSave = async () => {
 
   return (
     <div>
-      <h2>แก้ไข Issue #{issueId}</h2>
+
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
       <Divider orientation="left">Child Work Item</Divider>
