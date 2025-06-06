@@ -138,6 +138,7 @@ const DuplicateIssueForm: React.FC = () => {
         baTest: sub.baTest,
         remark: sub.remark,
         status: sub.status,
+        createdAt: sub.createdAt || Timestamp.now(), // เพิ่มตรงนี้!
       }));
 
       await addIssue(newIssue, newSubtasks);
