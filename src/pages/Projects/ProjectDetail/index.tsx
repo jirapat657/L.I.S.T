@@ -14,7 +14,7 @@ import {
 import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Issue, Filters } from '@/types/projectDetail';
 import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
@@ -36,6 +36,8 @@ const ProjectDetail: React.FC = () => {
     developer: '',
     baTest: '',
   });
+
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   const COLLECTION_NAME = 'LIMIssues';
 
@@ -64,6 +66,24 @@ const ProjectDetail: React.FC = () => {
   useEffect(() => {
     fetchIssues(); // ✅ ใช้ได้ปลอดภัย
   }, [fetchIssues]); // ✅ ใช้ fetchIssues เป็น dependency
+
+  // ดึงชื่อโปรเจกต์
+  useEffect(() => {
+    const fetchProjectName = async () => {
+      try {
+        const projectDoc = await getDoc(doc(db, 'LIMProjects', id!));
+        if (projectDoc.exists()) {
+          setProjectName(projectDoc.data().projectName || `Project ${id}`);
+        } else {
+          setProjectName(`Project ${id}`);
+        }
+      } catch (error) {
+        console.error(error);
+        setProjectName(`Project ${id}`);
+      }
+    };
+    if (id) fetchProjectName();
+  }, [id]);
 
   const handleFilterChange = <K extends keyof Filters>(
     field: K,
@@ -241,7 +261,7 @@ const ProjectDetail: React.FC = () => {
 
   return (
     <div>
-      <h2>รายละเอียดโปรเจกต์ #{id}</h2>
+      <h2>{projectName ? `${projectName}` : `#${id}`}.Issue Log</h2>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" onClick={() => navigate(`/projects/${id}/add`)}>
