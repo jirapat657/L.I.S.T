@@ -145,7 +145,7 @@ const saveNewSubtasks = async () => {
         baTest: sub.baTest,
         remark: sub.remark,
         status: sub.status,
-        createdAt: Timestamp.now(), // ✅ บันทึก timestamp
+        createdAt: sub.createdAt, // ✅ ส่งค่าตรงนี้! (ไม่ต้อง Timestamp.now())
       });
       console.log('✅ เพิ่ม subtask สำเร็จ:', sub.details);
     } catch (error) {
@@ -263,7 +263,7 @@ const handleSave = async () => {
         <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
       <SubtaskTable
-        subtasks={subtasks}
+        subtasks={subtasks}  // state! ไม่ใช่ issue.subtasks
         userOptions={userOptions}
         onUpdate={handleInlineUpdate}
         onDelete={handleDeleteSubtask}

@@ -172,7 +172,7 @@ const DuplicateIssueForm: React.FC = () => {
         <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
       <SubtaskTable
-        subtasks={subtasks}
+        subtasks={subtasks}  // state! ไม่ใช่ issue.subtasks
         userOptions={userOptions}
         onUpdate={handleInlineUpdate}
         onDelete={handleDeleteSubtask}

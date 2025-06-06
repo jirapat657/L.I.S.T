@@ -44,7 +44,7 @@ export const addIssue = async (
       collection(db, COLLECTION_NAME, issueDoc.id, 'subtasks'),
       removeUndefined({
         ...sub,
-        createdAt: Timestamp.now(),
+        createdAt: sub.createdAt 
       })
     );
   }
@@ -161,6 +161,6 @@ export const addSubtask = async (
   const ref = collection(db, COLLECTION_NAME, issueId, 'subtasks');
   await addDoc(ref, removeUndefined({
     ...subtask,
-    createdAt: Timestamp.now(),
+    createdAt: subtask.createdAt,
   }));
 };

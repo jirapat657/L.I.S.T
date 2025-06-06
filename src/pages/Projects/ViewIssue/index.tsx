@@ -44,11 +44,7 @@ const ViewIssuePage: React.FC = () => {
     .filter((val, idx, arr) => val && arr.indexOf(val) === idx)
     .map((val) => ({ label: val!, value: val! })) ?? [];
   
-  const sortedSubtasks = [...(issue.subtasks ?? [])].sort(
-    (a, b) =>
-      (a.createdAt?.toDate?.()?.getTime?.() ?? 0) -
-      (b.createdAt?.toDate?.()?.getTime?.() ?? 0)  
-  );
+  
 
   return (
     <div>
@@ -68,7 +64,7 @@ const ViewIssuePage: React.FC = () => {
       <Divider orientation="left">Child Work Item</Divider>
 
       <SubtaskTable
-        subtasks={sortedSubtasks}
+        subtasks={issue.subtasks ?? []} // << ส่ง array ต้นฉบับ
         userOptions={userOptions}
         onUpdate={() => {}}
         onDelete={() => {}}

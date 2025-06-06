@@ -232,7 +232,11 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
   return (
     <Table
       columns={columns}
-      dataSource={subtasks}
+      dataSource={[...subtasks].sort(
+        (a, b) =>
+          (b.createdAt?.toDate?.()?.getTime?.() ?? 0) -
+          (a.createdAt?.toDate?.()?.getTime?.() ?? 0)
+      )}
       rowKey="id"
       pagination={false}
       scroll={{ x: 'max-content' }}
