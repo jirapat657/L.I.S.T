@@ -96,7 +96,7 @@ const AddIssueForm: React.FC = () => {
           baTest: row.baTest,
           status: row.status,
           remark: row.remark,
-          createdAt: row.createdAt ?? Timestamp.now(),
+          createdAt: row.createdAt ,
         }));
 
       await addIssue(issuePayload, subtasks);

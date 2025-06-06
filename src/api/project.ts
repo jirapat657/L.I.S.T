@@ -56,12 +56,15 @@ import {
       const storageRef = ref(storage, `project-logos/${Date.now()}-${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       logoUrl = await getDownloadURL(snapshot.ref);
+    } else if (values.logo && typeof values.logo === 'string') {
+      // ✅ กรณีที่ส่ง url string มา ให้เก็บ url เดิม
+      logoUrl = values.logo;
     }
 
     const payload: Partial<ProjectData> = {
       projectId: values.projectId,
       projectName: values.projectName,
-      ...(logoUrl && { logo: logoUrl }), // ใส่เฉพาะถ้าอัปโหลดใหม่
+      logo: logoUrl, // <<-- เซตตรงๆไปเลย ไม่ต้อง &&!
       updatedAt: Timestamp.now(),
     };
 
