@@ -15,11 +15,12 @@ import type { MenuProps } from 'antd';
 import type { Subtask } from '@/types/issue';
 import { Timestamp } from 'firebase/firestore';
 import dayjs from 'dayjs';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 interface SubtaskTableProps {
   subtasks: Subtask[];
   userOptions: { label: string; value: string }[];
-  onUpdate: (id: string, field: keyof Subtask, value: any) => void;
+  onUpdate: <K extends keyof Subtask>(id: string, field: K, value: Subtask[K]) => void;
   onDelete: (id: string) => void;
   onView: (subtask: Subtask) => void;
   onDuplicate: (subtask: Subtask) => void;
@@ -38,12 +39,12 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
   const columns = [
     {
       title: 'No.',
-      render: (_: any, __: any, index: number) => subtasks.length - index,
+      render: (_: unknown, __: unknown, index: number) => subtasks.length - index,
     },
     {
       title: 'Date',
       dataIndex: 'date',
-      render: (value: any) =>
+      render: (value: Timestamp | null | undefined) =>
         value?.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
     },
     {
@@ -63,13 +64,9 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
     {
       title: 'Complete Date',
       dataIndex: 'completeDate',
-      render: (value: any, record: Subtask) =>
+      render: (value: Timestamp | string | null | undefined, record: Subtask) =>
         readOnly ? (
-          value?.toDate ? (
-            <span>{dayjs(value.toDate()).format('DD/MM/YY')}</span>
-          ) : (
-            '-'
-          )
+          <span>{formatTimestamp(value)}</span>
         ) : (
           <DatePicker
             format="DD/MM/YY"
@@ -182,7 +179,7 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
         {
         title: '',
         key: 'actions',
-        render: (_: any, record: Subtask) => {
+        render: (_: unknown, record: Subtask) => {
             const items: MenuProps['items'] = [];
 
             items.push({
@@ -213,7 +210,9 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
                     okText="ลบ"
                     cancelText="ยกเลิก"
                 >
-                    <DeleteOutlined /> Delete
+                    <span style={{ color: 'red' }}>
+                      <DeleteOutlined /> Delete
+                    </span>
                 </Popconfirm>
                 ),
             });
@@ -232,8 +231,12 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
 
   return (
     <Table
-      columns={columns as any}
-      dataSource={subtasks}
+      columns={columns}
+      dataSource={[...subtasks].sort(
+        (a, b) =>
+          (b.createdAt?.toDate?.()?.getTime?.() ?? 0) -
+          (a.createdAt?.toDate?.()?.getTime?.() ?? 0)
+      )}
       rowKey="id"
       pagination={false}
       scroll={{ x: 'max-content' }}

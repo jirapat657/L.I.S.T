@@ -1,8 +1,9 @@
+//src/services/firebase.ts
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { connectAuthEmulator, getAuth } from 'firebase/auth'
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore'
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions'
-import { getStorage } from 'firebase/storage'
+import { connectStorageEmulator, getStorage } from 'firebase/storage'
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,11 +20,13 @@ const auth = getAuth()
 const db = getFirestore()
 const storage = getStorage()
 
+//เมื่อdeploy comment ปิด
 if (window.location.hostname === 'localhost') {
   connectFunctionsEmulator(functions, 'localhost', 5001)
-  // connectAuthEmulator(auth, 'http://localhost:9099')
-  // connectFirestoreEmulator(db, 'localhost', 8080)
-  // connectStorageEmulator(storage, 'localhost', 9199)
+  connectAuthEmulator(auth, 'http://localhost:9099')
+  connectFirestoreEmulator(db, 'localhost', 8080)
+  connectStorageEmulator(storage, 'localhost', 9199)
 }
+//เมื่อdeploy comment ปิด
 
 export { auth, db, functions, storage }

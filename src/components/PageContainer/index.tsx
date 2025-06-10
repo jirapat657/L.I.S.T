@@ -5,9 +5,6 @@ import {
   Flex,
   Typography,
   Avatar,
-  Space,
-  Button,
-  Divider,
   Dropdown,
 } from 'antd';
 import { AuthContext } from '@/context/AuthContext';
@@ -69,20 +66,21 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
    {
       key: 'username',
       label: (
-        <div style={{ pointerEvents: 'none', fontWeight: 500, color: '#000' }}>
+        <div style={{ fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
           <strong>ชื่อ:</strong> {user.userName}
         </div>
       ),
+      disabled: true,
     },
     {
       key: 'position',
       label: (
-        <div style={{ pointerEvents: 'none', fontWeight: 500, color: '#000' }}>
+        <div style={{ fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
           <strong>ตำแหน่ง:</strong> {user.jobPosition}
         </div>
       ),
+      disabled: true,
     },
-
     {
       type: 'divider',
     },

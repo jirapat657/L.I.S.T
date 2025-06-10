@@ -5,13 +5,8 @@ import {
   Button,
   Divider,
   message,
-  Table,
-  Dropdown,
   Modal,
   Input,
-  Popconfirm,
-  DatePicker,
-  Select
 } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,14 +19,12 @@ import {
   deleteSubtask,
   addSubtask
 } from '@/api/issue';
-import type { IssueData, Subtask, SubtaskData } from '@/types/issue';
-import dayjs from 'dayjs';
-import type { MenuProps } from 'antd';
+import type { IssueData, Subtask } from '@/types/issue';
 import { v4 as uuidv4 } from 'uuid'; // npm i uuid (หากยังไม่ได้ติดตั้ง)
 import { Timestamp } from 'firebase/firestore';
 import { getAllUsers } from '@/api/user';
 import { calculateOnLateTime } from '@/utils/dateUtils';
-import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
 
@@ -152,7 +145,7 @@ const saveNewSubtasks = async () => {
         baTest: sub.baTest,
         remark: sub.remark,
         status: sub.status,
-        createdAt: Timestamp.now(), // ✅ บันทึก timestamp
+        createdAt: sub.createdAt, // ✅ ส่งค่าตรงนี้! (ไม่ต้อง Timestamp.now())
       });
       console.log('✅ เพิ่ม subtask สำเร็จ:', sub.details);
     } catch (error) {
@@ -232,10 +225,10 @@ const handleSave = async () => {
     message.success('อัปเดตรายละเอียดสำเร็จ');
   };
 
-  const handleInlineUpdate = async (
+  const handleInlineUpdate = async <K extends keyof Subtask>(
     subtaskId: string,
-    field: keyof Subtask,
-    value: any
+    field: K,
+    value: Subtask[K]
   ) => {
     if (!issueId) return;
 
@@ -245,8 +238,7 @@ const handleSave = async () => {
       )
     );
 
-    // เฉพาะแถวที่มี id จริงจาก Firebase เท่านั้นถึงจะอัปเดต DB
-    const isTemp = subtaskId.length > 20; // uuid ยาวกว่า doc id ทั่วไป
+    const isTemp = subtaskId.length > 20; // uuid ชั่วคราว
     if (isTemp) return;
 
     try {
@@ -258,131 +250,12 @@ const handleSave = async () => {
     }
   };
 
-
-  const subtaskColumns = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      render: (value: any) =>
-        value?.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
-    },
-    {
-      title: 'Details',
-      dataIndex: 'details',
-      render: (text: string, record: Subtask) => (
-        <Input.TextArea
-          rows={1}
-          value={text}
-          onChange={(e) =>
-            handleInlineUpdate(record.id, 'details', e.target.value)
-          }
-        />
-      ),
-    },
-    {
-      title: 'Complete Date',
-      dataIndex: 'completeDate',
-      render: (value: any, record: Subtask) => (
-        <DatePicker
-          format="DD/MM/YY"
-          value={
-            value
-              ? value instanceof Timestamp
-                ? dayjs(value.toDate())
-                : dayjs(value)
-              : null
-          }
-          onChange={(date) =>
-            handleInlineUpdate(
-              record.id,
-              'completeDate',
-              date ? Timestamp.fromDate(date.toDate()) : null
-            )
-          }
-        />
-      ),
-    },
-    {
-      title: 'BA/Test',
-      dataIndex: 'baTest',
-      render: (text: string, record: Subtask) => (
-        <Select
-          value={text}
-          onChange={(val) => handleInlineUpdate(record.id, 'baTest', val)}
-          showSearch
-          style={{ width: 150 }}
-          options={userOptions} // 👈 ต้องเตรียม userOptions ไว้ก่อน
-          placeholder="เลือก BA/Test"
-        />
-      ),
-    },
-    {
-      title: 'Remark',
-      dataIndex: 'remark',
-      render: (text: string, record: Subtask) => (
-        <Input
-          value={text}
-          onChange={(e) =>
-            handleInlineUpdate(record.id, 'remark', e.target.value)
-          }
-        />
-      ),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (text: string, record: Subtask) => (
-        <Select
-          value={text}
-          onChange={(val) => handleInlineUpdate(record.id, 'status', val)}
-          style={{ width: 120 }}
-          options={[
-            { label: 'Awaiting', value: 'Awaiting' },
-            { label: 'Complete', value: 'Complete' },
-            { label: 'Fail', value: 'Fail' },
-          ]}
-        />
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: any, record: Subtask) => {
-        const items: MenuProps['items'] = [
-          {
-            key: 'view',
-            label: (<><EyeOutlined /> View</>),
-            onClick: () => handleViewDetails(record),
-          },
-          {
-            key: 'delete',
-            label: (
-              <Popconfirm
-                title="ยืนยันการลบ Subtask นี้?"
-                onConfirm={() => handleDeleteSubtask(record.id)}
-                okText="ลบ"
-                cancelText="ยกเลิก"
-              >
-                <DeleteOutlined /> Delete
-              </Popconfirm>
-            ),
-          },
-        ];
-        return (
-          <Dropdown menu={{ items }} trigger={['click']}>
-            <Button size="small"><MoreOutlined /></Button>
-          </Dropdown>
-        );
-      },
-    },
-  ];
-
   if (isLoading) return <div>Loading...</div>;
   if (!issue) return <div>ไม่พบข้อมูล Issue ที่ต้องการแก้ไข</div>;
 
   return (
     <div>
-      <h2>แก้ไข Issue #{issueId}</h2>
+
       <Divider />
       <IssueForm issue={issue} form={form} disabled={false} />
       <Divider orientation="left">Child Work Item</Divider>
@@ -390,7 +263,7 @@ const handleSave = async () => {
         <Button onClick={handleAddRow}><PlusOutlined /> Add Subtask</Button>
       </div>
       <SubtaskTable
-        subtasks={subtasks}
+        subtasks={subtasks}  // state! ไม่ใช่ issue.subtasks
         userOptions={userOptions}
         onUpdate={handleInlineUpdate}
         onDelete={handleDeleteSubtask}
