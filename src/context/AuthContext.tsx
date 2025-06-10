@@ -1,3 +1,4 @@
+//src/context/AuthContext.tsx
 import {
   createContext,
   useContext,
@@ -64,6 +65,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
             jobPosition: rawUserData.jobPosition,
             status: rawUserData.status,
             createdAt: rawUserData.createdAt ?? Timestamp.fromDate(new Date()),
+            uid: ''
           };
 
           setCurrentUser({
@@ -85,6 +87,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
             jobPosition: '',
             status: 'Active',
             createdAt: Timestamp.fromDate(new Date()),
+            uid: ''
           };
 
           setCurrentUser({
