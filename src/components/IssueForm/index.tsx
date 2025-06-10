@@ -5,17 +5,16 @@ import type { IssueData } from '@/types/issue';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { getAllUsers } from '@/api/user';
-
+import type { FormInstance } from 'antd/es/form';
+import { safeDate } from '@/utils/dateUtils';
 
 type Props = {
   issue: IssueData;
-  form: any;
+  form: FormInstance;
   disabled?: boolean;
 };
 
 const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
-  const safeDate = (date: any) =>
-    date && date.toDate ? dayjs(date.toDate()) : null;
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],

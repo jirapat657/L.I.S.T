@@ -44,7 +44,7 @@ export const addIssue = async (
       collection(db, COLLECTION_NAME, issueDoc.id, 'subtasks'),
       removeUndefined({
         ...sub,
-        createdAt: Timestamp.now(),
+        createdAt: sub.createdAt 
       })
     );
   }
@@ -107,7 +107,7 @@ export const updateSubtask = async (
   updates: Partial<SubtaskData>
 ) => {
   const ref = doc(db, COLLECTION_NAME, issueId, 'subtasks', subtaskId);
-  await updateDoc(ref, removeUndefined(updates));
+  await updateDoc(ref, removeUndefined(updates) as Partial<IssueData>);
 };
 
 // ✅ ลบ Subtask รายตัว
@@ -151,7 +151,7 @@ export const getIssueById = async (id: string): Promise<IssueData | null> => {
 // ==========
 export const updateIssue = async (id: string, data: Partial<IssueData>) => {
   const ref = doc(db, COLLECTION_NAME, id);
-  await updateDoc(ref, removeUndefined(data));
+  await updateDoc(ref, removeUndefined(data) as Partial<IssueData>);
 };
 
 export const addSubtask = async (
@@ -161,6 +161,6 @@ export const addSubtask = async (
   const ref = collection(db, COLLECTION_NAME, issueId, 'subtasks');
   await addDoc(ref, removeUndefined({
     ...subtask,
-    createdAt: Timestamp.now(),
+    createdAt: subtask.createdAt,
   }));
 };

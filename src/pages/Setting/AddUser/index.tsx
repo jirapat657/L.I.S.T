@@ -1,5 +1,6 @@
 // src/pages/AddUser.tsx
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import {
   Button,
   Modal,
@@ -14,7 +15,6 @@ import {
   Row,
   Col,
 } from 'antd';
-import { Timestamp } from 'firebase/firestore';
 import {
   useQuery,
   useMutation,
@@ -26,9 +26,12 @@ import {
   getUsers,
   updateUser,
   updateUserStatus,
+  updateUserBySuperAdmin,
+  getUserByEmail,
 } from '@/api/user';
 import type { UserData, UserFormValues } from '@/types/users';
 import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { auth } from '@/services/firebase';
 
 const { Option } = Select;
 
@@ -41,7 +44,24 @@ const AddUserPage = () => {
   const [searchName, setSearchName] = useState('');
   const pageSize = 5;
   const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null);
+  const [userProfile, setUserProfile] = useState<UserData | null>(null);
 
+  // 1. โหลด profile user ปัจจุบันจาก Firestore หลัง login
+  useEffect(() => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser?.email) {
+      getUserByEmail(firebaseUser.email).then((profile) => {
+        setUserProfile(profile);
+        console.log('Current user role:', profile?.role);
+      });
+    }
+  }, []);
+
+  // 2. เช็คสิทธิ์ admin จาก userProfile
+  const isAdmin = userProfile?.role === "Admin";
+
+  // 3. query รายชื่อ user ทั้งหมด
   const { data: users = [] } = useQuery<UserData[]>({
     queryKey: ['users'],
     queryFn: getUsers,
@@ -53,17 +73,22 @@ const AddUserPage = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('สร้างบัญชีผู้ใช้สำเร็จ');
     },
-    onError: (error: any) => {
-      if (error.code === 'auth/email-already-in-use') {
-        message.error('อีเมลนี้ถูกใช้งานแล้ว');
+    onError: (error: unknown) => {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const err = error as { code: string };
+        if (err.code === 'auth/email-already-in-use') {
+          message.error('อีเมลนี้ถูกใช้งานแล้ว');
+        } else {
+          message.error('ไม่สามารถสร้างบัญชีผู้ใช้ได้');
+        }
       } else {
-        message.error('ไม่สามารถสร้างบัญชีผู้ใช้ได้');
+        message.error('เกิดข้อผิดพลาดที่ไม่รู้จัก');
       }
     },
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: any }) =>
+    mutationFn: ({ id, values }: { id: string; values: UserFormValues }) =>
       updateUser(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -77,6 +102,7 @@ const AddUserPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('ลบบัญชีสำเร็จ');
+      setDeleteTarget(null);
     },
     onError: () => message.error('ไม่สามารถลบได้'),
   });
@@ -106,11 +132,31 @@ const AddUserPage = () => {
 
   const handleSubmit = async (values: UserFormValues) => {
     if (editTarget) {
-      updateUserMutation.mutate({
-        id: editTarget.id,
-        values,
-      });
+      if (isAdmin) {
+        try {
+          await updateUserBySuperAdmin({
+            uid: editTarget.uid || editTarget.id, // ใช้ uid (หรือ id ถ้าเท่ากัน)
+            email: values.email,
+            displayName: values.userName,
+            firestoreData: {
+              role: values.role,
+              jobPosition: values.jobPosition,
+              // ฟิลด์อื่น ๆ
+            }
+          });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+          message.success('อัปเดตข้อมูลผู้ใช้ (Auth+Firestore) สำเร็จ');
+        } catch {
+          message.error('ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้');
+        }
+      } else {
+        updateUserMutation.mutate({
+          id: editTarget.id,
+          values,
+        });
+      }
     } else {
+      // สร้าง user ใหม่
       const maxId = Math.max(
         0,
         ...users.map((u) => parseInt(u.userId?.split('-')[1] || '0'))
@@ -119,15 +165,14 @@ const AddUserPage = () => {
 
       createUserMutation.mutate({
         ...values,
+        password: values.password!,
         userId: nextId,
-        createdAt: Timestamp.now(),
         status: 'Active',
       });
     }
     setIsModalOpen(false);
     form.resetFields();
     setEditTarget(null);
-    console.log("saddasdas", values)
   };
 
   const handleToggleStatus = (record: UserData) => {
@@ -157,7 +202,7 @@ const AddUserPage = () => {
     { title: 'User Name', dataIndex: 'userName', key: 'userName' },
     { title: 'Email', dataIndex: 'email', key: 'email' },
     { title: 'Role', dataIndex: 'role', key: 'role' },
-    { title: 'Job Position', dataIndex: 'jobPosition', key: 'jobPostion' },
+    { title: 'Job Position', dataIndex: 'jobPosition', key: 'jobPosition' },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -175,7 +220,7 @@ const AddUserPage = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: UserData) => (
+      render: (_: unknown, record: UserData) => (
         <Dropdown
           menu={{
             items: [
@@ -184,7 +229,7 @@ const AddUserPage = () => {
             ],
             onClick: ({ key }) => {
               if (key === 'edit') handleEdit(record);
-              if (key === 'delete') handleDelete(record);
+              if (key === 'delete') setDeleteTarget(record);
             },
           }}
         >
@@ -272,9 +317,26 @@ const AddUserPage = () => {
           </div>
         </Form>
       </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        footer={null}
+        centered
+        width={400}
+      >
+        <p style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
+          ต้องการลบบัญชีผู้ใช้ <strong>{deleteTarget?.userName}</strong> หรือไม่?
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+          <Button type='primary' onClick={() => handleDelete(deleteTarget!)}>
+            Yes
+          </Button>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+        </div>
+      </Modal>
     </div>
   );
 };
 
 export default AddUserPage;
-

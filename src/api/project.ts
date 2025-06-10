@@ -20,8 +20,6 @@ import {
   const COLLECTION_NAME = 'LIMProjects';
   
   export const addProject = async (values: ProjectFormValues & { createBy: string }) => {
-    console.log("🧾 logo (UploadFile[]):", values.logo);
-    console.log("📦 originFileObj:", values.logo?.[0]?.originFileObj);
 
     let logoUrl = '';
     const file = values.logo?.file;
@@ -46,26 +44,27 @@ import {
 
     return values.projectId; // ✅ คืน ID เดิมที่ส่งเข้าไป
   };
-  
-
 
   export const updateProject = async (
     id: string,
     values: Partial<ProjectFormValues>
   ) => {
-    let logoUrl = '';
+    let logoUrl: string | null = null;
 
     const file = values.logo?.file;
     if (file instanceof File) {
       const storageRef = ref(storage, `project-logos/${Date.now()}-${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       logoUrl = await getDownloadURL(snapshot.ref);
+    } else if (values.logo && typeof values.logo === 'string') {
+      // ✅ กรณีที่ส่ง url string มา ให้เก็บ url เดิม
+      logoUrl = values.logo;
     }
 
-    const { logo, ...rest } = values;
     const payload: Partial<ProjectData> = {
-      ...rest,
-      ...(logoUrl && { logo: logoUrl }),
+      projectId: values.projectId,
+      projectName: values.projectName,
+      logo: logoUrl, // <<-- เซตตรงๆไปเลย ไม่ต้อง &&!
       updatedAt: Timestamp.now(),
     };
 

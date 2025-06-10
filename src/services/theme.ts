@@ -10,7 +10,10 @@ export const theme = {
     Select: {
       optionSelectedBg: '#080808',   // พื้นหลังตอนเลือก
       optionSelectedColor: '#ffffff', // ตัวอักษรของตัวเลือกที่ถูกเลือก
-      
+    },
+    Tooltip: {
+      colorBgSpotlight: 'gray', // เพิ่ม tooltip หากต้องการ
+      colorText: '#ffffff',
     },
   },
 }

@@ -1,7 +1,7 @@
 // src/utils/subtaskUtils.ts
 
 import { Timestamp } from 'firebase/firestore';
-import type { Subtask, SubtaskData } from '@/types/issue';
+import type { Subtask } from '@/types/issue';
 
 export const duplicateSubtask = (subtask: Subtask): Subtask & { id: string } => {
   return {

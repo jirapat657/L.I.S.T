@@ -11,12 +11,8 @@ import {
   Select,
   message,
   Divider,
-  Dropdown,
-  Menu,
-  Table,
   Modal
 } from 'antd';
-import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { getAllUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
@@ -24,7 +20,7 @@ import { addIssue } from '@/api/issue';
 import type { FormValues, SubtaskData} from '@/types/issue';
 import { useQuery } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
-import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
 import { getProjects } from '@/api/project';
 import SubtaskTable from '@/components/SubtaskTable';
@@ -58,64 +54,6 @@ const AddIssueForm: React.FC = () => {
       label: user.userName,
     }));
   }, [users]);
-
-  if (isLoading) return <div>Loading users...</div>;
-  if (isError) return <div>Error loading users</div>;
-
-  const handleAddRow = () => {
-    const newRow: SubtaskDraft = {
-      id: `${Date.now()}`,
-      details: '',
-      date: Timestamp.fromDate(new Date()),
-      completeDate: null,
-      baTest: '',
-      status: 'Awaiting',
-      remark: '',
-      createdAt: Timestamp.now(),
-      showFull: false,
-    };
-    setData((prev) => [...prev, newRow]);
-  };
-
-  const handleChange = (id: string, field: keyof SubtaskDraft, value: any) => {
-    setData((prev) =>
-      prev.map((row) => {
-        if (row.id === id) {
-          const updatedRow = { ...row, [field]: value };
-          if (field === 'details' && value.trim()) {
-            updatedRow.showFull = true;
-          }
-          return updatedRow;
-        }
-        return row;
-      })
-    );
-  };
-
-
-  const handleViewDetails = (record: SubtaskDraft) => {
-    setEditingKey(record.id);
-    setDetailInput(record.details);
-    setDetailModalOpen(true);
-  };
-
-  const handleUpdateDetail = () => {
-    if (!editingKey) return;
-    setData((prev) =>
-      prev.map((row) =>
-        row.id === editingKey ? { ...row, details: detailInput, showFull: true } : row
-      )
-    );
-    setDetailModalOpen(false);
-  };
-
-
-
-  const handleDelete = (id: string) => {
-    setData((prev) => prev.filter((row) => row.id !== id));
-    message.success('ลบแถวแล้ว');
-  };
-
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
@@ -158,7 +96,7 @@ const AddIssueForm: React.FC = () => {
           baTest: row.baTest,
           status: row.status,
           remark: row.remark,
-          createdAt: row.createdAt ?? Timestamp.now(),
+          createdAt: row.createdAt ,
         }));
 
       await addIssue(issuePayload, subtasks);
@@ -170,11 +108,68 @@ const AddIssueForm: React.FC = () => {
     }
   };
 
-
   // ✨ เรียก hook สร้าง issueCode อัตโนมัติ
   useGenerateIssueCode(id, form);
 
-  
+  if (isLoading) return <div>Loading users...</div>;
+  if (isError) return <div>Error loading users</div>;
+
+  const handleAddRow = () => {
+    const newRow: SubtaskDraft = {
+      id: `${Date.now()}`,
+      details: '',
+      date: Timestamp.fromDate(new Date()),
+      completeDate: null,
+      baTest: '',
+      status: 'Awaiting',
+      remark: '',
+      createdAt: Timestamp.now(),
+      showFull: false,
+    };
+    setData((prev) => [...prev, newRow]);
+  };
+
+  const handleChange = <K extends keyof SubtaskDraft>(
+    id: string,
+    field: K,
+    value: SubtaskDraft[K]
+  ) => {
+    setData((prev) =>
+      prev.map((row) => {
+        if (row.id === id) {
+          const updatedRow = { ...row, [field]: value };
+          if (field === 'details' && typeof value === 'string' && value.trim()) {
+            updatedRow.showFull = true;
+          }
+          return updatedRow;
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleViewDetails = (record: SubtaskDraft) => {
+    setEditingKey(record.id);
+    setDetailInput(record.details);
+    setDetailModalOpen(true);
+  };
+
+  const handleUpdateDetail = () => {
+    if (!editingKey) return;
+    setData((prev) =>
+      prev.map((row) =>
+        row.id === editingKey ? { ...row, details: detailInput, showFull: true } : row
+      )
+    );
+    setDetailModalOpen(false);
+  };
+
+
+
+  const handleDelete = (id: string) => {
+    setData((prev) => prev.filter((row) => row.id !== id));
+    message.success('ลบแถวแล้ว');
+  };
 
   return (
     <div>

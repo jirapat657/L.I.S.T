@@ -5,7 +5,6 @@ import {
   collection,
   addDoc,
   type DocumentReference,
-  type DocumentSnapshot,
   getDoc,
   doc,
   Timestamp,

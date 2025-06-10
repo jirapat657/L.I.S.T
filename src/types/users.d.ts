@@ -13,9 +13,13 @@ export interface UserFormValues {
 }
 
 export interface UserData extends Omit<UserFormValues, 'password'> {
-  id: string;
+  id: string;              // Firestore document id (อาจจะ == uid)
+  uid: string;             // Auth.uid ของ Firebase (แนะนำให้ตรงกับ doc.id จะดีที่สุด)
+  userId: string;          // รหัสที่แสดง เช่น LC-000001
   userName: string;
   email: string;
   role: string;
   jobPosition: string;
+  status: 'Active' | 'Inactive';
+  createdAt?: { seconds: number; nanoseconds: number };
 }

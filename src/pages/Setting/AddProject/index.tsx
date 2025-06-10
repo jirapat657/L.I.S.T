@@ -12,6 +12,7 @@ import {
   Dropdown,
   message,
   Pagination,
+  type UploadFile,
 } from 'antd'
 import { DeleteOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons'
 import { auth} from '@/services/firebase'
@@ -35,6 +36,9 @@ const AddProject: React.FC = () => {
   const [viewTarget, setViewTarget] = useState<ProjectData | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 5
+  const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
+  const [logoRemoved, setLogoRemoved] = useState(false);  // true ถ้าผู้ใช้กดลบ
+
 
   const queryClient = useQueryClient()
 
@@ -51,6 +55,7 @@ const AddProject: React.FC = () => {
       message.success('เพิ่มโปรเจกต์สำเร็จ');
       setIsModalOpen(false);
       form.resetFields();
+      setLogoFileList([]);   // <- เพิ่มตรงนี้ (add)
     },
     onError: () => {
       message.error('ไม่สามารถเพิ่มโปรเจกต์ได้');
@@ -71,12 +76,13 @@ const AddProject: React.FC = () => {
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: any }) => updateProject(id, values),
+    mutationFn: ({ id, values }: { id: string; values: ProjectFormValues }) => updateProject(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       message.success('อัปเดตโปรเจกต์สำเร็จ')
       setViewTarget(null)
       viewForm.resetFields()
+      setLogoFileList([]);   // <- เพิ่มตรงนี้ (add)
       
     },
     onError: () => {
@@ -87,52 +93,72 @@ const AddProject: React.FC = () => {
   
 
   const handleOpenModal = () => {
-    setIsModalOpen(true)
+    setLogoFileList([]);    // <- เพิ่มบรรทัดนี้!
+    setIsModalOpen(true);
+    setLogoRemoved(false); 
   }
 
   const handleCancel = () => {
-    form.resetFields()
-    
-    setIsModalOpen(false)
+    form.resetFields();
+    setLogoFileList([]);    // <- เพิ่มตรงนี้!
+    setIsModalOpen(false);
   }
 
   const handleSubmit = async (values: ProjectFormValues) => {
-    try {
-      // เช็คว่า projectId ซ้ำหรือไม่
-      const exists = await checkProjectIdExists(values.projectId);
-      if (exists) {
-        message.error('Project ID นี้ถูกใช้ไปแล้ว กรุณาใช้ ID อื่น');
-        return;
-      }
-
-      const currentUser = auth.currentUser;
-      const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
-
-      const formWithCreator = {
-        ...values,
-        createBy: displayName,
-      };
-
-      addProjectMutation.mutate(formWithCreator);
-    } catch (error) {
-      console.error('Error checking project ID:', error);
-      message.error('เกิดข้อผิดพลาดในการตรวจสอบ Project ID');
+    const exists = await checkProjectIdExists(values.projectId);
+    if (exists) {
+      message.error('Project ID นี้ถูกใช้ไปแล้ว กรุณาใช้ ID อื่น');
+      return;
     }
+    const currentUser = auth.currentUser;
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
+
+    // Map logoFileList เป็น object { file: File } ตามที่ api ต้องการ
+    let logo: { file: File } | undefined = undefined;
+    if (logoFileList.length && logoFileList[0].originFileObj) {
+      logo = { file: logoFileList[0].originFileObj as File };
+    }
+
+    // ส่งเข้า mutation แบบนี้เท่านั้น!
+    addProjectMutation.mutate({
+      projectId: values.projectId,
+      projectName: values.projectName,
+      logo,  // ต้องเป็น object { file: File } หรือ undefined
+      createBy: displayName,
+    });
   };
 
-  const handleUpdate = (values: ProjectFormValues) => {
-    if (!viewTarget) return
-    // const logoFile = viewFileList[0]?.originFileObj || null
-    const logoFile = values.logo?.file || null
+  // ...ใน handleUpdate เพิ่มเติมแบบ async
+  const handleUpdate = async (values: ProjectFormValues) => {
+    if (!viewTarget) return;
+
+    let logo: { file: File } | undefined = undefined;
+
+    // 1. เปลี่ยนโลโก้ใหม่ (อัพไฟล์ใหม่)
+    if (logoFileList.length && logoFileList[0].originFileObj) {
+      logo = { file: logoFileList[0].originFileObj as File };
+    }
+    // 2. ลบโลโก้
+    else if (logoRemoved && viewTarget.logo) {
+      logo = undefined; // หรือถ้า api รับ null ก็ส่ง null แต่ตาม type = undefined
+    }
+    // 3. ไม่เปลี่ยนโลโก้ ไม่ต้องส่งค่า logo (ให้คงค่าเดิมไว้)
+
+    // update
     updateProjectMutation.mutate({
       id: viewTarget.id,
       values: {
         projectId: values.projectId,
         projectName: values.projectName,
-        logo: logoFile ? { file: logoFile } : undefined, 
+        ...(logo !== undefined ? { logo } : {}), // ใส่ key logo เฉพาะกรณีเปลี่ยน/ลบ
       },
-    })
-  }
+    });
+
+    setLogoRemoved(false); // reset flag หลังอัปเดต
+  };
+
+
+
 
   const handleDelete = () => {
     if (!deleteTarget) return
@@ -160,7 +186,7 @@ const AddProject: React.FC = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: ProjectData) => (
+      render: (_: unknown, record: ProjectData) => (
         <Dropdown
           menu={{
             items: [
@@ -170,17 +196,24 @@ const AddProject: React.FC = () => {
             onClick: ({ key }) => {
               if (key === 'view') {
                 setViewTarget(record)
+                // แปลง logo เป็น fileList ถ้ามี
+                setLogoFileList(
+                  record.logo
+                    ? [
+                        {
+                          uid: '-1',
+                          name: 'logo.png',
+                          status: 'done',
+                          url: record.logo,
+                        },
+                      ]
+                    : []
+                );
                 viewForm.setFieldsValue({
                   projectId: record.projectId,
                   projectName: record.projectName,
-                  logo: {
-                    file: record.logo, // หรือใช้ originFileObj ถ้ามี
-                    name: 'logo.png',
-                    url: record.logo,
-                    uid: '-1',
-                    status: 'done',
-                  },
-                })
+                  logo: undefined, // ปล่อยว่างให้ antd upload คุมเอง
+                });
               } else if (key === 'delete') {
                 setDeleteTarget(record)
               }
@@ -288,6 +321,11 @@ const AddProject: React.FC = () => {
             <Upload
               beforeUpload={() => false}
               maxCount={1}
+              listType="picture"
+              fileList={logoFileList}
+              onChange={({ fileList }) => setLogoFileList(fileList)}
+              // ถ้าคลิก preview ให้เปิดภาพเต็ม
+              onPreview={(file) => window.open(file.url || file.thumbUrl, '_blank')}
             >
               <Button icon={<UploadOutlined />}>Select Logo</Button>
             </Upload>
@@ -307,7 +345,8 @@ const AddProject: React.FC = () => {
         onCancel={() => {
           setViewTarget(null)
           viewForm.resetFields()
-
+          setLogoFileList([]);
+          setLogoRemoved(false); 
         }}
         footer={null}
         destroyOnHidden
@@ -329,9 +368,17 @@ const AddProject: React.FC = () => {
           </Form.Item>
           <Form.Item label='Upload Logo' name='logo'>
             <Upload
-              
               beforeUpload={() => false}
               maxCount={1}
+              listType="picture"
+              fileList={logoFileList}
+              onChange={({ fileList }) => setLogoFileList(fileList)}
+              onPreview={(file) => window.open(file.url || file.thumbUrl, '_blank')}
+              onRemove={() => {
+                setLogoFileList([]);       // ลบออกจาก preview
+                setLogoRemoved(true);      // จำว่า "ผู้ใช้ต้องการลบโลโก้เดิม"
+                return true;
+              }}
             >
               <Button icon={<UploadOutlined />}>Select Logo</Button>
             </Upload>
@@ -349,6 +396,8 @@ const AddProject: React.FC = () => {
               onClick={() => {
                 setViewTarget(null)
                 viewForm.resetFields()
+                setLogoFileList([]);
+                setLogoRemoved(false); 
               }}
             >
               ยกเลิก
@@ -360,17 +409,22 @@ const AddProject: React.FC = () => {
         </Form>
       </Modal>
 
-      <Modal open={!!deleteTarget} onCancel={() => setDeleteTarget(null)} footer={null} centered>
-        <p style={{ fontSize: 16, fontWeight: 'bold' }}>
+      <Modal
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        footer={null}
+        centered
+        width={400} // ✅ ปรับขนาด modal ตรงนี้
+      >
+        <p style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
           ต้องการลบโปรเจกต์ <strong>{deleteTarget?.projectId}</strong> หรือไม่?
         </p>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button danger onClick={handleDelete}>
-            ✅ Yes
-          </Button>
-          <Button onClick={() => setDeleteTarget(null)}>❌ Cancel</Button>
+          <Button type='primary' onClick={handleDelete}>Yes</Button>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
         </div>
       </Modal>
+
     </div>
   )
 }

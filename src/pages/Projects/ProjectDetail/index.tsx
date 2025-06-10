@@ -8,16 +8,17 @@ import {
   Table,
   Dropdown,
   Button,
-  Select,
   message,
+  Tooltip,
 } from 'antd';
 import type { MenuProps } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, orderBy } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Issue, Filters } from '@/types/projectDetail';
 import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,35 +37,58 @@ const ProjectDetail: React.FC = () => {
     baTest: '',
   });
 
+  const [projectName, setProjectName] = useState<string | null>(null);
+
   const COLLECTION_NAME = 'LIMIssues';
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
         where('projectId', '==', id),
-        orderBy('createdAt', 'desc') // ✅ เพิ่มบรรทัดนี้เพื่อเรียงจากใหม่ไปเก่า
+        orderBy('createdAt', 'desc')
       );
-  
+
       const querySnapshot = await getDocs(q);
       const issuesArray: Issue[] = [];
-  
+
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         issuesArray.push({ id: docSnap.id, ...(data as Omit<Issue, 'id'>) });
       });
-  
+
       setIssues(issuesArray);
     } catch (error) {
       console.error('Error fetching issues:', error);
     }
-  };
+  }, [id]); // ✅ ใส่ dependency ของฟังก์ชัน
 
   useEffect(() => {
-    fetchIssues();
+    fetchIssues(); // ✅ ใช้ได้ปลอดภัย
+  }, [fetchIssues]); // ✅ ใช้ fetchIssues เป็น dependency
+
+  // ดึงชื่อโปรเจกต์
+  useEffect(() => {
+    const fetchProjectName = async () => {
+      try {
+        const projectDoc = await getDoc(doc(db, 'LIMProjects', id!));
+        if (projectDoc.exists()) {
+          setProjectName(projectDoc.data().projectName || `Project ${id}`);
+        } else {
+          setProjectName(`Project ${id}`);
+        }
+      } catch (error) {
+        console.error(error);
+        setProjectName(`Project ${id}`);
+      }
+    };
+    if (id) fetchProjectName();
   }, [id]);
 
-  const handleFilterChange = (field: keyof Filters, value: any) => {
+  const handleFilterChange = <K extends keyof Filters>(
+    field: K,
+    value: Filters[K]
+  ) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -76,18 +100,6 @@ const ProjectDetail: React.FC = () => {
     } catch (error) {
       console.error('Delete failed:', error);
       message.error('Failed to delete');
-    }
-  };
-
-  const handleStatusChange = async (issueId: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, COLLECTION_NAME, issueId), { status: newStatus });
-      setIssues((prev) =>
-        prev.map((item) => (item.id === issueId ? { ...item, status: newStatus } : item))
-      );
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      message.error('Status update failed');
     }
   };
 
@@ -111,27 +123,61 @@ const ProjectDetail: React.FC = () => {
       title: 'No.',
       dataIndex: 'no',
       key: 'no',
-      render: (_: any, __: any, index: number) => issues.length - index,
+      render: (_: unknown, __: unknown, index: number) => issues.length - index,
     },    
     { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
     {
       title: 'Issue Date',
       dataIndex: 'issueDate',
       key: 'issueDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
-    { title: 'Title', dataIndex: 'title', key: 'title' },
-    { title: 'Description', dataIndex: 'description', key: 'description' },
+    {
+      title: 'Title',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text: string) =>
+        text ? (
+          <Tooltip title={text}>
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
+              }}
+            >
+              {text}
+            </div>
+          </Tooltip>
+        ) : null,
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string) =>
+        text ? (
+          <Tooltip title={text}>
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
+              }}
+            >
+              {text}
+            </div>
+          </Tooltip>
+        ) : null,
+    },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string, record: Issue) => {
+      render: (status: string) => {
         const getColor = (status: string) => {
           switch (status) {
             case 'Complete':
@@ -145,55 +191,29 @@ const ProjectDetail: React.FC = () => {
           }
         };
 
-        const color = getColor(status);
-
-        return (
-          <div style={{ color }}>
-            <Select
-              value={status}
-              style={{ width: 120 }}
-              onChange={(value) => handleStatusChange(record.id, value)}
-              options={['Awaiting', 'Inprogress', 'Complete', 'Cancel'].map((s) => ({
-                label: <span style={{ color: getColor(s) }}>{s}</span>,
-                value: s,
-              }))}
-            />
-          </div>
-        );
+        return <span style={{ color: getColor(status) }}>{status}</span>;
       },
     },
     {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'Complete Date',
       dataIndex: 'completeDate',
       key: 'completeDate',
-      render: (timestamp: any) => {
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return dayjs(timestamp.toDate()).format('DD/MM/YY');
-        }
-        return dayjs(timestamp).format('DD/MM/YY');
-      },
+      render: (timestamp: Timestamp | string | null | undefined) =>
+        formatTimestamp(timestamp),
     },
     {
       title: 'On/Late Time',
@@ -214,7 +234,7 @@ const ProjectDetail: React.FC = () => {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: Issue) => {
+      render: (_: unknown, record: Issue) => {
         const items: MenuProps['items'] = [
           { key: 'view', label: (<><EyeOutlined /> View</>) },
           { key: 'edit', label: (<><EditOutlined /> Edit</>) },
@@ -241,7 +261,7 @@ const ProjectDetail: React.FC = () => {
 
   return (
     <div>
-      <h2>รายละเอียดโปรเจกต์ #{id}</h2>
+      <h2>{projectName ? `${projectName}` : `#${id}`}.Issue Log</h2>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" onClick={() => navigate(`/projects/${id}/add`)}>
