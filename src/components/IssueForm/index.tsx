@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAllUsers } from '@/api/user';
 import type { FormInstance } from 'antd/es/form';
 import { safeDate } from '@/utils/dateUtils';
+import { priorityOptions, typeOptions } from '@/pages/Projects/AddIssueForm/helper';
 
 type Props = {
   issue: IssueData;
@@ -47,6 +48,8 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         issueDate: safeDate(issue.issueDate),
         title: issue.title,
         description: issue.description,
+        type: issue.type,           
+        priority: issue.priority,   
         status: issue.status,
         startDate: safeDate(issue.startDate),
         dueDate: safeDate(issue.dueDate),
@@ -71,6 +74,17 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
               disabled={disabled}
               style={{ width: '100%' }}
             />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
+          <Form.Item label="Type" name="type">
+            <Select disabled={disabled} showSearch placeholder="Select Type" options={typeOptions} />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label="Priority" name="priority">
+            <Select disabled={disabled} showSearch placeholder="Select Priority" options={priorityOptions} />
           </Form.Item>
         </Col>
 

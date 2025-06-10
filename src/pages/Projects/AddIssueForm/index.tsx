@@ -25,6 +25,7 @@ import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
 import { getProjects } from '@/api/project';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
+import { priorityOptions, typeOptions } from './helper';
 // ใช้ใน AddIssueForm (ขยายแบบ local)
 type SubtaskDraft = SubtaskData & { id: string; showFull?: boolean };
 
@@ -188,6 +189,16 @@ const AddIssueForm: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Issue Date" name="issueDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
+          <Col span={12}>
+            <Form.Item label="Type" name="type">
+              <Select showSearch placeholder="Select Type" options={typeOptions} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="Priority" name="priority">
+              <Select showSearch placeholder="Select Priority" options={priorityOptions} />
+            </Form.Item>
+          </Col>
           <Col span={24}>
             <Form.Item label="Title" name="title" ><Input /></Form.Item>
           </Col>
@@ -196,7 +207,7 @@ const AddIssueForm: React.FC = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Status" name="status" rules={[{ required: true }]} initialValue="Awaiting">
-              <Select placeholder="เลือกสถานะ"
+              <Select placeholder="Select Status"
               onChange={(value) => {
                 const now = dayjs();
                 if (value === 'Inprogress') {
@@ -222,12 +233,12 @@ const AddIssueForm: React.FC = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Developer" name="developer" >
-              <Select showSearch placeholder="เลือก Developer" options={userOptions} />
+              <Select showSearch placeholder="Select Developer" options={userOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item label="BA/Test" name="baTest" >
-              <Select showSearch placeholder="เลือก BA/Test" options={userOptions} />
+              <Select showSearch placeholder="Select BA/Test" options={userOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
