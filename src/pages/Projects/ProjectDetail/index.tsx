@@ -181,13 +181,13 @@ const ProjectDetail: React.FC = () => {
         const getColor = (status: string) => {
           switch (status) {
             case 'Complete':
-              return 'green';
+              return '#006B3F';
             case 'Inprogress':
-              return 'orange';
+              return '#FF8C00';
             case 'Cancel':
-              return 'red';
+              return '#C20000';
             default:
-              return 'gray';
+              return '#292B2C';
           }
         };
 
@@ -222,7 +222,7 @@ const ProjectDetail: React.FC = () => {
       render: (value: string) => {
         const isOnTime = value.startsWith('On Time');
         const isLateTime = value.startsWith('Late Time');
-        const color = isOnTime ? 'green' : isLateTime ? 'red' : undefined;
+        const color = isOnTime ? '#009B63' : isLateTime ? '#FC0A18' : undefined;
 
         return <span style={{ color }}>{value}</span>;
       },

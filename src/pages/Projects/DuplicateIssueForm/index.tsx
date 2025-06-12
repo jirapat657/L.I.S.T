@@ -22,13 +22,14 @@ import {
   deleteSubtask,
   updateSubtask
 } from '@/api/issue';
-import { getAllUsers } from '@/api/user';
+import { getUsers } from '@/api/user';
 import type { Subtask, SubtaskData, IssueFormValues } from '@/types/issue';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { PlusOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
 import type { FirestoreDateInput } from '@/types/common';
+import { getBATestOptions } from '@/utils/userOptions';
 
 const DuplicateIssueForm: React.FC = () => {
   const { issueId, projectId } = useParams<{ issueId: string; projectId: string }>();
@@ -50,17 +51,11 @@ const DuplicateIssueForm: React.FC = () => {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: getAllUsers,
+    queryFn: getUsers,
   });
 
-  const userOptions = React.useMemo(
-    () =>
-      users.map((user) => ({
-        value: user.userName,
-        label: user.userName,
-      })),
-    [users]
-  );
+  // วางตรงนี้ หลัง users ถูกประกาศ
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
 
   useEffect(() => {
     if (issueId) {
@@ -174,7 +169,7 @@ const DuplicateIssueForm: React.FC = () => {
       </div>
       <SubtaskTable
         subtasks={subtasks}  // state! ไม่ใช่ issue.subtasks
-        userOptions={userOptions}
+        userOptions={baTestOptions}
         onUpdate={handleInlineUpdate}
         onDelete={handleDeleteSubtask}
         onView={handleViewDetails}

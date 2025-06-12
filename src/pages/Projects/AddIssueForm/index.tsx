@@ -14,7 +14,7 @@ import {
   Modal
 } from 'antd';
 import dayjs from 'dayjs';
-import { getAllUsers } from '@/api/user';
+import { getUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
 import type { FormValues, SubtaskData} from '@/types/issue';
@@ -26,6 +26,8 @@ import { getProjects } from '@/api/project';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
 import { priorityOptions, typeOptions } from './helper';
+import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
+
 // ใช้ใน AddIssueForm (ขยายแบบ local)
 type SubtaskDraft = SubtaskData & { id: string; showFull?: boolean };
 
@@ -43,18 +45,12 @@ const AddIssueForm: React.FC = () => {
 
   const { data: users = [], isLoading, isError } = useQuery({
     queryKey: ['users'],
-    queryFn: getAllUsers,
+    queryFn: getUsers,
   });
-  const userOptions = React.useMemo(() => {
-    const uniqueUsers = users.filter(
-      (user, index, self) =>
-        index === self.findIndex((u) => u.userName === user.userName)
-    );
-    return uniqueUsers.map((user) => ({
-      value: user.userName,
-      label: user.userName,
-    }));
-  }, [users]);
+
+  // วางตรงนี้ หลัง users ถูกประกาศ
+  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
@@ -233,12 +229,12 @@ const AddIssueForm: React.FC = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Developer" name="developer" >
-              <Select showSearch placeholder="Select Developer" options={userOptions} />
+              <Select showSearch placeholder="Select Developer" options={developerOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item label="BA/Test" name="baTest" >
-              <Select showSearch placeholder="Select BA/Test" options={userOptions} />
+              <Select showSearch placeholder="Select BA/Test" options={baTestOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -260,7 +256,7 @@ const AddIssueForm: React.FC = () => {
               (b.createdAt?.toDate?.()?.getTime?.() ?? 0) -
               (a.createdAt?.toDate?.()?.getTime?.() ?? 0)
           )}
-          userOptions={userOptions}
+          userOptions={baTestOptions}
           onUpdate={(id, field, value) => handleChange(id, field, value)}
           onDelete={handleDelete}
           onView={handleViewDetails}

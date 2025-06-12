@@ -22,11 +22,12 @@ import {
 import type { IssueData, Subtask } from '@/types/issue';
 import { v4 as uuidv4 } from 'uuid'; // npm i uuid (หากยังไม่ได้ติดตั้ง)
 import { Timestamp } from 'firebase/firestore';
-import { getAllUsers } from '@/api/user';
+import { getUsers } from '@/api/user';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { PlusOutlined } from '@ant-design/icons';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
+import { getBATestOptions } from '@/utils/userOptions';
 
 const EditIssueFormPage: React.FC = () => {
   const { issueId, projectId } = useParams<{
@@ -44,19 +45,11 @@ const EditIssueFormPage: React.FC = () => {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: getAllUsers,
+    queryFn: getUsers,
   });
 
-  const userOptions = React.useMemo(() => {
-    const uniqueUsers = users.filter(
-      (user, index, self) =>
-        index === self.findIndex((u) => u.userName === user.userName)
-    );
-    return uniqueUsers.map((user) => ({
-      value: user.userName,
-      label: user.userName,
-    }));
-  }, [users]);
+  // วางตรงนี้ หลัง users ถูกประกาศ
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
 
     const { data: issue, isLoading } = useQuery<IssueData | null>({
       queryKey: ['issue', issueId],
@@ -264,7 +257,7 @@ const handleSave = async () => {
       </div>
       <SubtaskTable
         subtasks={subtasks}  // state! ไม่ใช่ issue.subtasks
-        userOptions={userOptions}
+        userOptions={baTestOptions}
         onUpdate={handleInlineUpdate}
         onDelete={handleDeleteSubtask}
         onView={handleViewDetails}
