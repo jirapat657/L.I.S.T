@@ -5,20 +5,16 @@ import {
   DatePicker,
   Row,
   Col,
-  Table,
-  Dropdown,
   Button,
   message,
-  Tooltip,
 } from 'antd';
-import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import type { Issue, Filters } from '@/types/projectDetail';
-import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
-import { formatTimestamp } from '@/utils/dateUtils';
+import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import IssueTable from '@/components/IssueTable'; // Import the IssueTable component
+import type { Filters, Issue } from '@/types/projectDetail';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,11 +57,11 @@ const ProjectDetail: React.FC = () => {
     } catch (error) {
       console.error('Error fetching issues:', error);
     }
-  }, [id]); // ✅ ใส่ dependency ของฟังก์ชัน
+  }, [id]);
 
   useEffect(() => {
-    fetchIssues(); // ✅ ใช้ได้ปลอดภัย
-  }, [fetchIssues]); // ✅ ใช้ fetchIssues เป็น dependency
+    fetchIssues();
+  }, [fetchIssues]);
 
   // ดึงชื่อโปรเจกต์
   useEffect(() => {
@@ -117,151 +113,21 @@ const ProjectDetail: React.FC = () => {
     );
   });
 
+  const handleView = (issueId: string, projectId: string) => {
+    navigate(`/projects/${projectId}/view/${issueId}`);
+  };
 
-  const columns = [
-    {
-      title: 'No.',
-      dataIndex: 'no',
-      key: 'no',
-      render: (_: unknown, __: unknown, index: number) => issues.length - index,
-    },    
-    { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
-    {
-      title: 'Issue Date',
-      dataIndex: 'issueDate',
-      key: 'issueDate',
-      render: (timestamp: Timestamp | string | null | undefined) =>
-        formatTimestamp(timestamp),
-    },
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-      render: (text: string) =>
-        text ? (
-          <Tooltip title={text}>
-            <div
-              style={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
-              }}
-            >
-              {text}
-            </div>
-          </Tooltip>
-        ) : null,
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      render: (text: string) =>
-        text ? (
-          <Tooltip title={text}>
-            <div
-              style={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: 250, // ปรับความกว้างตามที่ต้องการ
-              }}
-            >
-              {text}
-            </div>
-          </Tooltip>
-        ) : null,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const getColor = (status: string) => {
-          switch (status) {
-            case 'Complete':
-              return '#006B3F';
-            case 'Inprogress':
-              return '#FF8C00';
-            case 'Cancel':
-              return '#C20000';
-            default:
-              return '#292B2C';
-          }
-        };
+  const handleEdit = (issueId: string, projectId: string) => {
+    navigate(`/projects/${projectId}/edit/${issueId}`);
+  };
 
-        return <span style={{ color: getColor(status) }}>{status}</span>;
-      },
-    },
-    {
-      title: 'Start Date',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (timestamp: Timestamp | string | null | undefined) =>
-        formatTimestamp(timestamp),
-    },
-    {
-      title: 'Due Date',
-      dataIndex: 'dueDate',
-      key: 'dueDate',
-      render: (timestamp: Timestamp | string | null | undefined) =>
-        formatTimestamp(timestamp),
-    },
-    {
-      title: 'Complete Date',
-      dataIndex: 'completeDate',
-      key: 'completeDate',
-      render: (timestamp: Timestamp | string | null | undefined) =>
-        formatTimestamp(timestamp),
-    },
-    {
-      title: 'On/Late Time',
-      dataIndex: 'onLateTime',
-      key: 'onLateTime',
-      render: (value: string) => {
-        const isOnTime = value.startsWith('On Time');
-        const isLateTime = value.startsWith('Late Time');
-        const color = isOnTime ? '#009B63' : isLateTime ? '#FC0A18' : undefined;
-
-        return <span style={{ color }}>{value}</span>;
-      },
-    },
-    { title: 'Developer', dataIndex: 'developer', key: 'developer' },
-    { title: 'BA/Test', dataIndex: 'baTest', key: 'baTest' },
-    { title: 'Remark', dataIndex: 'remark', key: 'remark' },
-    { title: 'Additional Document', dataIndex: 'document', key: 'document' },
-    {
-      title: '',
-      key: 'actions',
-      render: (_: unknown, record: Issue) => {
-        const items: MenuProps['items'] = [
-          { key: 'view', label: (<><EyeOutlined /> View</>) },
-          { key: 'edit', label: (<><EditOutlined /> Edit</>) },
-          { key: 'duplicate', label: (<><CopyOutlined /> Duplicate</>) },
-          { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true },
-        ];
-        return (
-          <Dropdown
-            menu={{
-              items,
-              onClick: ({ key }) => {
-                if (key === 'delete') handleDelete(record.id);
-                else navigate(`/projects/${id}/${key}/${record.id}`);
-              },
-            }}
-            trigger={['click']}
-          >
-            <Button><MoreOutlined /></Button>
-          </Dropdown>
-        );
-      },
-    },
-  ];
+  const handleDuplicate = (issueId: string, projectId: string) => {
+    navigate(`/projects/${projectId}/duplicate/${issueId}`);
+  };
 
   return (
     <div>
-      <h2>{projectName ? `${projectName}` : `#${id}`}.Issue Log</h2>
+      <h2>{projectName ? `${projectName}` : `#${id}`}. Issue Log</h2>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" onClick={() => navigate(`/projects/${id}/add`)}>
@@ -285,7 +151,7 @@ const ProjectDetail: React.FC = () => {
             })
           }
         >
-          <SyncOutlined /> ล้างการค้นหา
+          <SyncOutlined /> Clear Search
         </Button>
       </div>
 
@@ -362,12 +228,13 @@ const ProjectDetail: React.FC = () => {
         </Col>
       </Row>
 
-      <Table
-        columns={columns}
-        dataSource={filteredData}
-        rowKey="id"
-        pagination={false}
-        scroll={{ x: 'max-content' }}
+      <IssueTable
+        issues={filteredData}
+        onDelete={handleDelete}
+        loading={false}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDuplicate={handleDuplicate}
       />
     </div>
   );

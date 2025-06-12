@@ -286,7 +286,7 @@ const AddIssueForm: React.FC = () => {
         </Modal>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button onClick={() => navigate(`/projects/${id}`)}>ยกเลิก</Button>
+          <Button onClick={() => navigate(-1)}>ยกเลิก</Button>
           <Button type="primary" htmlType="submit">บันทึก</Button>
         </div>
       </Form>

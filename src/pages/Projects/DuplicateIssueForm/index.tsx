@@ -139,7 +139,7 @@ const DuplicateIssueForm: React.FC = () => {
       await addIssue(newIssue, newSubtasks);
 
       message.success('เพิ่มสำเนา Issue เรียบร้อยแล้ว');
-      navigate(`/projects/${projectId}`);
+      navigate(-1);
     } catch (error) {
       console.error('❌ Error duplicating issue:', error);
       message.error('ไม่สามารถเพิ่มสำเนา Issue ได้');
@@ -196,7 +196,7 @@ const DuplicateIssueForm: React.FC = () => {
       </Modal>
       <Divider />   
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-        <Button onClick={() => navigate(`/projects/${projectId}`)}>ยกเลิก</Button>
+        <Button onClick={() => navigate(-1)}>ยกเลิก</Button>
         <Button type="primary" htmlType="submit" onClick={handleDuplicate}>บันทึกสำเนา</Button>
       </div>
     </div>

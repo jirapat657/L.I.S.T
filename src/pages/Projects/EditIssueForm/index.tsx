@@ -158,40 +158,49 @@ const saveNewSubtasks = async () => {
   }
 };
 
-/**
- * ฟังก์ชันหลักที่เรียกตอนกด “บันทึก”
- * ทั้งอัปเดต Issue หลัก และบันทึก Subtask ใหม่
- */
-const handleSave = async () => {
-  try {
-    const values = await form.validateFields();
-    console.log('📄 ค่า form ที่ validate แล้ว:', values);
+  /**
+   * ฟังก์ชันหลักที่เรียกตอนกด “บันทึก”
+   * ทั้งอัปเดต Issue หลัก และบันทึก Subtask ใหม่
+   */
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      console.log('📄 ค่า form ที่ validate แล้ว:', values);
 
-    const cleanedValues = {
-      ...values,
-      issueDate: values.issueDate?.toDate?.() ?? values.issueDate,
-      startDate: values.startDate?.toDate?.() ?? values.startDate,
-      dueDate: values.dueDate?.toDate?.() ?? values.dueDate,
-      completeDate: values.completeDate?.toDate?.() ?? values.completeDate,
-      onLateTime: calculateOnLateTime(values.completeDate, values.dueDate),
-    };
+      const cleanedValues = {
+        ...values,
+        issueDate: values.issueDate?.toDate?.() ?? values.issueDate,
+        startDate: values.startDate?.toDate?.() ?? values.startDate,
+        dueDate: values.dueDate?.toDate?.() ?? values.dueDate,
+        completeDate: values.completeDate?.toDate?.() ?? values.completeDate,
+        onLateTime: calculateOnLateTime(values.completeDate, values.dueDate),
+      };
 
-    console.log('🧼 ค่า cleanedValues ที่จะอัปเดต:', cleanedValues);
-    await mutation.mutateAsync(cleanedValues); // ✅ รอ mutation ให้เสร็จก่อน
-    console.log('✅ อัปเดต issue สำเร็จ');
+      console.log('🧼 ค่า cleanedValues ที่จะอัปเดต:', cleanedValues);
+      await mutation.mutateAsync(cleanedValues); // ✅ รอ mutation ให้เสร็จก่อน
+      console.log('✅ อัปเดต issue สำเร็จ');
 
-    await saveNewSubtasks(); // ✅ เพิ่ม subtasks แล้วโหลดใหม่
+      await saveNewSubtasks(); // ✅ เพิ่ม subtasks แล้วโหลดใหม่
 
-    queryClient.invalidateQueries({ queryKey: ['issue', issueId] });
+      queryClient.invalidateQueries({ queryKey: ['issue', issueId] });
 
-    message.success('บันทึกการแก้ไขสำเร็จ');
-    navigate(`/projects/${projectId}`);
-  } catch (err) {
-    console.error('❌ Error ใน handleSave:', err);
-    message.error('บันทึกไม่สำเร็จ');
-  }
-};
+      message.success('บันทึกการแก้ไขสำเร็จ');
+      
+      // ใช้ state เพื่อป้องกันการ navigate ซ้ำ
+      const hasNavigated = localStorage.getItem("hasNavigated"); // เช็คว่ากลับไปแล้วหรือยัง
 
+      if (!hasNavigated) {
+        localStorage.setItem("hasNavigated", "true"); // บันทึกว่าได้ทำการ navigate
+        setTimeout(() => {
+          navigate(-1); // กลับไปที่หน้าก่อนหน้า
+        }, 1000); // ให้เวลา 1 วินาทีหลังจากบันทึกข้อมูล
+      }
+      
+    } catch (err) {
+      console.error('❌ Error ใน handleSave:', err);
+      message.error('บันทึกไม่สำเร็จ');
+    }
+  };
 
   const handleViewDetails = (sub: Subtask) => {
     setEditingSubtask(sub);
@@ -284,7 +293,7 @@ const handleSave = async () => {
       </Modal>
       <Divider />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-        <Button onClick={() => navigate(`/projects/${projectId}`)}>ยกเลิก</Button>
+        <Button onClick={() => navigate(-1)}>ยกเลิก</Button>
         <Button type="primary" htmlType="submit" onClick={handleSave}>บันทึก</Button>
       </div>
     </div>

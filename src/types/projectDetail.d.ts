@@ -16,6 +16,7 @@ export interface Issue {
   baTest: string;
   remark: string;
   document: string;
+  projectId: string;
 }
 
 export interface Filters {
