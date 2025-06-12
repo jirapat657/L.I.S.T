@@ -196,6 +196,9 @@ const AddIssueForm: React.FC = () => {
             </Form.Item>
           </Col>
           <Col span={24}>
+            <Form.Item label="Enquiry" name="enquiry" ><Input.TextArea rows={4}/></Form.Item>
+          </Col>
+          <Col span={24}>
             <Form.Item label="Title" name="title" ><Input /></Form.Item>
           </Col>
           <Col span={24}>

@@ -22,7 +22,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
     queryKey: ['users'],
     queryFn: getUsers,
     });
-    
+
     const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
     const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
     
@@ -43,7 +43,8 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         title: issue.title,
         description: issue.description,
         type: issue.type,           
-        priority: issue.priority,   
+        priority: issue.priority,
+        enquiry: issue.enquiry,
         status: issue.status,
         startDate: safeDate(issue.startDate),
         dueDate: safeDate(issue.dueDate),
@@ -79,6 +80,12 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         <Col span={12}>
           <Form.Item label="Priority" name="priority">
             <Select disabled={disabled} showSearch placeholder="Select Priority" options={priorityOptions} />
+          </Form.Item>
+        </Col>
+
+        <Col span={24}>
+          <Form.Item label="Enquiry" name="enquiry">
+            <Input.TextArea rows={4} disabled={disabled}/>
           </Form.Item>
         </Col>
 

@@ -16,6 +16,7 @@ import AuthLayout from '@/components/Layout/authLayout'
 import ForgetPassword from '@/pages/Auth/ForgetPassword'
 import PageContainer from '@/components/PageContainer'
 import Dashboard from '@/pages/Dashboard'
+import Support from '@/pages/Support'
 import Projects from '@/pages/Projects'
 import ProjectDetail from '@/pages/Projects/ProjectDetail'
 import AddIssueForm from '@/pages/Projects/AddIssueForm';
@@ -116,6 +117,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.DASHBOARD}>
               <Dashboard />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SUPPORT,
+          element: (
+            <PageContainer title={PAGE_TITLE.SUPPORT}>
+              <Support />
             </PageContainer>
           ),
         },
