@@ -1,5 +1,4 @@
-// src/pages/AddUser.tsx
-
+// src/pages/AddUser/index.tsx
 import { useState, useEffect } from 'react';
 import {
   Button,
@@ -26,12 +25,13 @@ import {
   getUsers,
   updateUser,
   updateUserStatus,
-  updateUserBySuperAdmin,
+  updateUserPasswordByAdmin,
   getUserByEmail,
 } from '@/api/user';
 import type { UserData, UserFormValues } from '@/types/users';
 import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import { auth } from '@/services/firebase';
+
 
 const { Option } = Select;
 
@@ -88,7 +88,7 @@ const AddUserPage = () => {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: UserFormValues }) =>
+    mutationFn: ({ id, values }: { id: string; values: Partial<UserFormValues> }) =>
       updateUser(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -131,32 +131,67 @@ const AddUserPage = () => {
   };
 
   const handleSubmit = async (values: UserFormValues) => {
+    // 1. กรณี "แก้ไข" ผู้ใช้เดิม
     if (editTarget) {
+      // เช็คสิทธิ์ admin
       if (isAdmin) {
+        // 👉 เพิ่ม log ตรงนี้
+  console.log("จะเรียก updateUserPasswordByAdmin", editTarget, values, isAdmin)
         try {
-          await updateUserBySuperAdmin({
-            uid: editTarget.uid || editTarget.id, // ใช้ uid (หรือ id ถ้าเท่ากัน)
-            email: values.email,
-            displayName: values.userName,
-            firestoreData: {
-              role: values.role,
-              jobPosition: values.jobPosition,
-              // ฟิลด์อื่น ๆ
-            }
-          });
+          const idToken = await auth.currentUser?.getIdToken();
+          if (!idToken) {
+            message.error("ไม่สามารถตรวจสอบสิทธิ์ผู้ใช้ปัจจุบันได้");
+            return;
+          }
+
+          // ถ้ามีการกรอกรหัสผ่านใหม่ (เฉพาะ Admin)
+          if (values.newPassword) {
+            await updateUserPasswordByAdmin(
+              editTarget.uid || editTarget.id,
+              values.newPassword,
+              {
+                userName: values.userName,
+                role: values.role,
+                jobPosition: values.jobPosition,
+              },
+              idToken
+            );
+            message.success("อัปเดตรหัสผ่านและข้อมูล Firestore สำเร็จ");
+          } else {
+            // ไม่เปลี่ยนรหัสผ่าน แต่อัปเดตฟิลด์ Firestore ได้
+            await updateUserPasswordByAdmin(
+              editTarget.uid || editTarget.id,
+              "", // newPassword = "" หรือจะไม่ส่ง field นี้ (แล้วไปเช็คฝั่ง cloud function ว่าไม่ต้องอัปเดต)
+              {
+                userName: values.userName,
+                role: values.role,
+                jobPosition: values.jobPosition,
+              },
+              idToken
+            );
+            message.success("อัปเดตข้อมูล Firestore สำเร็จ");
+          }
+
           queryClient.invalidateQueries({ queryKey: ['users'] });
-          message.success('อัปเดตข้อมูลผู้ใช้ (Auth+Firestore) สำเร็จ');
-        } catch {
-          message.error('ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้');
+        } catch (err) {
+          console.error("Error updating user:", err);
+          message.error("ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้");
         }
       } else {
+        // ไม่ใช่ Admin (อัปเดตเฉพาะ Firestore)
         updateUserMutation.mutate({
           id: editTarget.id,
-          values,
+          values: {
+            userName: values.userName,
+            role: values.role,
+            jobPosition: values.jobPosition,
+          },
         });
       }
-    } else {
-      // สร้าง user ใหม่
+    }
+    // 2. กรณี "สร้าง" ผู้ใช้ใหม่
+    else {
+      // สร้าง userId ใหม่อัตโนมัติ
       const maxId = Math.max(
         0,
         ...users.map((u) => parseInt(u.userId?.split('-')[1] || '0'))
@@ -170,6 +205,7 @@ const AddUserPage = () => {
         status: 'Active',
       });
     }
+
     setIsModalOpen(false);
     form.resetFields();
     setEditTarget(null);
@@ -305,11 +341,35 @@ const AddUserPage = () => {
       >
         <Form layout='vertical' form={form} onFinish={handleSubmit}>
           <Form.Item label='User Name' name='userName' rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label='Role' name='role' rules={[{ required: true }]}><Select> <Option value='Admin'>Admin</Option> <Option value='Staff'>Staff</Option> </Select></Form.Item>
-          <Form.Item label='Job Position' name='jobPosition' rules={[{ required: true }]}><Select> <Option value='Developer'>Developer</Option> <Option value='Business Analyst'>Business Analyst</Option> <Option value='Project Coordinator'>Project Coordinator</Option> <Option value='Project Manager'>Project Manager</Option> <Option value='Project Owner'>Project Owner</Option> <Option value='UX/UI Designer'>UX/UI Designer</Option> <Option value='Tester'>Tester</Option> </Select></Form.Item>
+          <Form.Item label='Role' name='role' rules={[{ required: true }]}><Select> 
+            <Option value='Admin'>Admin</Option> 
+            <Option value='Staff'>Staff</Option> 
+          </Select></Form.Item>
+          <Form.Item label='Job Position' name='jobPosition' rules={[{ required: true }]}><Select> 
+            <Option value='Developer'>Developer</Option> 
+            <Option value='Business Analyst'>Business Analyst</Option> 
+            <Option value='Project Coordinator'>Project Coordinator</Option> 
+            <Option value='Project Manager'>Project Manager</Option> 
+            <Option value='Project Owner'>Project Owner</Option> 
+            <Option value='UX/UI Designer'>UX/UI Designer</Option> 
+            <Option value='Tester'>Tester</Option> 
+          </Select></Form.Item>
           <Form.Item label='Email' name='email' rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          {/* ช่อง password สำหรับสร้าง user ใหม่ */}
           {!editTarget && (
-            <Form.Item label='Password' name='password' rules={[{ required: true }]}><Input.Password /></Form.Item>
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน" }]}
+            >
+              <Input.Password />
+            </Form.Item>
+          )}
+          {/* ช่องเปลี่ยน password กรณีแก้ไข */}
+          {editTarget && (
+            <Form.Item label="New Password" name="newPassword">
+              <Input.Password placeholder="Leave blank to keep old password" />
+            </Form.Item>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
             <Button onClick={() => setIsModalOpen(false)}>ยกเลิก</Button>
@@ -340,3 +400,5 @@ const AddUserPage = () => {
 };
 
 export default AddUserPage;
+
+

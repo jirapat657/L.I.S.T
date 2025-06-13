@@ -11,6 +11,7 @@ import {
 import { db } from '@/services/firebase';
 import type { UserFormValues, UserData } from '@/types/users';
 import axios from 'axios';
+import { CF_BASE } from '@/config';
 
 const COLLECTION_NAME = 'LIMUsers';
 
@@ -27,39 +28,58 @@ export const getAllUsers = async (): Promise<{ id: string; userName: string }[]>
   });
 };
 
-// สร้าง user ใหม่ (เชื่อม API backend หรือ Cloud Function)
+// สร้าง user ใหม่ (Cloud Function)
 export async function createUser(values: {
   email: string;
   password: string;
   userName: string;
   jobPosition: string;
-  role: string;    // "Admin" สำหรับ admin ใหญ่
+  role: string;
   status: string;
   userId: string;
 }) {
-  const res = await axios.post('/api/createUser', values);
+  const payload = {
+    ...values,
+    email: values.email.trim().toLowerCase(),
+  };
+  const res = await axios.post(`${CF_BASE}/createUser`, payload);
   return res.data;
 }
 
-// อัพเดต Auth+Firestore (สำหรับ admin ใหญ่)
-export const updateUserBySuperAdmin = async (params: {
-  uid: string;                // ใช้ uid (Auth) ที่ตรงกับ Firestore doc.id (แนะนำ)
-  email?: string;
-  displayName?: string;
-  password?: string;
-  firestoreData?: unknown;        // object ฟิลด์ที่ต้องการอัพเดตใน Firestore
-}) => {
-  const res = await axios.post('/api/updateUserBySuperAdmin', params);
+
+// อัปเดตรหัสผ่านและ firestore ของ user อื่น (เฉพาะ Admin เท่านั้น)
+export const updateUserPasswordByAdmin = async (
+  uid: string,
+  newPassword: string,
+  firestoreData: object,
+  idToken: string
+) => {
+  const res = await axios.post(
+    `${CF_BASE}/updateUserPasswordByAdmin`,
+    { uid, newPassword, firestoreData },
+    { headers: { Authorization: `Bearer ${idToken}` } }
+  );
   return res.data;
 };
 
-// อัพเดตข้อมูล user (Firestore เท่านั้น) ใช้สำหรับ user ปกติหรือแก้ไขตัวเอง
-export const updateUser = async (
-  id: string, // doc.id (ควร == uid)
-  values: Partial<Omit<UserFormValues, 'userId' | 'createdAt' | 'status'>>
-) => {
-  const docRef = doc(db, COLLECTION_NAME, id);
-  await updateDoc(docRef, values);
+// ฟังก์ชันในการอัปเดตข้อมูลผู้ใช้ใน Firestore
+export const updateUser = async (id: string, values: Partial<UserFormValues>) => {
+  const userRef = doc(db, 'LIMUsers', id);
+
+  // ลบฟิลด์ undefined ออกทั้งหมดก่อนส่ง update
+  const cleaned: Record<string, unknown> = {};
+  Object.entries(values).forEach(([k, v]) => {
+    if (v !== undefined) cleaned[k] = v;
+  });
+
+  try {
+    // ใช้ Partial<UserFormValues> เพื่อทำให้ฟิลด์ต่าง ๆ เป็น optional
+    await updateDoc(userRef, values);
+    
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw new Error('Failed to update user in Firestore');
+  }
 };
 
 // เปลี่ยน status ของ user (Active/Inactive)

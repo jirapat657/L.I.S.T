@@ -6,6 +6,7 @@ export interface UserFormValues {
   userName: string;
   email: string;
   password?: string;
+  newPassword?: string;  // เพิ่มใหม่ที่นี่
   role: string;
   jobPosition: string;
   createdAt: Timestamp;
