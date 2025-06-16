@@ -20,6 +20,7 @@ export interface Issue {
 }
 
 export interface Filters {
+  keyword: string;
   issueCode: string;
   issueDate: Dayjs | null;
   title: string;

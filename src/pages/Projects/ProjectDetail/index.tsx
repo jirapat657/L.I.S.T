@@ -1,42 +1,60 @@
 // src/pages/ProjectDetail/index.tsx
+
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Input,
-  DatePicker,
-  Row,
-  Col,
   Button,
   message,
 } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc } from 'firebase/firestore';
+import isBetween from 'dayjs/plugin/isBetween';
+import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
-import IssueTable from '@/components/IssueTable'; // Import the IssueTable component
-import type { Filters, Issue } from '@/types/projectDetail';
+import IssueTable from '@/components/IssueTable';
+import type { Issue } from '@/types/projectDetail';
+import SearchFormWithDropdown from "@/components/SearchFormWithDropdown";
+import { useQuery } from '@tanstack/react-query';
+import { getUsers } from '@/api/user';
+import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
+import { defaultFilters, statusOptions } from '@/constants/searchFilters';
+import { filterIssues } from '@/utils/filterItems';
+import { useTableSearch } from '@/hooks/useTableSearch';
+
+dayjs.extend(isBetween);
+
+type IssueWithDateString = Issue & {
+  issueDate?: string;
+  startDate?: string;
+  dueDate?: string;
+  completeDate?: string;
+};
+
+const COLLECTION_NAME = 'LIMIssues';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [filters, setFilters] = useState<Filters>({
-    issueCode: '',
-    issueDate: null,
-    title: '',
-    status: '',
-    startDate: null,
-    dueDate: null,
-    completeDate: null,
-    developer: '',
-    baTest: '',
-  });
-
+  const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [projectName, setProjectName] = useState<string | null>(null);
 
-  const COLLECTION_NAME = 'LIMIssues';
+  // === ใช้ custom hook ===
+  const {
+    filters,
+    handleFilterChange,
+    handleReset,
+  } = useTableSearch(defaultFilters);
 
+  // --- Fetch users สำหรับ dropdown ---
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  });
+  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
+
+  // --- ดึงข้อมูล Issue ---
   const fetchIssues = useCallback(async () => {
     try {
       const q = query(
@@ -46,11 +64,27 @@ const ProjectDetail: React.FC = () => {
       );
 
       const querySnapshot = await getDocs(q);
-      const issuesArray: Issue[] = [];
+      const issuesArray: IssueWithDateString[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        issuesArray.push({ id: docSnap.id, ...(data as Omit<Issue, 'id'>) });
+
+        // แปลง Firestore Timestamp เป็น string
+        const parseDate = (d: Timestamp | string | undefined | null) => {
+          if (d && typeof d === 'object' && 'toDate' in d) {
+            return d.toDate().toISOString().slice(0, 10);
+          }
+          return d || "";
+        };
+
+        issuesArray.push({
+          id: docSnap.id,
+          ...(data as Omit<Issue, 'id'>),
+          issueDate: parseDate(data.issueDate),
+          startDate: parseDate(data.startDate),
+          dueDate: parseDate(data.dueDate),
+          completeDate: parseDate(data.completeDate),
+        });
       });
 
       setIssues(issuesArray);
@@ -63,7 +97,7 @@ const ProjectDetail: React.FC = () => {
     fetchIssues();
   }, [fetchIssues]);
 
-  // ดึงชื่อโปรเจกต์
+  // --- ดึงชื่อโปรเจกต์ ---
   useEffect(() => {
     const fetchProjectName = async () => {
       try {
@@ -81,11 +115,8 @@ const ProjectDetail: React.FC = () => {
     if (id) fetchProjectName();
   }, [id]);
 
-  const handleFilterChange = <K extends keyof Filters>(
-    field: K,
-    value: Filters[K]
-  ) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+  const handleSearch = () => {
+    // ปกติใช้ filteredData อัตโนมัติ
   };
 
   const handleDelete = async (issueId: string) => {
@@ -99,20 +130,10 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const filteredData = issues.filter((item) => {
-    return (
-      (item.issueCode ?? '').toLowerCase().includes((filters.issueCode ?? '').toLowerCase()) &&
-      (item.title ?? '').toLowerCase().includes((filters.title ?? '').toLowerCase()) &&
-      (item.status ?? '').toLowerCase().includes((filters.status ?? '').toLowerCase()) &&
-      (item.developer ?? '').toLowerCase().includes((filters.developer ?? '').toLowerCase()) &&
-      (item.baTest ?? '').toLowerCase().includes((filters.baTest ?? '').toLowerCase()) &&
-      (!filters.issueDate || item.issueDate === dayjs(filters.issueDate).format('YYYY-MM-DD')) &&
-      (!filters.startDate || item.startDate === dayjs(filters.startDate).format('YYYY-MM-DD')) &&
-      (!filters.dueDate || item.dueDate === dayjs(filters.dueDate).format('YYYY-MM-DD')) &&
-      (!filters.completeDate || item.completeDate === dayjs(filters.completeDate).format('YYYY-MM-DD'))
-    );
-  });
+  // --- Filter Table ---
+  const filteredData = filterIssues(issues, filters);
 
+  // --- ACTIONS ---
   const handleView = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/view/${issueId}`);
   };
@@ -128,106 +149,33 @@ const ProjectDetail: React.FC = () => {
   return (
     <div>
       <h2>{projectName ? `${projectName}` : `#${id}`}. Issue Log</h2>
-
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" onClick={() => navigate(`/projects/${id}/add`)}>
           <PlusOutlined /> Add Issue
         </Button>
       </div>
-
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button
-          onClick={() =>
-            setFilters({
-              issueCode: '',
-              issueDate: null,
-              title: '',
-              status: '',
-              startDate: null,
-              dueDate: null,
-              completeDate: null,
-              developer: '',
-              baTest: '',
-            })
-          }
-        >
+        <Button onClick={handleReset}>
           <SyncOutlined /> Clear Search
         </Button>
       </div>
-
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={4}>
-          <Input
-            placeholder="Issue Code"
-            value={filters.issueCode}
-            onChange={(e) => handleFilterChange('issueCode', e.target.value)}
+      <div style={{ width: "100%" }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          marginBottom: 16
+        }}>
+          <SearchFormWithDropdown
+            onSearch={handleSearch}
+            filters={filters}
+            handleFilterChange={handleFilterChange}
+            statusOptions={statusOptions}
+            developerOptions={developerOptions}
+            baTestOptions={baTestOptions}
           />
-        </Col>
-        <Col span={4}>
-          <DatePicker
-            style={{ width: '100%' }}
-            placeholder="Issue Date"
-            value={filters.issueDate}
-            onChange={(date) => handleFilterChange('issueDate', date)}
-          />
-        </Col>
-        <Col span={4}>
-          <Input
-            placeholder="Title"
-            value={filters.title}
-            onChange={(e) => handleFilterChange('title', e.target.value)}
-          />
-        </Col>
-        <Col span={4}>
-          <Input
-            placeholder="Status"
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-          />
-        </Col>
-        <Col span={4}>
-          <Input
-            placeholder="Developer"
-            value={filters.developer}
-            onChange={(e) => handleFilterChange('developer', e.target.value)}
-          />
-        </Col>
-      </Row>
-
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={4}>
-          <DatePicker
-            style={{ width: '100%' }}
-            placeholder="Start Date"
-            value={filters.startDate}
-            onChange={(date) => handleFilterChange('startDate', date)}
-          />
-        </Col>
-        <Col span={4}>
-          <DatePicker
-            style={{ width: '100%' }}
-            placeholder="Due Date"
-            value={filters.dueDate}
-            onChange={(date) => handleFilterChange('dueDate', date)}
-          />
-        </Col>
-        <Col span={4}>
-          <DatePicker
-            style={{ width: '100%' }}
-            placeholder="Complete Date"
-            value={filters.completeDate}
-            onChange={(date) => handleFilterChange('completeDate', date)}
-          />
-        </Col>
-        <Col span={4}>
-          <Input
-            placeholder="BA/Test"
-            value={filters.baTest}
-            onChange={(e) => handleFilterChange('baTest', e.target.value)}
-          />
-        </Col>
-      </Row>
-
+        </div>
+      </div>
       <IssueTable
         issues={filteredData}
         onDelete={handleDelete}
