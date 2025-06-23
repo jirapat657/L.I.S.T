@@ -55,7 +55,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
       key: 'email',
       label: (
         <div style={{ fontWeight: 500, color: '#7D0012', textAlign: 'center' }}>
-          {currentUser.email}
+          {user.email}
         </div>
       ),
       disabled: true,

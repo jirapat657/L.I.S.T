@@ -19,7 +19,7 @@ import { getUsers } from '@/api/user';
 import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
 import { defaultFilters, statusOptions } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
-import { useTableSearch } from '@/hooks/useTableSearch';
+import { useTableSearch } from '@/components/useTableSearch';
 
 dayjs.extend(isBetween);
 

@@ -147,7 +147,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
       style={{
         padding: 16,
         width: 750,
-        background: "#f6f7fb",
+        background: "#FFFFFF",
         borderRadius: 12,
         boxShadow: "0 4px 24px 0 rgba(0,0,0,0.08)",
       }}

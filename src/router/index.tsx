@@ -1,3 +1,5 @@
+//src/router/index.tsx
+
 import { Flex, Result, Spin } from 'antd'
 import {
   createBrowserRouter,
@@ -46,6 +48,7 @@ export function Router() {
   }
 
   function adminOnlyLoader({ request }: LoaderFunctionArgs) {
+    console.log('Checking User Role:', currentUser?.profile?.role);  // ตรวจสอบค่าของ role ใน currentUser
     if (!currentUser && !loading) {
       const params = new URLSearchParams()
       params.set('from', new URL(request.url).pathname)

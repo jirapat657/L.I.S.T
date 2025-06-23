@@ -1,5 +1,5 @@
-// src/pages/AddUser/index.tsx
-import { useState, useEffect } from 'react';
+//src/pages/Setting/AddUser/index.tsx
+import { useState } from 'react';
 import {
   Button,
   Modal,
@@ -14,28 +14,18 @@ import {
   Row,
   Col,
 } from 'antd';
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
-import {
-  createUser,
-  deleteUser,
-  getUsers,
-  updateUser,
-  updateUserStatus,
-  updateUserPasswordByAdmin,
-  getUserByEmail,
-} from '@/api/user';
-import type { UserData, UserFormValues } from '@/types/users';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DeleteOutlined, EditOutlined, MoreOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { FirebaseApp } from '@/services/firebase';
 import { auth } from '@/services/firebase';
-
+import type { UserData, UserFormValues } from '@/types/users';
+import { useAuth } from '@/hooks/useAuth';
 
 const { Option } = Select;
 
 const AddUserPage = () => {
+  console.log('AddUserPage render');
   const [form] = Form.useForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<UserData | null>(null);
@@ -45,30 +35,49 @@ const AddUserPage = () => {
   const pageSize = 5;
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null);
-  const [userProfile, setUserProfile] = useState<UserData | null>(null);
 
-  // 1. โหลด profile user ปัจจุบันจาก Firestore หลัง login
-  useEffect(() => {
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser?.email) {
-      getUserByEmail(firebaseUser.email).then((profile) => {
-        setUserProfile(profile);
-        console.log('Current user role:', profile?.role);
-      });
-    }
-  }, []);
+  const { currentUser } = useAuth();
+    console.log('currentUser (AddUserPage):', currentUser);
 
-  // 2. เช็คสิทธิ์ admin จาก userProfile
-  const isAdmin = userProfile?.role === "Admin";
+
 
   // 3. query รายชื่อ user ทั้งหมด
   const { data: users = [] } = useQuery<UserData[]>({
-    queryKey: ['users'],
-    queryFn: getUsers,
-  });
+  queryKey: ['users'],
+  queryFn: async () => {
+    console.log("queryFn START"); // 1
+    console.log("currentUser (useQuery):", currentUser); // 2
+    if (!currentUser) {
+      console.log("NO USER YET");
+      throw new Error("User is not authenticated");
+    }
+    console.log('before call getUsers'); // 3
+    console.log("auth.currentUser", auth.currentUser);
+    if (auth.currentUser) {
+      auth.currentUser.getIdToken().then(token => console.log("Token:", token));
+    }
+    const functions = getFunctions(FirebaseApp);
+    const getUsers = httpsCallable(functions, 'getUsers');
+    const result = await getUsers();
 
+    console.log('after call getUsers', result); // 4
+    const usersData: UserData[] = Array.isArray(result.data) ? result.data : [];
+    return usersData;
+  },
+  enabled: !!currentUser, // ให้ query ทำงานหลัง currentUser พร้อม
+});
+
+
+  // MUTATION สำหรับสร้าง user
   const createUserMutation = useMutation({
-    mutationFn: createUser,
+    mutationFn: async (values: UserFormValues) => {
+      // ดูค่าที่จะถูกส่งไปหลังบ้าน
+      console.log('sending:', values);
+      const functions = getFunctions(FirebaseApp);
+      const createUser = httpsCallable(functions, 'createUser');
+      // ส่ง values ตรง ๆ
+      return await createUser(values);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('สร้างบัญชีผู้ใช้สำเร็จ');
@@ -76,29 +85,23 @@ const AddUserPage = () => {
     onError: (error: unknown) => {
       if (typeof error === 'object' && error !== null && 'code' in error) {
         const err = error as { code: string };
-        if (err.code === 'auth/email-already-in-use') {
-          message.error('อีเมลนี้ถูกใช้งานแล้ว');
-        } else {
-          message.error('ไม่สามารถสร้างบัญชีผู้ใช้ได้');
-        }
+        message.error(err.code === 'auth/email-already-in-use' ? 'อีเมลนี้ถูกใช้งานแล้ว' : 'ไม่สามารถสร้างบัญชีผู้ใช้ได้');
       } else {
         message.error('เกิดข้อผิดพลาดที่ไม่รู้จัก');
       }
     },
   });
+  
 
-  const updateUserMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: Partial<UserFormValues> }) =>
-      updateUser(id, values),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      message.success('อัปเดตข้อมูลผู้ใช้สำเร็จ');
-    },
-    onError: () => message.error('ไม่สามารถอัปเดตข้อมูลได้'),
-  });
 
+
+  // 6. ฟังก์ชันการลบผู้ใช้
   const deleteUserMutation = useMutation({
-    mutationFn: deleteUser,
+    mutationFn: async (id: string) => {
+      const functions = getFunctions(FirebaseApp);
+      const deleteUser = httpsCallable(functions, 'deleteUser');
+      return await deleteUser({ id });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       message.success('ลบบัญชีสำเร็จ');
@@ -107,10 +110,15 @@ const AddUserPage = () => {
     onError: () => message.error('ไม่สามารถลบได้'),
   });
 
+  // 7. ฟังก์ชันการเปลี่ยนสถานะผู้ใช้
   const toggleStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'Active' | 'Inactive' }) =>
-      updateUserStatus(id, status),
+    mutationFn: async ({ id, status }: { id: string; status: 'Active' | 'Inactive' }) => {
+      const functions = getFunctions(FirebaseApp);
+      const updateUserStatus = httpsCallable(functions, 'updateUserStatus');
+      return await updateUserStatus({ id, status });
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onError: () => message.error('ไม่สามารถเปลี่ยนสถานะผู้ใช้ได้'),
   });
 
   const handleOpenModal = () => {
@@ -130,86 +138,67 @@ const AddUserPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (values: UserFormValues) => {
-    // 1. กรณี "แก้ไข" ผู้ใช้เดิม
-    if (editTarget) {
-      // เช็คสิทธิ์ admin
-      if (isAdmin) {
-        // 👉 เพิ่ม log ตรงนี้
-  console.log("จะเรียก updateUserPasswordByAdmin", editTarget, values, isAdmin)
-        try {
-          const idToken = await auth.currentUser?.getIdToken();
-          if (!idToken) {
-            message.error("ไม่สามารถตรวจสอบสิทธิ์ผู้ใช้ปัจจุบันได้");
-            return;
-          }
+ const handleSubmit = async (values: UserFormValues) => {
+    // ถ้าเป็นเพิ่มผู้ใช้ใหม่
+    if (!editTarget) {
+      // หา next userId อัตโนมัติ
+      const maxId = Math.max(0, ...users.map((u) => parseInt(u.userId?.split('-')[1] || '0')));
+      const nextId = `LC-${(maxId + 1).toString().padStart(6, '0')}`;
 
-          // ถ้ามีการกรอกรหัสผ่านใหม่ (เฉพาะ Admin)
-          if (values.newPassword) {
-            await updateUserPasswordByAdmin(
-              editTarget.uid || editTarget.id,
-              values.newPassword,
-              {
-                userName: values.userName,
-                role: values.role,
-                jobPosition: values.jobPosition,
-              },
-              idToken
-            );
-            message.success("อัปเดตรหัสผ่านและข้อมูล Firestore สำเร็จ");
-          } else {
-            // ไม่เปลี่ยนรหัสผ่าน แต่อัปเดตฟิลด์ Firestore ได้
-            await updateUserPasswordByAdmin(
-              editTarget.uid || editTarget.id,
-              "", // newPassword = "" หรือจะไม่ส่ง field นี้ (แล้วไปเช็คฝั่ง cloud function ว่าไม่ต้องอัปเดต)
-              {
-                userName: values.userName,
-                role: values.role,
-                jobPosition: values.jobPosition,
-              },
-              idToken
-            );
-            message.success("อัปเดตข้อมูล Firestore สำเร็จ");
-          }
-
-          queryClient.invalidateQueries({ queryKey: ['users'] });
-        } catch (err) {
-          console.error("Error updating user:", err);
-          message.error("ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้");
+      // ส่งข้อมูล object ธรรมดา ไม่ต้องมี data หุ้ม
+      createUserMutation.mutate({
+        ...values,       // email, password, userName, role, jobPosition ฯลฯ
+        userId: nextId,
+        status: 'Active',
+      });
+    } else {
+      // ถ้าเป็นแก้ไขผู้ใช้ (ส่วนนี้ถ้าไม่ใช้ก็ลบทิ้งได้)
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) {
+          message.error("ไม่สามารถตรวจสอบสิทธิ์ผู้ใช้ปัจจุบันได้");
+          return;
         }
-      } else {
-        // ไม่ใช่ Admin (อัปเดตเฉพาะ Firestore)
-        updateUserMutation.mutate({
-          id: editTarget.id,
-          values: {
+        const userUpdateData = {
+          id: editTarget.uid || editTarget.id,
+          newPassword: values.newPassword,
+          userData: {
             userName: values.userName,
             role: values.role,
             jobPosition: values.jobPosition,
           },
-        });
+          idToken: idToken,
+        };
+        const functions = getFunctions(FirebaseApp);
+        if (values.newPassword) {
+          const updateUserPasswordByAdmin = httpsCallable(functions, 'updateUserPasswordByAdmin');
+          await updateUserPasswordByAdmin(userUpdateData);
+          message.success("อัปเดตรหัสผ่านและข้อมูล Firestore สำเร็จ");
+        } else {
+          const updateUser = httpsCallable(functions, 'updateUser');
+          await updateUser({
+            id: editTarget.id,
+            values: {
+              userName: values.userName,
+              role: values.role,
+              jobPosition: values.jobPosition,
+            }
+          });
+          message.success("อัปเดตข้อมูล Firestore สำเร็จ");
+        }
+        queryClient.invalidateQueries({ queryKey: ['users'] });
+      } catch (err) {
+        console.error("Error updating user:", err);
+        message.error("ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้");
       }
-    }
-    // 2. กรณี "สร้าง" ผู้ใช้ใหม่
-    else {
-      // สร้าง userId ใหม่อัตโนมัติ
-      const maxId = Math.max(
-        0,
-        ...users.map((u) => parseInt(u.userId?.split('-')[1] || '0'))
-      );
-      const nextId = `LC-${(maxId + 1).toString().padStart(6, '0')}`;
-
-      createUserMutation.mutate({
-        ...values,
-        password: values.password!,
-        userId: nextId,
-        status: 'Active',
-      });
     }
 
     setIsModalOpen(false);
     form.resetFields();
     setEditTarget(null);
   };
+
+
 
   const handleToggleStatus = (record: UserData) => {
     const newStatus = record.status === 'Active' ? 'Inactive' : 'Active';
@@ -219,7 +208,7 @@ const AddUserPage = () => {
   const handleDelete = (record: UserData) => {
     deleteUserMutation.mutate(record.id);
   };
-
+  console.log('userssss:', users);
   const filteredData = users
     .filter(
       (item) =>
@@ -355,7 +344,6 @@ const AddUserPage = () => {
             <Option value='Tester'>Tester</Option> 
           </Select></Form.Item>
           <Form.Item label='Email' name='email' rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
-          {/* ช่อง password สำหรับสร้าง user ใหม่ */}
           {!editTarget && (
             <Form.Item
               label="Password"
@@ -365,7 +353,6 @@ const AddUserPage = () => {
               <Input.Password />
             </Form.Item>
           )}
-          {/* ช่องเปลี่ยน password กรณีแก้ไข */}
           {editTarget && (
             <Form.Item label="New Password" name="newPassword">
               <Input.Password placeholder="Leave blank to keep old password" />
@@ -400,5 +387,3 @@ const AddUserPage = () => {
 };
 
 export default AddUserPage;
-
-

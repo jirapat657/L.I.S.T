@@ -11,7 +11,7 @@ import SearchFormWithDropdown from '@/components/SearchFormWithDropdown';
 
 import { statusOptions, defaultFilters } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
-import { useTableSearch } from '@/hooks/useTableSearch';
+import { useTableSearch } from '@/components/useTableSearch';
 
 import { getUsers } from '@/api/user';
 import { useQuery } from '@tanstack/react-query';
