@@ -17,8 +17,8 @@ import dayjs from 'dayjs';
 import { getUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
-import type { FormValues, SubtaskData} from '@/types/issue';
-import { useQuery } from '@tanstack/react-query';
+import type { FormValues, SubtaskData } from '@/types/issue';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { PlusOutlined } from '@ant-design/icons';
 import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
@@ -56,30 +56,37 @@ const AddIssueForm: React.FC = () => {
     queryKey: ['projects'],
     queryFn: getProjects,
   });
-  const onFinish = async () => {
-    const values = form.getFieldsValue(); // ✅ ดึงค่าล่าสุดทั้งหมด
 
-    try {
+  // === (1) ย้าย logic ไปไว้ในฟังก์ชันสำหรับ useMutation ===
+  
+
+  // === (2) useMutation ===
+  const mutation = useMutation<
+    void, // ผลลัพธ์ที่ได้จาก mutationFn (ไม่ต้องการข้อมูลกลับ)
+    unknown, // error type (แนะนำ unknown)
+    { values: FormValues; data: SubtaskDraft[] } // input ของ mutationFn
+  >({
+    mutationFn: async ({ values, data }) => {
+      // ----- Logic เดิม -----
       const { startDate, dueDate, completeDate, ...rest } = values;
+      const onLateTime = calculateOnLateTime(completeDate, dueDate);
 
-      const onLateTime = calculateOnLateTime(completeDate, dueDate); // ✅ ใช้ยูทิลฟังก์ชัน
-
-      // ✅ ดึง projectCode (เช่น "GG2") จาก projectDocId (เช่น "mOlmPj6KY...")
+      // หา projectCode จาก projects, id
       const currentProject = projects.find((p) => p.id === id);
       const projectCode = currentProject?.projectId;
-
-      if (!projectCode) {
-        message.error('ไม่พบ projectId (code)');
-        return;
-      }
+      if (!projectCode) throw new Error('ไม่พบ projectId (code)');
 
       const issuePayload = {
         ...rest,
-        projectId: projectCode, // ✅ ใช้ projectId แบบ code เช่น GG2
-        issueDate: values.issueDate ? Timestamp.fromDate(values.issueDate.toDate()) : Timestamp.now(),
+        projectId: projectCode,
+        issueDate: values.issueDate
+          ? Timestamp.fromDate(values.issueDate.toDate())
+          : Timestamp.now(),
         startDate: startDate ? Timestamp.fromDate(startDate.toDate()) : null,
         dueDate: dueDate ? Timestamp.fromDate(dueDate.toDate()) : null,
-        completeDate: completeDate ? Timestamp.fromDate(completeDate.toDate()) : null,
+        completeDate: completeDate
+          ? Timestamp.fromDate(completeDate.toDate())
+          : null,
         onLateTime,
         createdAt: Timestamp.now(),
       };
@@ -93,17 +100,34 @@ const AddIssueForm: React.FC = () => {
           baTest: row.baTest,
           status: row.status,
           remark: row.remark,
-          createdAt: row.createdAt ,
+          createdAt: row.createdAt,
         }));
 
-      await addIssue(issuePayload, subtasks);
+      // เรียก addIssue ตามปกติ
+      return addIssue(issuePayload, subtasks);
+    },
+
+    onSuccess: () => {
       message.success('เพิ่ม Issue สำเร็จ');
       navigate(`/projects/${id}`);
-    } catch (error) {
-      console.error('Error adding issue:', error);
-      message.error('เกิดข้อผิดพลาดในการเพิ่ม Issue');
-    }
+    },
+
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        message.error(error.message);
+      } else if (typeof error === 'string') {
+        message.error(error);
+      } else {
+        message.error('เกิดข้อผิดพลาดในการเพิ่ม Issue');
+      }
+    },
+  });
+  // === (3) onFinish เรียก mutate ===
+  const onFinish = async () => {
+    const values = form.getFieldsValue();
+    mutation.mutate({ values, data }); // ส่ง data ล่าสุดเข้าไป
   };
+
 
   // ✨ เรียก hook สร้าง issueCode อัตโนมัติ
   useGenerateIssueCode(id, form);
@@ -161,8 +185,6 @@ const AddIssueForm: React.FC = () => {
     setDetailModalOpen(false);
   };
 
-
-
   const handleDelete = (id: string) => {
     setData((prev) => prev.filter((row) => row.id !== id));
     message.success('ลบแถวแล้ว');
@@ -171,7 +193,6 @@ const AddIssueForm: React.FC = () => {
   return (
     <div>
       <h2>เพิ่ม Issue ใหม่ในโปรเจกต์ #{id}</h2>
-
       <Form
         layout="vertical"
         onFinish={onFinish}
@@ -265,6 +286,7 @@ const AddIssueForm: React.FC = () => {
           onView={handleViewDetails}
           onDuplicate={(row) => {
             const newRow = duplicateSubtask(row);
+            console.log('== subtasks หลัง duplicate ==', row);
             setData((prev) => [newRow, ...prev]);
             message.success('คัดลอก Subtask แล้ว');
           }}
@@ -274,8 +296,8 @@ const AddIssueForm: React.FC = () => {
           onCancel={() => setDetailModalOpen(false)}
           onOk={handleUpdateDetail}
           title="แก้ไขรายละเอียด Subtask"
-          width="80%" // ✅ เต็มหน้าจอเกือบสุด
-          bodyStyle={{ height: '60vh' }} // ✅ เพิ่มความสูง
+          width="80%"
+          bodyStyle={{ height: '60vh' }}
         >
           <Input.TextArea
             rows={15}
@@ -287,7 +309,11 @@ const AddIssueForm: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
           <Button onClick={() => navigate(-1)}>ยกเลิก</Button>
-          <Button type="primary" htmlType="submit">บันทึก</Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={mutation.isPending} // แสดง loading ขณะ save
+          >บันทึก</Button>
         </div>
       </Form>
     </div>
