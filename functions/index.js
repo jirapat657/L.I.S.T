@@ -2,22 +2,9 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const cors = require('cors')({ origin: true });  // เปิด CORS สำหรับทุกโดเมน
 const { Timestamp } = require('firebase-admin/firestore');
 
 admin.initializeApp();
-
-
-// Utility function for handling Firebase operations
-const handleFirestoreOperation = async (operation, docRef, data) => {
-  try {
-    await operation(docRef, data);
-    return { status: 'success' };
-  } catch (error) {
-    console.error('Firestore operation failed:', error);
-    throw new functions.https.HttpsError('internal', error.message);
-  }
-};
 
 // ฟังก์ชันสำหรับสร้างผู้ใช้ใหม่
 exports.createUser = functions.https.onRequest(async (req, res) => {
@@ -54,36 +41,110 @@ exports.createUser = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// ฟังก์ชัน: อัปเดตข้อมูลโปรไฟล์ (userName, role, jobPosition, ...)แบบไม่protectอะไรเลย hardcode
+exports.updateUserProfile = functions.https.onCall(async (data) => {
+  const uid = data.uid  || data.data?.uid;
+  const profileData = data.profileData || data.data?.profileData;
+  console.log("uid:", uid);
+  console.log("profileData:", profileData);
 
+  if (!uid || !profileData) {
+    throw new functions.https.HttpsError('invalid-argument', 'ต้องระบุ uid และ profileData');
+  }
 
+  try {
+    await admin.firestore().collection('LIMUsers').doc(uid).update(profileData);
+    return { success: true };
+  } catch (err) {
+    throw new functions.https.HttpsError('internal', 'Update failed');
+  }
+});
 
-// ฟังก์ชันสำหรับอัปเดตรหัสผ่านผู้ใช้
-exports.updateUserPasswordByAdmin = functions.https.onCall(async (data, context) => {
-  // Auth check, role check ให้เหมือน getUsers
-  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Please log in.");
+// ฟังก์ชัน: อัปเดตอีเมล (เฉพาะ admin เท่านั้น)
+exports.updateUserEmail = functions.https.onCall(async (data) => {
+  
+  const uid = data.uid  || data.data?.uid;
+  const newEmail = data.newEmail || data.data?.newEmail;
+  console.log("uid:", uid);
+    console.log("newEmail:", newEmail);
+  if (!uid || !newEmail) {
+    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ');
+  }
 
-  // ตรวจสอบสิทธิ์ admin เหมือนเดิม...
-
-  const { uid, newPassword } = data;
-  if (!uid || !newPassword) throw new functions.https.HttpsError("invalid-argument", "Missing fields.");
-
-  await admin.auth().updateUser(uid, { password: newPassword });
-  return { success: true };
+  // 3. อัปเดตอีเมลใน Auth
+  try {
+    await admin.auth().updateUser(uid, { email: newEmail });
+    // อัปเดต Firestore ให้ตรงกันด้วย (ถ้าเก็บอีเมลใน Firestore)
+    await admin.firestore().collection('LIMUsers').doc(uid).update({ email: newEmail });
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message || 'Update email failed');
+  }
 });
 
 
-// ฟังก์ชันสำหรับอัปเดตข้อมูลผู้ใช้
-exports.updateUser = functions.https.onRequest(async (req, res) => {
-  const { id, values } = req.body;
+// ฟังก์ชัน: อัปเดตรหัสผ่าน (เฉพาะ admin เท่านั้น)
+exports.updateUserPassword = functions.https.onCall(async (data) => {
+  
+  const uid = data.uid  || data.data?.uid;
+  const newPassword = data.newPassword || data.data?.newPassword;
+  if (!uid || !newPassword) {
+    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ');
+  }
 
   try {
-    const userRef = admin.firestore().collection('LIMUsers').doc(id);
-    await handleFirestoreOperation(userRef.update, userRef, values);
-
-    res.status(200).send('User updated successfully');
+    await admin.auth().updateUser(uid, { password: newPassword });
+    return { success: true };
   } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).send('Failed to update user');
+    throw new functions.https.HttpsError('internal', error.message || 'Update password failed');
+  }
+});
+
+// Cloud Function: อัปเดต displayName ใน Auth และ userName ใน Firestore
+exports.updateUserDisplayName = functions.https.onCall(async (data) => {
+  const uid = data.uid  || data.data?.uid;
+  const newDisplayName = data.newDisplayName || data.data?.newDisplayName;
+  if (!uid || !newDisplayName) {
+    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ');
+  }
+
+  try {
+    // 1. อัปเดต displayName ใน Authentication
+    await admin.auth().updateUser(uid, { displayName: newDisplayName });
+
+    // 2. อัปเดต userName ใน Firestore (หากเก็บไว้)
+    await admin.firestore().collection('LIMUsers').doc(uid).update({ userName: newDisplayName });
+
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message || 'Update displayName failed');
+  }
+});
+
+// ฟังก์ชันสำหรับลบผู้ใช้
+exports.deleteUser = functions.https.onCall(async (data) => {
+  // รับ id มาจาก client
+  const uid = data.uid || data.data?.uid || data.id || data.data?.id;
+  console.log("deleteUser called with uid:", uid);
+
+  if (!uid) {
+    console.error("No uid provided");
+    throw new functions.https.HttpsError("invalid-argument", "Missing user uid");
+  }
+
+  try {
+    // 1. ลบใน Firebase Authentication
+    await admin.auth().deleteUser(uid);
+    console.log("Deleted user from Auth:", uid);
+
+    // 2. ลบใน Firestore
+    await admin.firestore().collection("LIMUsers").doc(uid).delete();
+    console.log("Deleted user doc from Firestore:", uid);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    throw new functions.https.HttpsError("internal", error.message || "Delete failed");
   }
 });
 
@@ -122,102 +183,4 @@ exports.getUserByEmail = functions.https.onCall(async (data, context) => {
   } catch (error) {
     throw new functions.https.HttpsError("not-found", "User not found");
   }
-});
-
-
-
-// ฟังก์ชันสำหรับลบผู้ใช้
-exports.deleteUser = functions.https.onRequest(async (req, res) => {
-  const { id } = req.body;
-
-  try {
-    const userRef = admin.firestore().collection('LIMUsers').doc(id);
-    await handleFirestoreOperation(userRef.delete, userRef);
-
-    await admin.auth().deleteUser(id);
-
-    res.status(200).send('User deleted successfully');
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).send('Failed to delete user');
-  }
-});
-
-// ใช้ onCall แทน onRequest เพื่อให้ทำงานกับ Firebase Client SDK ได้สะดวก
-exports.getUsers = functions.https.onCall(async (data, context) => {
-    console.log("getUsers CALLED", { data, uid: context.auth?.uid });
-    console.log("==== NEW CALL ====");
-    console.log("context.auth:", context.auth);
-    console.log("data:", data);
-
-  // 1. Auth check
-  const callerUid =
-    context.auth?.uid ||
-    context.auth?.token?.uid ||
-    context.auth?.token?.user_id ||
-    context.auth?.token?.sub;
-
-    console.log("context.auth:", context.auth);
-console.log("context.auth.uid:", context.auth?.uid);
-console.log("context.auth.token:", context.auth?.token);
-console.log("token.uid:", context.auth?.token?.uid);
-console.log("token.user_id:", context.auth?.token?.user_id);
-console.log("token.sub:", context.auth?.token?.sub);
-console.log("context:", context);
-
-  console.log("Caller UID:", callerUid);
-  if (!callerUid) {
-    console.log("No caller UID, user not authenticated");
-    throw new functions.https.HttpsError("unauthenticated", "Please log in.");
-  }
-
-  // 2. Check admin role
-  const adminDoc = await admin.firestore().collection("LIMUsers").doc(callerUid).get();
-  if (!adminDoc.exists || adminDoc.data().role !== "Admin") {
-    console.log("Not admin or profile not found for uid:", callerUid);
-    throw new functions.https.HttpsError("permission-denied", "You are not admin.");
-  }
-
-  // 3. List all Auth users
-  let allAuthUsers = [];
-  let nextPageToken;
-  do {
-    const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
-    console.log("Fetched Auth users batch, count:", listUsersResult.users.length);
-    allAuthUsers = allAuthUsers.concat(listUsersResult.users);
-    nextPageToken = listUsersResult.pageToken;
-  } while (nextPageToken);
-
-  console.log("Total Auth users:", allAuthUsers.length);
-
-  // 4. Get Firestore LIMUsers profiles
-  const limUsersSnap = await admin.firestore().collection("LIMUsers").get();
-  console.log("Total Firestore LIMUsers:", limUsersSnap.size);
-
-  const limUsersMap = {};
-  limUsersSnap.forEach(doc => {
-    limUsersMap[doc.id] = doc.data();
-  });
-
-  // 5. Join both sides
-  const users = allAuthUsers.map(userRecord => {
-    const profile = limUsersMap[userRecord.uid] || {};
-    const joinedUser = {
-      uid: userRecord.uid,
-      email: userRecord.email,
-      emailVerified: userRecord.emailVerified,
-      disabled: userRecord.disabled,
-      ...profile, // ข้อมูล profile จาก Firestore
-    };
-    console.log("Joined user:", joinedUser);
-    return joinedUser;
-  });
-
-  // 6. Log and return
-  console.log("Final joined users array (first 3 for preview):", users.slice(0, 3));
-  console.log("Auth users:", allAuthUsers.map(u => u.uid));
-console.log("LIMUsers:", Object.keys(limUsersMap));
-console.log("users join:", users.length, users.slice(0,3));
-
-  return users;
 });
