@@ -193,6 +193,7 @@ const AddUserPage = () => {
 
   const handleToggleStatus = (record: UserData) => {
     const newStatus = record.status === 'Active' ? 'Inactive' : 'Active'
+    console.log('send updateUserStatus', { id: record.id, status: newStatus }) // log ก่อน
     toggleStatusMutation.mutate({ id: record.id, status: newStatus })
   }
 

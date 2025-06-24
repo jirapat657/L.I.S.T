@@ -184,3 +184,15 @@ exports.getUserByEmail = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("not-found", "User not found");
   }
 });
+
+exports.updateUserStatus = functions.https.onCall(async (data) => {
+
+  const uid = data.id  || data.data?.id;
+  const status = data.status || data.data?.status;
+
+  if (!uid || !status) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing id or status');
+  }
+  await admin.firestore().collection('LIMUsers').doc(uid).update({ status });
+  return { success: true };
+});
