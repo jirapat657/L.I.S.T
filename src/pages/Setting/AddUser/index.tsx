@@ -1,4 +1,4 @@
-//src/pages/Setting/AddUser/index.tsx
+// src/pages/Setting/AddUser/index.tsx
 import { useState } from 'react'
 import {
   Button,
@@ -39,7 +39,6 @@ const updateUserDisplayName = httpsCallable(functions, 'updateUserDisplayName')
 const { Option } = Select
 
 const AddUserPage = () => {
-  console.log('AddUserPage render')
   const [form] = Form.useForm()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<UserData | null>(null)
@@ -51,27 +50,25 @@ const AddUserPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null)
 
   const { currentUser } = useAuth()
-  console.log('currentUser (AddUserPage):', currentUser)
 
   // 3. query รายชื่อ user ทั้งหมด
   const { data: users = [] } = useQuery<UserData[]>({
     queryKey: ['users'],
     queryFn: getUsers,
-    enabled: !!currentUser, // หรือจะถอดอันนี้ออกก็ได้ถ้าไม่ต้องเช็ค login
+    enabled: !!currentUser,
   })
 
   // MUTATION สำหรับสร้าง user
   const createUserMutation = useMutation({
     mutationFn: async (values: UserFormValues) => {
-      // ดูค่าที่จะถูกส่งไปหลังบ้าน
-      console.log('sending:', values)
-      // ส่ง values ตรง ๆ
       return await createUser(values)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       message.success('สร้างบัญชีผู้ใช้สำเร็จ')
-      window.location.reload() 
+      setIsModalOpen(false)
+      form.resetFields()
+      setEditTarget(null)
     },
     onError: (error: unknown) => {
       if (typeof error === 'object' && error !== null && 'code' in error) {
@@ -87,6 +84,65 @@ const AddUserPage = () => {
     },
   })
 
+  // MUTATION สำหรับอัปเดต user
+  const updateUserMutation = useMutation({
+    mutationFn: async ({
+      id,
+      values,
+      editTarget,
+    }: {
+      id: string
+      values: UserFormValues
+      editTarget: UserData
+    }) => {
+      // 1. Update Firestore profile
+      await updateUserProfile({
+        uid: id,
+        profileData: {
+          userName: values.userName,
+          role: values.role,
+          jobPosition: values.jobPosition,
+        },
+      })
+
+      // 1.1 Update displayName ใน Auth ถ้า userName เปลี่ยน
+      if (values.userName !== editTarget.userName) {
+        await updateUserDisplayName({
+          uid: id,
+          newDisplayName: values.userName,
+        })
+      }
+
+      // 2. Update email ถ้า email เปลี่ยน
+      if (values.email !== editTarget.email) {
+        await updateUserEmail({
+          uid: id,
+          newEmail: values.email,
+        })
+      }
+
+      // 3. Update password ถ้ามีการกรอก
+      if (values.newPassword && values.newPassword.length > 0) {
+        await updateUserPassword({
+          uid: id,
+          newPassword: values.newPassword,
+        })
+      }
+      return true
+    },
+    onSuccess: () => {
+      message.success('อัปเดตข้อมูลผู้ใช้สำเร็จ')
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setIsModalOpen(false)
+      form.resetFields()
+      setEditTarget(null)
+    },
+    onError: (err) => {
+      console.error('Error updating user:', err)
+      message.error('ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้')
+    },
+  })
+
   // 6. ฟังก์ชันการลบผู้ใช้
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -96,7 +152,6 @@ const AddUserPage = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       message.success('ลบบัญชีสำเร็จ')
       setDeleteTarget(null)
-      window.location.reload() 
     },
     onError: () => message.error('ไม่สามารถลบได้'),
   })
@@ -127,80 +182,31 @@ const AddUserPage = () => {
     setIsModalOpen(true)
   }
 
-  const handleSubmit = async (values: UserFormValues) => {
-    // ถ้าเป็นเพิ่มผู้ใช้ใหม่
+  const handleSubmit = (values: UserFormValues) => {
     if (!editTarget) {
-      // หา next userId อัตโนมัติ
       const maxId = Math.max(0, ...users.map((u) => parseInt(u.userId?.split('-')[1] || '0')))
       const nextId = `LC-${(maxId + 1).toString().padStart(6, '0')}`
 
-      // ส่งข้อมูล object ธรรมดา ไม่ต้องมี data หุ้ม
       createUserMutation.mutate({
-        ...values, // email, password, userName, role, jobPosition ฯลฯ
+        ...values,
         userId: nextId,
         status: 'Active',
       })
     } else {
-      try {
-        const id = editTarget.uid || editTarget.id
-
-        // 1. Update Firestore profile (userName, role, jobPosition)
-        await updateUserProfile({
-          uid: id,
-          profileData: {
-            userName: values.userName,
-            role: values.role,
-            jobPosition: values.jobPosition,
-          },
-        })
-
-        // 1.1 Update displayName ใน Auth ถ้า userName เปลี่ยน
-        if (values.userName !== editTarget.userName) {
-          await updateUserDisplayName({
-            uid: id,
-            newDisplayName: values.userName,
-          })
-        }
-
-        // 2. Update email ถ้า email เปลี่ยน
-        if (values.email !== editTarget.email) {
-          await updateUserEmail({
-            uid: id,
-            newEmail: values.email,
-          })
-        }
-
-        // 3. Update password ถ้ามีการกรอก
-        if (values.newPassword && values.newPassword.length > 0) {
-          await updateUserPassword({
-            uid: id,
-            newPassword: values.newPassword,
-          })
-        }
-
-        message.success('อัปเดตข้อมูลผู้ใช้สำเร็จ')
-        queryClient.invalidateQueries({ queryKey: ['users'] })
-        window.location.reload() 
-      } catch (err) {
-        console.error('Error updating user:', err)
-        message.error('ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้')
-      }
+      const id = editTarget.uid || editTarget.id
+      updateUserMutation.mutate({ id, values, editTarget })
     }
-    setIsModalOpen(false)
-    form.resetFields()
-    setEditTarget(null)
   }
 
   const handleToggleStatus = (record: UserData) => {
     const newStatus = record.status === 'Active' ? 'Inactive' : 'Active'
-    console.log('send updateUserStatus', { id: record.id, status: newStatus }) // log ก่อน
     toggleStatusMutation.mutate({ id: record.id, status: newStatus })
   }
 
   const handleDelete = (record: UserData) => {
     deleteUserMutation.mutate(record.id)
   }
-  console.log('userssss:', users)
+
   const filteredData = users
     .filter(
       (item) =>
@@ -330,7 +336,11 @@ const AddUserPage = () => {
       <Modal
         title={editTarget ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false)
+          form.resetFields()
+          setEditTarget(null)
+        }}
         footer={null}
         destroyOnHidden
       >
@@ -355,25 +365,24 @@ const AddUserPage = () => {
               <Option value='Tester'>Tester</Option>
             </Select>
           </Form.Item>
-          <Form.Item label='Email' name='email' 
-          rules={[
-                { required: true, type: 'email', message: 'กรุณากรอกอีเมลที่ถูกต้อง' },
-
-                {
-                  async validator(_, value) {
-                    if (!value) return Promise.resolve();
-                    const isDuplicate = users.some(
-                      (u) =>
-                        u.email === value &&
-                        (!editTarget || u.id !== editTarget.id)
-                    );
-                    if (isDuplicate) {
-                      return Promise.reject('อีเมลนี้ถูกใช้งานแล้ว');
-                    }
-                    return Promise.resolve();
-                  },
+          <Form.Item label='Email' name='email'
+            rules={[
+              { required: true, type: 'email', message: 'กรุณากรอกอีเมลที่ถูกต้อง' },
+              {
+                async validator(_, value) {
+                  if (!value) return Promise.resolve();
+                  const isDuplicate = users.some(
+                    (u) =>
+                      u.email === value &&
+                      (!editTarget || u.id !== editTarget.id)
+                  );
+                  if (isDuplicate) {
+                    return Promise.reject('อีเมลนี้ถูกใช้งานแล้ว');
+                  }
+                  return Promise.resolve();
                 },
-              ]}>
+              },
+            ]}>
             <Input />
           </Form.Item>
           {!editTarget && (
@@ -391,8 +400,17 @@ const AddUserPage = () => {
             </Form.Item>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-            <Button onClick={() => setIsModalOpen(false)}>ยกเลิก</Button>
-            <Button type='primary' htmlType='submit'>
+            <Button onClick={() => {
+              setIsModalOpen(false)
+              form.resetFields()
+              setEditTarget(null)
+            }}>ยกเลิก</Button>
+            <Button
+              type='primary'
+              htmlType='submit'
+              loading={createUserMutation.isPending || updateUserMutation.isPending}
+              disabled={createUserMutation.isPending || updateUserMutation.isPending}
+            >
               บันทึก
             </Button>
           </div>
