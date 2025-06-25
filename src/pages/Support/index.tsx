@@ -122,7 +122,7 @@ const Support: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button onClick={handleReset}>
-          <SyncOutlined /> Clear Search
+          <SyncOutlined /> ล้างการค้นหา
         </Button>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>

@@ -28,6 +28,7 @@ import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
 import ScopeOfWork from '@/pages/ScopeOfWork';
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
+import OtherDocument from '@/pages/OtherDocument'
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -184,6 +185,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.SCOPE}>
               <ScopeOfWork />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.OTHER_DOCUMENT,
+          element: (
+            <PageContainer title={PAGE_TITLE.OTHER_DOCUMENT}>
+              <OtherDocument />
             </PageContainer>
           ),
         },

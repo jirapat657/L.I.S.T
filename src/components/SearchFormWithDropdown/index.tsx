@@ -111,6 +111,11 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
   const [form] = Form.useForm();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false); // <--- เพิ่ม state
+  
+
+
+
+
 
   const handleFinish = () => {
     onSearch(filters);
@@ -239,7 +244,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
           <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
             ค้นหา
           </Button>
-          <Button onClick={handleReset}><SyncOutlined /> Clear Search</Button>
+          <Button onClick={handleReset}><SyncOutlined /> ล้างการค้นหา</Button>
         </div>
       </Form>
     </div>

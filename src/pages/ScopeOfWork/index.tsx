@@ -265,14 +265,14 @@ const ScopeOfWork = () => {
           <Form.Item name="customer" label="Customer" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
           <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
-          <Form.Item label="อัปโหลดไฟล์">
+          <Form.Item label="Upload Files">
             <Upload
               customRequest={handleCustomUpload}
               listType="text"
               showUploadList={false}
               multiple
             >
-              <Button icon={<UploadOutlined />}>อัปโหลด</Button>
+              <Button icon={<UploadOutlined />}>Upload</Button>
             </Upload>
             <List
               size="small"
