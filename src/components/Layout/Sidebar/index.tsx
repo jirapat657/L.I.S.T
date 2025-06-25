@@ -2,7 +2,7 @@
 import type { MenuProps } from 'antd'
 import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
-import { FileTextOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
+import { FileTextOutlined, HddFilled, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { Divider, Flex, Layout, Menu, Space } from 'antd'
 
@@ -53,6 +53,7 @@ export default function Sidebar() {
 
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
+    getItem('Support', 'support', <HddFilled />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
     getItem('Scope of Work', 'scope', <FileTextOutlined />),
     getItem(

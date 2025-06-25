@@ -21,7 +21,6 @@ import SubtaskTable from '@/components/SubtaskTable';
 const { Text } = Typography;
 
 const ViewIssuePage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
   const { issueId } = useParams<{ issueId: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -78,7 +77,7 @@ const ViewIssuePage: React.FC = () => {
       <Divider />
       <div style={{ textAlign: 'right' }}>
         <Space>
-          <Button onClick={() => navigate(`/projects/${id}`)}><CaretLeftOutlined /> กลับ</Button>
+          <Button onClick={() => navigate(-1)}><CaretLeftOutlined /> กลับ</Button>
         </Space>
       </div>
 

@@ -5,6 +5,7 @@ export const PATH = Object.freeze({
   },
   HOME: '/',
   DASHBOARD: '/dashboard',
+  SUPPORT: '/support',
   PROJECTS: '/projects',
   PROJECT_DETAIL: '/projects/:id',
   PROJECT_ADD: '/projects/:id/add',
@@ -18,6 +19,7 @@ export const PATH = Object.freeze({
 
 export const PAGE_TITLE = Object.freeze({
   DASHBOARD: 'Dashboard',
+  SUPPORT: 'Support',
   PROJECTS: 'Projects',
   PROJECT_DETAIL: 'Project Detail',
   PROJECT_ADD: 'Add Issue',

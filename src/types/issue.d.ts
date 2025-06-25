@@ -7,6 +7,9 @@ export interface IssueFormValues {
   issueDate: Timestamp;
   title?: string;
   description?: string;
+  type?: string;       
+  priority?: string;   
+  enquiry?: string;
   status?: string;
   startDate?: Timestamp | null;
   dueDate?: Timestamp | null;
@@ -17,7 +20,7 @@ export interface IssueFormValues {
   remark?: string;
   document?: string;
   createdAt: Timestamp;
-  subtasks?: Subtask[]; // ✅ เชื่อมตรงนี้
+  subtasks?: Subtask[]; 
 }
 
 export interface SubtaskData {
@@ -37,6 +40,9 @@ export interface FormValues {
   issueDate?: Dayjs;
   title?: string;
   description?: string;
+  type?: string;       
+  priority?: string;   
+  enquiry?: string;
   status?: string;
   startDate?: Dayjs;
   dueDate?: Dayjs;
@@ -65,6 +71,9 @@ export interface IssueData {
   issueDate: Timestamp;
   title: string;
   description: string;
+  type?: string;       
+  priority?: string;   
+  enquiry?: string;
   status: string;
   startDate?: Timestamp | null;
   dueDate?: Timestamp | null;

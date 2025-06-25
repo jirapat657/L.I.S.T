@@ -16,9 +16,11 @@ export interface Issue {
   baTest: string;
   remark: string;
   document: string;
+  projectId: string;
 }
 
 export interface Filters {
+  keyword: string;
   issueCode: string;
   issueDate: Dayjs | null;
   title: string;

@@ -4,9 +4,11 @@ import { Form, Input, DatePicker, Select, Row, Col } from 'antd';
 import type { IssueData } from '@/types/issue';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
-import { getAllUsers } from '@/api/user';
+import { getUsers } from '@/api/user';
 import type { FormInstance } from 'antd/es/form';
 import { safeDate } from '@/utils/dateUtils';
+import { priorityOptions, typeOptions } from '@/pages/Projects/AddIssueForm/helper';
+import { getBATestOptions, getDeveloperOptions } from '@/utils/userOptions';
 
 type Props = {
   issue: IssueData;
@@ -18,19 +20,12 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: getAllUsers,
+    queryFn: getUsers,
     });
 
-    const userOptions = React.useMemo(() => {
-    const uniqueUsers = users.filter(
-        (user, index, self) =>
-        index === self.findIndex((u) => u.userName === user.userName)
-    );
-    return uniqueUsers.map((user) => ({
-        value: user.userName,
-        label: user.userName,
-    }));
-    }, [users]);
+    const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+    const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
+    
     const statusOptions = [
         { label: 'Awaiting', value: 'Awaiting' },
         { label: 'Inprogress', value: 'Inprogress' },
@@ -47,6 +42,9 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         issueDate: safeDate(issue.issueDate),
         title: issue.title,
         description: issue.description,
+        type: issue.type,           
+        priority: issue.priority,
+        enquiry: issue.enquiry,
         status: issue.status,
         startDate: safeDate(issue.startDate),
         dueDate: safeDate(issue.dueDate),
@@ -71,6 +69,23 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
               disabled={disabled}
               style={{ width: '100%' }}
             />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
+          <Form.Item label="Type" name="type">
+            <Select disabled={disabled} showSearch placeholder="Select Type" options={typeOptions} />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label="Priority" name="priority">
+            <Select disabled={disabled} showSearch placeholder="Select Priority" options={priorityOptions} />
+          </Form.Item>
+        </Col>
+
+        <Col span={24}>
+          <Form.Item label="Enquiry" name="enquiry">
+            <Input.TextArea rows={4} disabled={disabled}/>
           </Form.Item>
         </Col>
 
@@ -136,7 +151,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
                 showSearch
                 placeholder="เลือก Developer"
                 disabled={disabled}
-                options={userOptions}
+                options={developerOptions}
                 />
             </Form.Item>
         </Col>
@@ -147,7 +162,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
                 showSearch
                 placeholder="เลือก BA/Test"
                 disabled={disabled}
-                options={userOptions}
+                options={baTestOptions}
                 />
             </Form.Item>
         </Col>

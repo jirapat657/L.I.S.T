@@ -1,3 +1,5 @@
+//src/router/index.tsx
+
 import { Flex, Result, Spin } from 'antd'
 import {
   createBrowserRouter,
@@ -16,6 +18,7 @@ import AuthLayout from '@/components/Layout/authLayout'
 import ForgetPassword from '@/pages/Auth/ForgetPassword'
 import PageContainer from '@/components/PageContainer'
 import Dashboard from '@/pages/Dashboard'
+import Support from '@/pages/Support'
 import Projects from '@/pages/Projects'
 import ProjectDetail from '@/pages/Projects/ProjectDetail'
 import AddIssueForm from '@/pages/Projects/AddIssueForm';
@@ -45,6 +48,7 @@ export function Router() {
   }
 
   function adminOnlyLoader({ request }: LoaderFunctionArgs) {
+    console.log('Checking User Role:', currentUser?.profile?.role);  // ตรวจสอบค่าของ role ใน currentUser
     if (!currentUser && !loading) {
       const params = new URLSearchParams()
       params.set('from', new URL(request.url).pathname)
@@ -116,6 +120,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.DASHBOARD}>
               <Dashboard />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SUPPORT,
+          element: (
+            <PageContainer title={PAGE_TITLE.SUPPORT}>
+              <Support />
             </PageContainer>
           ),
         },

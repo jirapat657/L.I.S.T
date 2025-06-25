@@ -1,3 +1,5 @@
+//src/App.tsx
+
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
@@ -6,7 +8,7 @@ import { ConfigProvider } from 'antd'
 import { Router } from '@/router/index'
 import { theme } from '@/services/theme'
 import { Toaster } from 'react-hot-toast'
-import { AuthContextProvider } from '@/context/AuthContext'
+import { AuthContextProvider } from '@/context/AuthContextProvider'
 import { queryClient } from '@/services/react-query/getQueryClient'
 import buddhistEra from 'dayjs/plugin/buddhistEra'
 import 'dayjs/locale/th'

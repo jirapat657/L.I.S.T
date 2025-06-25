@@ -14,17 +14,20 @@ import {
   Modal
 } from 'antd';
 import dayjs from 'dayjs';
-import { getAllUsers } from '@/api/user';
+import { getUsers } from '@/api/user';
 import { Timestamp } from 'firebase/firestore';
 import { addIssue } from '@/api/issue';
-import type { FormValues, SubtaskData} from '@/types/issue';
-import { useQuery } from '@tanstack/react-query';
+import type { FormValues, SubtaskData } from '@/types/issue';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { calculateOnLateTime } from '@/utils/dateUtils';
 import { PlusOutlined } from '@ant-design/icons';
 import { useGenerateIssueCode } from '@/hooks/useGenerateIssueCode';
 import { getProjects } from '@/api/project';
 import SubtaskTable from '@/components/SubtaskTable';
 import { duplicateSubtask } from '@/utils/subtaskUtils';
+import { priorityOptions, typeOptions } from './helper';
+import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
+
 // ใช้ใน AddIssueForm (ขยายแบบ local)
 type SubtaskDraft = SubtaskData & { id: string; showFull?: boolean };
 
@@ -42,47 +45,48 @@ const AddIssueForm: React.FC = () => {
 
   const { data: users = [], isLoading, isError } = useQuery({
     queryKey: ['users'],
-    queryFn: getAllUsers,
+    queryFn: getUsers,
   });
-  const userOptions = React.useMemo(() => {
-    const uniqueUsers = users.filter(
-      (user, index, self) =>
-        index === self.findIndex((u) => u.userName === user.userName)
-    );
-    return uniqueUsers.map((user) => ({
-      value: user.userName,
-      label: user.userName,
-    }));
-  }, [users]);
+
+  // วางตรงนี้ หลัง users ถูกประกาศ
+  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
   });
-  const onFinish = async () => {
-    const values = form.getFieldsValue(); // ✅ ดึงค่าล่าสุดทั้งหมด
 
-    try {
+  // === (1) ย้าย logic ไปไว้ในฟังก์ชันสำหรับ useMutation ===
+  
+
+  // === (2) useMutation ===
+  const mutation = useMutation<
+    void, // ผลลัพธ์ที่ได้จาก mutationFn (ไม่ต้องการข้อมูลกลับ)
+    unknown, // error type (แนะนำ unknown)
+    { values: FormValues; data: SubtaskDraft[] } // input ของ mutationFn
+  >({
+    mutationFn: async ({ values, data }) => {
+      // ----- Logic เดิม -----
       const { startDate, dueDate, completeDate, ...rest } = values;
+      const onLateTime = calculateOnLateTime(completeDate, dueDate);
 
-      const onLateTime = calculateOnLateTime(completeDate, dueDate); // ✅ ใช้ยูทิลฟังก์ชัน
-
-      // ✅ ดึง projectCode (เช่น "GG2") จาก projectDocId (เช่น "mOlmPj6KY...")
+      // หา projectCode จาก projects, id
       const currentProject = projects.find((p) => p.id === id);
       const projectCode = currentProject?.projectId;
-
-      if (!projectCode) {
-        message.error('ไม่พบ projectId (code)');
-        return;
-      }
+      if (!projectCode) throw new Error('ไม่พบ projectId (code)');
 
       const issuePayload = {
         ...rest,
-        projectId: projectCode, // ✅ ใช้ projectId แบบ code เช่น GG2
-        issueDate: values.issueDate ? Timestamp.fromDate(values.issueDate.toDate()) : Timestamp.now(),
+        projectId: projectCode,
+        issueDate: values.issueDate
+          ? Timestamp.fromDate(values.issueDate.toDate())
+          : Timestamp.now(),
         startDate: startDate ? Timestamp.fromDate(startDate.toDate()) : null,
         dueDate: dueDate ? Timestamp.fromDate(dueDate.toDate()) : null,
-        completeDate: completeDate ? Timestamp.fromDate(completeDate.toDate()) : null,
+        completeDate: completeDate
+          ? Timestamp.fromDate(completeDate.toDate())
+          : null,
         onLateTime,
         createdAt: Timestamp.now(),
       };
@@ -96,17 +100,34 @@ const AddIssueForm: React.FC = () => {
           baTest: row.baTest,
           status: row.status,
           remark: row.remark,
-          createdAt: row.createdAt ,
+          createdAt: row.createdAt,
         }));
 
-      await addIssue(issuePayload, subtasks);
+      // เรียก addIssue ตามปกติ
+      return addIssue(issuePayload, subtasks);
+    },
+
+    onSuccess: () => {
       message.success('เพิ่ม Issue สำเร็จ');
       navigate(`/projects/${id}`);
-    } catch (error) {
-      console.error('Error adding issue:', error);
-      message.error('เกิดข้อผิดพลาดในการเพิ่ม Issue');
-    }
+    },
+
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        message.error(error.message);
+      } else if (typeof error === 'string') {
+        message.error(error);
+      } else {
+        message.error('เกิดข้อผิดพลาดในการเพิ่ม Issue');
+      }
+    },
+  });
+  // === (3) onFinish เรียก mutate ===
+  const onFinish = async () => {
+    const values = form.getFieldsValue();
+    mutation.mutate({ values, data }); // ส่ง data ล่าสุดเข้าไป
   };
+
 
   // ✨ เรียก hook สร้าง issueCode อัตโนมัติ
   useGenerateIssueCode(id, form);
@@ -164,8 +185,6 @@ const AddIssueForm: React.FC = () => {
     setDetailModalOpen(false);
   };
 
-
-
   const handleDelete = (id: string) => {
     setData((prev) => prev.filter((row) => row.id !== id));
     message.success('ลบแถวแล้ว');
@@ -174,7 +193,6 @@ const AddIssueForm: React.FC = () => {
   return (
     <div>
       <h2>เพิ่ม Issue ใหม่ในโปรเจกต์ #{id}</h2>
-
       <Form
         layout="vertical"
         onFinish={onFinish}
@@ -188,6 +206,19 @@ const AddIssueForm: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Issue Date" name="issueDate" ><DatePicker format="DD/MM/YY" style={{ width: '100%' }} /></Form.Item>
           </Col>
+          <Col span={12}>
+            <Form.Item label="Type" name="type">
+              <Select showSearch placeholder="Select Type" options={typeOptions} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="Priority" name="priority">
+              <Select showSearch placeholder="Select Priority" options={priorityOptions} />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item label="Enquiry" name="enquiry" ><Input.TextArea rows={4}/></Form.Item>
+          </Col>
           <Col span={24}>
             <Form.Item label="Title" name="title" ><Input /></Form.Item>
           </Col>
@@ -196,7 +227,7 @@ const AddIssueForm: React.FC = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Status" name="status" rules={[{ required: true }]} initialValue="Awaiting">
-              <Select placeholder="เลือกสถานะ"
+              <Select placeholder="Select Status"
               onChange={(value) => {
                 const now = dayjs();
                 if (value === 'Inprogress') {
@@ -222,12 +253,12 @@ const AddIssueForm: React.FC = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Developer" name="developer" >
-              <Select showSearch placeholder="เลือก Developer" options={userOptions} />
+              <Select showSearch placeholder="Select Developer" options={developerOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item label="BA/Test" name="baTest" >
-              <Select showSearch placeholder="เลือก BA/Test" options={userOptions} />
+              <Select showSearch placeholder="Select BA/Test" options={baTestOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -249,12 +280,13 @@ const AddIssueForm: React.FC = () => {
               (b.createdAt?.toDate?.()?.getTime?.() ?? 0) -
               (a.createdAt?.toDate?.()?.getTime?.() ?? 0)
           )}
-          userOptions={userOptions}
+          userOptions={baTestOptions}
           onUpdate={(id, field, value) => handleChange(id, field, value)}
           onDelete={handleDelete}
           onView={handleViewDetails}
           onDuplicate={(row) => {
             const newRow = duplicateSubtask(row);
+            console.log('== subtasks หลัง duplicate ==', row);
             setData((prev) => [newRow, ...prev]);
             message.success('คัดลอก Subtask แล้ว');
           }}
@@ -264,8 +296,8 @@ const AddIssueForm: React.FC = () => {
           onCancel={() => setDetailModalOpen(false)}
           onOk={handleUpdateDetail}
           title="แก้ไขรายละเอียด Subtask"
-          width="80%" // ✅ เต็มหน้าจอเกือบสุด
-          bodyStyle={{ height: '60vh' }} // ✅ เพิ่มความสูง
+          width="80%"
+          bodyStyle={{ height: '60vh' }}
         >
           <Input.TextArea
             rows={15}
@@ -276,8 +308,12 @@ const AddIssueForm: React.FC = () => {
         </Modal>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button onClick={() => navigate(`/projects/${id}`)}>ยกเลิก</Button>
-          <Button type="primary" htmlType="submit">บันทึก</Button>
+          <Button onClick={() => navigate(-1)}>ยกเลิก</Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={mutation.isPending} // แสดง loading ขณะ save
+          >บันทึก</Button>
         </div>
       </Form>
     </div>
