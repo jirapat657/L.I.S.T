@@ -1,7 +1,7 @@
 // src/pages/Support/index.tsx
 
 import { useEffect, useState } from 'react';
-import { message, Button } from 'antd';
+import { message } from 'antd';
 import { getDocs, collection, orderBy, query, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import IssueTable from '@/components/IssueTable';
@@ -18,7 +18,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { SyncOutlined } from '@ant-design/icons';
 
 dayjs.extend(isBetween);
 
@@ -34,13 +33,13 @@ const COLLECTION_NAME = 'LIMIssues';
 const Support: React.FC = () => {
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // เพิ่มสถานะ isSearching เพื่อควบคุมการกรองข้อมูล
   const navigate = useNavigate();
 
   // Custom hook สำหรับ filter state
   const {
     filters,
     handleFilterChange,
-    handleReset,
   } = useTableSearch(defaultFilters);
 
   // ดึง user สำหรับ dropdown
@@ -81,7 +80,7 @@ const Support: React.FC = () => {
             completeDate: parseDate(data.completeDate),
           };
         });
-        setIssues(issuesArray);
+        setIssues(issuesArray); // แสดงข้อมูลทั้งหมดที่ไม่ได้กรอง
       } catch (error) {
         console.error(error);
         message.error('Failed to load issues');
@@ -90,7 +89,7 @@ const Support: React.FC = () => {
       }
     };
     fetchAllIssues();
-  }, []);
+  }, []); // ทำงานแค่ครั้งแรกที่โหลดหน้า
 
   const handleDelete = async (issueId: string) => {
     try {
@@ -116,27 +115,29 @@ const Support: React.FC = () => {
   };
 
   // === FILTER DATA ===
-  const filteredData = filterIssues(issues, filters);
+  // กรองข้อมูลเมื่อผู้ใช้กดค้นหา
+  const filteredData = isSearching ? filterIssues(issues, filters) : issues; // ตรวจสอบว่า isSearching เป็นจริงหรือไม่
+
+  // ฟังก์ชันสำหรับการค้นหาหรือกรองข้อมูล
+  const handleSearch = () => {
+    setIsSearching(true); // ตั้งค่า isSearching เป็น true เพื่อกรองข้อมูล
+  };
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button onClick={handleReset}>
-          <SyncOutlined /> ล้างการค้นหา
-        </Button>
-      </div>
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
         <SearchFormWithDropdown
-          onSearch={() => {}}
+          onSearch={handleSearch} // ส่งฟังก์ชัน handleSearch ไปที่ SearchFormWithDropdown
           filters={filters}
           handleFilterChange={handleFilterChange}
           statusOptions={statusOptions}
           developerOptions={developerOptions}
           baTestOptions={baTestOptions}
+          setIsSearching={setIsSearching} // ส่ง setIsSearching เป็น prop
         />
       </div>
       <IssueTable 
-        issues={filteredData}
+        issues={filteredData} // กรองข้อมูลหรือลบกรองข้อมูลตาม isSearching
         onDelete={handleDelete}
         loading={loading}
         onView={handleView}

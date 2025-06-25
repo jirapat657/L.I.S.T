@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import IssueTable from '@/components/IssueTable';
 import type { Issue } from '@/types/projectDetail';
 import SearchFormWithDropdown from "@/components/SearchFormWithDropdown";
@@ -38,12 +38,12 @@ const ProjectDetail: React.FC = () => {
 
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [projectName, setProjectName] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false); // ใช้ isSearching เพื่อควบคุมการกรองข้อมูล
 
   // === ใช้ custom hook ===
   const {
     filters,
     handleFilterChange,
-    handleReset,
   } = useTableSearch(defaultFilters);
 
   // --- Fetch users สำหรับ dropdown ---
@@ -115,8 +115,9 @@ const ProjectDetail: React.FC = () => {
     if (id) fetchProjectName();
   }, [id]);
 
+  // --- ฟังก์ชันการค้นหา ---
   const handleSearch = () => {
-    // ปกติใช้ filteredData อัตโนมัติ
+    setIsSearching(true); // ตั้งค่า isSearching เป็น true เพื่อกรองข้อมูล
   };
 
   const handleDelete = async (issueId: string) => {
@@ -131,7 +132,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   // --- Filter Table ---
-  const filteredData = filterIssues(issues, filters);
+  const filteredData = isSearching ? filterIssues(issues, filters) : issues; // ใช้ isSearching ควบคุมการกรองข้อมูล
 
   // --- ACTIONS ---
   const handleView = (issueId: string, projectId: string) => {
@@ -154,11 +155,6 @@ const ProjectDetail: React.FC = () => {
           <PlusOutlined /> Add Issue
         </Button>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button onClick={handleReset}>
-          <SyncOutlined /> ล้างการค้นหา
-        </Button>
-      </div>
       <div style={{ width: "100%" }}>
         <div style={{
           display: "flex",
@@ -167,12 +163,13 @@ const ProjectDetail: React.FC = () => {
           marginBottom: 16
         }}>
           <SearchFormWithDropdown
-            onSearch={handleSearch}
+            onSearch={handleSearch} // ส่งฟังก์ชัน handleSearch ไปที่ SearchFormWithDropdown
             filters={filters}
             handleFilterChange={handleFilterChange}
             statusOptions={statusOptions}
             developerOptions={developerOptions}
             baTestOptions={baTestOptions}
+            setIsSearching={setIsSearching} // ส่ง setIsSearching เป็น prop
           />
         </div>
       </div>
