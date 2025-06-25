@@ -1,5 +1,5 @@
 import { db } from '@/services/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import type { OtherDocumentPayload, OtherDocumentData } from '@/types/otherDocument';
 import { getAuth } from 'firebase/auth'; // Firebase Authentication
@@ -7,7 +7,7 @@ import { getAuth } from 'firebase/auth'; // Firebase Authentication
 // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมด
 export const getAllOtherDocuments = async (): Promise<OtherDocumentData[]> => {
   const documentsCollection = collection(db, 'LIMOtherDocuments');
-  const q = query(documentsCollection);
+  const q = query(documentsCollection, orderBy('createdAt', 'desc'));
   const querySnapshot = await getDocs(q);
   const documents: OtherDocumentData[] = [];
   querySnapshot.forEach((doc) => {
