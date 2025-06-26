@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import type { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
+import { useMutation } from '@tanstack/react-query';
 
 const OtherDocument = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
@@ -161,6 +162,28 @@ const OtherDocument = () => {
     }
   };
 
+    const { mutate: createDocument } = useMutation<void, Error, OtherDocumentPayload>({
+    mutationFn: createOtherDocument, // ใช้ฟังก์ชันการสร้างเอกสาร
+    onSuccess: () => {
+        message.success('เพิ่มข้อมูลสำเร็จ');
+        queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
+    },
+    onError: () => {
+        message.error('เกิดข้อผิดพลาดในการบันทึก');
+    },
+    });
+
+    const { mutate: updateDocument } = useMutation<void, Error, { id: string, payload: OtherDocumentPayload }>({
+    mutationFn: ({ id, payload }) => updateOtherDocumentById(id, payload), // เรียกใช้ฟังก์ชันการอัปเดตเอกสาร
+    onSuccess: () => {
+        message.success('อัปเดตสำเร็จ');
+        queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
+    },
+    onError: () => {
+        message.error('เกิดข้อผิดพลาดในการบันทึก');
+    },
+    });
+
   const handleFinish = async (values: OtherDocumentFormValues) => {
     const auth = getAuth();  // ดึงข้อมูลจาก Firebase Authentication
     const currentUser = auth.currentUser;  // ดึงข้อมูลผู้ใช้ที่เข้าสู่ระบบ
@@ -176,22 +199,16 @@ const OtherDocument = () => {
         remark: values.remark || null,  // ถ้า remark เป็น undefined, ให้เป็น null แทน
     };
 
-    try {
-        if (editingDocument?.id) {
-        await updateOtherDocumentById(editingDocument.id, payload);  // อัปเดตเอกสาร
-        message.success('อัปเดตสำเร็จ');
-        } else {
-        await createOtherDocument(payload);  // เพิ่มเอกสารใหม่
-        message.success('เพิ่มข้อมูลสำเร็จ');
-        }
-
-        setEditingDocument(null);
-        setUploadFiles([]);
-        queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
-    } catch (err) {
-        console.error('บันทึกล้มเหลว', err);
-        message.error('เกิดข้อผิดพลาดในการบันทึก');
+    if (editingDocument?.id) {
+        // อัปเดตเอกสาร
+        updateDocument({ id: editingDocument.id, payload });
+    } else {
+        // สร้างเอกสารใหม่
+        createDocument(payload);
     }
+
+    setEditingDocument(null);
+    setUploadFiles([]);
   };
 
   return (
