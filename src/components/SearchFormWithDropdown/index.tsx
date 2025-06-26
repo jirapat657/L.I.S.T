@@ -15,6 +15,7 @@ interface SearchFormProps {
   statusOptions?: OptionType[];
   developerOptions?: OptionType[];
   baTestOptions?: OptionType[];
+  setIsSearching: (value: boolean) => void; // เพิ่ม setIsSearching มาเป็น prop
 }
 
 const issueDateFilterOptions = [
@@ -80,12 +81,12 @@ function DateFilterRow({
           <Form.Item label=" ">
             <RangePicker
               style={{ width: "100%" }}
-               value={
-                  // ตรวจสอบว่าค่า filter.value เป็น array ที่มี 2 element หรือไม่
-                  Array.isArray(filter.value) && filter.value.length === 2
-                    ? filter.value
-                    : null
-                }
+              value={
+                // ตรวจสอบว่าค่า filter.value เป็น array ที่มี 2 element หรือไม่
+                Array.isArray(filter.value) && filter.value.length === 2
+                  ? filter.value
+                  : null
+              }
               format="DD/MM/YY"
               onChange={(v) =>
                 onChange({ type: "customRange", value: v })
@@ -107,32 +108,21 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
   statusOptions = [],
   developerOptions = [],
   baTestOptions = [],
+  setIsSearching, // รับ prop setIsSearching
 }) => {
   const [form] = Form.useForm();
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false); // <--- เพิ่ม state
-  
+  const [open, setOpen] = useState(false);
 
-
-
-
-
+  // ฟังก์ชันที่จะเรียกเมื่อกดค้นหา
   const handleFinish = () => {
+    // ส่งค่าฟิลเตอร์ไปยัง parent เพื่อทำการกรองข้อมูล
     onSearch(filters);
-    setOpen(false); // <--- ปิดเมนูเมื่อกดค้นหา
+    setOpen(false); // ปิด dropdown หลังจากกดค้นหา
+    setIsSearching(true); // ตั้งค่า isSearching เป็น true เพื่อให้กรองข้อมูล
   };
 
-  const emptyFilters: FilterValues = {
-    keyword: undefined,
-    status: undefined,
-    developer: undefined,
-    baTest: undefined,
-    issueDateFilter: { type: "", value: undefined },
-    startDateFilter: { type: "", value: undefined },
-    dueDateFilter: { type: "", value: undefined },
-    completeDateFilter: { type: "", value: undefined }
-  };
-
+  // ฟังก์ชันล้างค่าฟิลเตอร์
   const handleReset = () => {
     form.resetFields();
     handleFilterChange("issueDateFilter", { type: "", value: undefined });
@@ -144,7 +134,20 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
     handleFilterChange("developer", undefined);
     handleFilterChange("baTest", undefined);
 
-    onSearch(emptyFilters); // ส่งค่า reset ที่ตรง type
+    // ส่งค่าฟิลเตอร์ที่รีเซ็ตไปยัง parent เพื่อให้ข้อมูลทั้งหมดแสดง
+    onSearch({
+      keyword: undefined,
+      status: undefined,
+      developer: undefined,
+      baTest: undefined,
+      issueDateFilter: { type: "", value: undefined },
+      startDateFilter: { type: "", value: undefined },
+      dueDateFilter: { type: "", value: undefined },
+      completeDateFilter: { type: "", value: undefined },
+    });
+
+    setIsSearching(false); // ตั้งค่า isSearching เป็น false เพื่อแสดงข้อมูลทั้งหมดที่ไม่ได้กรอง
+
   };
 
   const menu = (
@@ -257,7 +260,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
       placement="bottomRight"
       arrow
       open={open}
-      onOpenChange={setOpen} // <--- เพิ่ม
+      onOpenChange={setOpen}
     >
       <Button
         icon={<SearchOutlined />}
