@@ -40,6 +40,7 @@ export interface OtherDocumentFormValues {
   description: string;
   remark?: string | null;
   files?: FileData[];
+  newType?: string;  // เพิ่มฟิลด์ newType เพื่อรองรับกรอกประเภทใหม่
 }
 
 // ข้อมูลไฟล์ที่อัปโหลด

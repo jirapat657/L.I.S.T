@@ -3,10 +3,10 @@ import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input,
 import type { MenuProps } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAllOtherDocuments, deleteOtherDocumentById, updateOtherDocumentById, createOtherDocument } from '@/api/otherDocument';
+import { getAllOtherDocuments, deleteOtherDocumentById, updateOtherDocumentById, createOtherDocument, getUniqueDocumentTypes } from '@/api/otherDocument';
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { OtherDocumentData, FileData, OtherDocumentPayload, OtherDocumentFormValues } from '@/types/otherDocument';
 import { Timestamp } from 'firebase/firestore';
 import { formatFirestoreDate } from '@/utils/dateUtils';
@@ -23,6 +23,8 @@ const OtherDocument = () => {
   const [uploadFiles, setUploadFiles] = useState<FileData[]>([]);
   const [searchFileName, setSearchFileName] = useState('');
   const [searchProjectsName, setSearchProjectsName] = useState('');
+  const [docTypes, setDocTypes] = useState<string[]>([]);  // สถานะสำหรับเก็บประเภทเอกสาร
+      const [isNewType, setIsNewType] = useState(false);  // ใช้สำหรับควบคุมการแสดงช่องกรอกประเภทใหม่
 
   const { data: otherDocuments = [], isLoading } = useQuery({
     queryKey: ['otherDocuments'],
@@ -35,6 +37,20 @@ const OtherDocument = () => {
     document.description.toLowerCase().includes(searchFileName.toLowerCase()) &&
     document.project.toLowerCase().includes(searchProjectsName.toLowerCase())
   );
+
+    useEffect(() => {
+        const fetchDocTypes = async () => {
+        try {
+            const types = await getUniqueDocumentTypes();  // ดึงประเภทเอกสารที่ไม่ซ้ำ
+            setDocTypes(types);
+        } catch (err) {
+            console.error('Error fetching document types:', err);
+            message.error('เกิดข้อผิดพลาดในการดึงประเภทเอกสาร');
+        }
+        };
+
+        fetchDocTypes();
+    }, []);
 
   const columns = [
     {
@@ -166,6 +182,15 @@ const OtherDocument = () => {
     const currentUser = auth.currentUser;  // ดึงข้อมูลผู้ใช้ที่เข้าสู่ระบบ
     const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';  // ใช้ displayName หรือ email
 
+   // ถ้าผู้ใช้เลือก "เพิ่มประเภทใหม่" และกรอกประเภทใหม่
+    const docType = isNewType ? values.newType : values.docType;  // ใช้ `newType` ถ้าผู้ใช้กรอกประเภทใหม่
+
+   // ตรวจสอบว่า `docType` มีค่า และไม่เป็น undefined หรือ null
+    if (!docType || docType.trim() === '') {
+        message.error('กรุณากรอกประเภทเอกสาร');
+        return;
+    }
+
     const payload: OtherDocumentPayload = {
         ...values,
         files: uploadFiles,
@@ -174,6 +199,7 @@ const OtherDocument = () => {
         createdAt: editingDocument?.createdAt ?? Timestamp.now(),
         createBy: displayName,  // เก็บชื่อผู้ที่เพิ่มเอกสาร
         remark: values.remark || null,  // ถ้า remark เป็น undefined, ให้เป็น null แทน
+        docType,  // ใช้ docType ที่กรอก
     };
 
     try {
@@ -289,14 +315,38 @@ const OtherDocument = () => {
         >
           <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="docDate" label="Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="docType" label="Type" rules={[{ required: true }]}>
-            <Select
-              placeholder="เลือกประเภทเอกสาร"
-              options={[
-                { label: 'Other Document', value: 'Other Document' },
-              ]}
-            />
-          </Form.Item>
+         <Form.Item name="docType" label="Document Type" rules={[{ required: true }]}>
+  {/* ถ้าเลือกเพิ่มประเภทใหม่จะให้แสดง Input */}
+  <Select
+    placeholder="เลือกประเภทเอกสาร"
+    onChange={(value) => {
+      if (value === 'เพิ่มประเภทใหม่') {
+        setIsNewType(true);  // เปลี่ยนให้กรอกประเภทใหม่
+      } else {
+        setIsNewType(false);  // กลับไปเลือกประเภทที่มี
+      }
+    }}
+  >
+    {docTypes.map((type) => (
+      <Select.Option key={type} value={type}>
+        {type}
+      </Select.Option>
+    ))}
+    <Select.Option value="เพิ่มประเภทใหม่">เพิ่มประเภทใหม่</Select.Option> {/* เพิ่มตัวเลือกเพื่อให้กรอกประเภทใหม่ */}
+  </Select>
+</Form.Item>
+
+{/* แสดงช่องกรอกประเภทใหม่เมื่อผู้ใช้เลือก "เพิ่มประเภทใหม่" */}
+{isNewType && (
+  <Form.Item name="newType" label="New Type" rules={[{ required: true }]}>
+    <Input
+      name="newType"
+      placeholder="กรอกประเภทใหม่"
+      autoFocus
+    />
+  </Form.Item>
+)}
+
           <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
           <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
           <Form.Item label="Upload Files">

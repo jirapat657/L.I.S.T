@@ -1,5 +1,5 @@
 import { db } from '@/services/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import type { OtherDocumentPayload, OtherDocumentData } from '@/types/otherDocument';
 import { getAuth } from 'firebase/auth'; // Firebase Authentication
@@ -50,4 +50,30 @@ export const updateOtherDocumentById = async (id: string, payload: OtherDocument
 export const deleteOtherDocumentById = async (id: string): Promise<void> => {
   const documentRef = doc(db, 'LIMOtherDocuments', id);
   await deleteDoc(documentRef);
+};
+
+export const getUniqueDocumentTypes = async (): Promise<string[]> => {
+  const querySnapshot = await getDocs(collection(db, 'LIMOtherDocuments'));
+  const docTypes = new Set<string>();
+
+  querySnapshot.forEach(doc => {
+    const docType = doc.data().docType;
+    if (docType) {
+      docTypes.add(docType);  // เพิ่ม docType ที่ไม่ซ้ำลงใน Set
+    }
+  });
+
+  return Array.from(docTypes);  // แปลง Set กลับเป็น Array
+};
+
+export const addDocumentType = async (newType: string) => {
+  try {
+    // เพิ่มประเภทใหม่ลงใน Firestore
+    await addDoc(collection(db, 'LIMOtherDocuments'), {
+      docType: newType,  // เก็บประเภทใหม่ใน field docType
+    });
+  } catch (err) {
+    console.error('Error adding document type: ', err);
+    throw new Error('Failed to add document type');
+  }
 };
