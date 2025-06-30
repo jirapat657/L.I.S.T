@@ -1,5 +1,4 @@
 // src/pages/Support/index.tsx
-
 import { useEffect, useState } from 'react';
 import { message } from 'antd';
 import { getDocs, collection, orderBy, query, deleteDoc, doc, Timestamp } from 'firebase/firestore';
@@ -8,16 +7,11 @@ import IssueTable from '@/components/IssueTable';
 import type { Issue } from '@/types/projectDetail';
 import { useNavigate } from 'react-router-dom';
 import SearchFormWithDropdown from '@/components/SearchFormWithDropdown';
-
-import { statusOptions, defaultFilters } from '@/constants/searchFilters';
+import { defaultFilters } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
-import { useTableSearch } from '@/components/useTableSearch';
-
-import { getUsers } from '@/api/user';
-import { useQuery } from '@tanstack/react-query';
-import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import type { FilterValues } from '@/types/filter';
 
 dayjs.extend(isBetween);
 
@@ -33,24 +27,11 @@ const COLLECTION_NAME = 'LIMIssues';
 const Support: React.FC = () => {
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false); // เพิ่มสถานะ isSearching เพื่อควบคุมการกรองข้อมูล
+  const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState<FilterValues>(defaultFilters);
   const navigate = useNavigate();
 
-  // Custom hook สำหรับ filter state
-  const {
-    filters,
-    handleFilterChange,
-  } = useTableSearch(defaultFilters);
-
-  // ดึง user สำหรับ dropdown
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: getUsers,
-  });
-  const developerOptions = getDeveloperOptions(users);
-  const baTestOptions = getBATestOptions(users);
-
-  // ดึงข้อมูล
+  // ดึงข้อมูล issues จาก Firestore
   useEffect(() => {
     const fetchAllIssues = async () => {
       setLoading(true);
@@ -80,7 +61,7 @@ const Support: React.FC = () => {
             completeDate: parseDate(data.completeDate),
           };
         });
-        setIssues(issuesArray); // แสดงข้อมูลทั้งหมดที่ไม่ได้กรอง
+        setIssues(issuesArray);
       } catch (error) {
         console.error(error);
         message.error('Failed to load issues');
@@ -89,8 +70,9 @@ const Support: React.FC = () => {
       }
     };
     fetchAllIssues();
-  }, []); // ทำงานแค่ครั้งแรกที่โหลดหน้า
+  }, []);
 
+  // ฟังก์ชันลบ issue
   const handleDelete = async (issueId: string) => {
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, issueId));
@@ -102,42 +84,42 @@ const Support: React.FC = () => {
     }
   };
 
+  // ฟังก์ชันดูรายละเอียด issue
   const handleView = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/view/${issueId}`);
   };
 
+  // ฟังก์ชันแก้ไข issue
   const handleEdit = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/edit/${issueId}`);
   };
 
+  // ฟังก์ชันทำซ้ำ issue
   const handleDuplicate = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/duplicate/${issueId}`);
   };
 
-  // === FILTER DATA ===
-  // กรองข้อมูลเมื่อผู้ใช้กดค้นหา
-  const filteredData = isSearching ? filterIssues(issues, filters) : issues; // ตรวจสอบว่า isSearching เป็นจริงหรือไม่
-
-  // ฟังก์ชันสำหรับการค้นหาหรือกรองข้อมูล
-  const handleSearch = () => {
-    setIsSearching(true); // ตั้งค่า isSearching เป็น true เพื่อกรองข้อมูล
+  // ฟังก์ชันค้นหา
+  const handleSearch = (searchFilters: FilterValues) => {
+    setFilters(searchFilters);
+    setIsSearching(true);
   };
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "flex-end", 
+        alignItems: "center", 
+        marginBottom: 16 
+      }}>
         <SearchFormWithDropdown
-          onSearch={handleSearch} // ส่งฟังก์ชัน handleSearch ไปที่ SearchFormWithDropdown
+          onSearch={handleSearch}
           filters={filters}
-          handleFilterChange={handleFilterChange}
-          statusOptions={statusOptions}
-          developerOptions={developerOptions}
-          baTestOptions={baTestOptions}
-          setIsSearching={setIsSearching} // ส่ง setIsSearching เป็น prop
         />
       </div>
       <IssueTable 
-        issues={filteredData} // กรองข้อมูลหรือลบกรองข้อมูลตาม isSearching
+        issues={isSearching ? filterIssues(issues, filters) : issues}
         onDelete={handleDelete}
         loading={loading}
         onView={handleView}

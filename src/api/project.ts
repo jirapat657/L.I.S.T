@@ -12,7 +12,7 @@ import {
     getDoc,
   } from 'firebase/firestore';
   import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-  import { db, storage } from '@/services/firebase';
+  import { auth, db, storage } from '@/services/firebase';
   
   // ✅ Import interfaces จาก types
   import type { ProjectFormValues, ProjectData } from '@/types/project';
@@ -35,6 +35,7 @@ import {
       projectName: values.projectName,
       logo: logoUrl,
       createBy: values.createBy,
+      modifiedBy: values.createBy, // กำหนด modifiedBy ให้เป็นผู้สร้างในตอนเริ่มต้น
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
@@ -61,10 +62,14 @@ import {
       logoUrl = values.logo;
     }
 
+    const currentUser = auth.currentUser;
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
+
     const payload: Partial<ProjectData> = {
       projectId: values.projectId,
       projectName: values.projectName,
       logo: logoUrl, // <<-- เซตตรงๆไปเลย ไม่ต้อง &&!
+      modifiedBy: displayName, // อัปเดต modifiedBy ด้วยชื่อผู้ที่แก้ไข
       updatedAt: Timestamp.now(),
     };
 

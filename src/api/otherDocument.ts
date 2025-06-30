@@ -1,6 +1,5 @@
 import { db } from '@/services/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
+import { collection, doc, deleteDoc, getDocs, query, CollectionReference, type DocumentData, addDoc, updateDoc, orderBy } from 'firebase/firestore';
 import type { OtherDocumentPayload, OtherDocumentData } from '@/types/otherDocument';
 import { getAuth } from 'firebase/auth'; // Firebase Authentication
 
@@ -20,30 +19,44 @@ export const getAllOtherDocuments = async (): Promise<OtherDocumentData[]> => {
 export const createOtherDocument = async (payload: OtherDocumentPayload): Promise<void> => {
   const auth = getAuth();
   const user = auth.currentUser;
+  
   if (!user) {
     throw new Error('User not authenticated');
   }
 
-  const documentRef = doc(collection(db, 'LIMOtherDocuments'), uuidv4()); // สร้างเอกสารใหม่ด้วย ID ที่ไม่ซ้ำ
-  const documentData = {
+  const collectionRef: CollectionReference<DocumentData> = collection(db, 'LIMOtherDocuments'); // กำหนดชื่อคอลเล็กชัน
+  await addDoc(collectionRef, {
     ...payload,
-  };
-  await setDoc(documentRef, documentData);
+    createdAt: new Date(),
+    createdBy: {
+      uid: user.uid,
+      fullName: user.email,
+    },
+  });
 };
 
 // ฟังก์ชันสำหรับอัปเดตเอกสาร
 export const updateOtherDocumentById = async (id: string, payload: OtherDocumentPayload): Promise<void> => {
   const auth = getAuth();
   const user = auth.currentUser;
+  
   if (!user) {
     throw new Error('User not authenticated');
   }
 
+  const { ...updateData } = payload;
+
   const documentRef = doc(db, 'LIMOtherDocuments', id);
-  const documentData = {
-    ...payload,
-  };
-  await setDoc(documentRef, documentData, { merge: true });
+  
+  // อัปเดตข้อมูลใน Firestore พร้อมข้อมูลที่เกี่ยวข้องกับเวลาและผู้ใช้ที่ทำการอัปเดต
+  await updateDoc(documentRef, {
+    ...updateData, // ส่งข้อมูลที่ไม่รวม docId
+    updatedAt: new Date(),
+    updatedBy: {
+      uid: user.uid,
+      fullName: user.email,
+    },
+  });
 };
 
 // ฟังก์ชันสำหรับลบเอกสาร

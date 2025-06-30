@@ -1,5 +1,7 @@
+/* index.css */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px; /* ปรับขนาดฟอนต์พื้นฐาน */
   line-height: 1.5;
   font-weight: 400;
 
@@ -30,6 +32,7 @@ body {
   min-width: 100vh;
   min-height: 100vh;
   background-color: white;
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน body */
 }
 
 h1 {
@@ -82,4 +85,92 @@ button:focus-visible {
 .ant-menu-submenu-expand-icon,
 .ant-menu-submenu-arrow {
   color: white !important;
+}
+
+/* PageContainer.css */
+.ant-table {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในตาราง */
+}
+
+.ant-table-thead > tr > th {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน header */
+}
+
+.ant-table-tbody > tr > td {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน cell */
+}
+
+/* ปรับขนาดฟอนต์ในปุ่มกด */
+.ant-btn {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในปุ่ม */
+}
+
+/* ปรับขนาดฟอนต์ในการ์ด */
+.ant-card {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในการ์ดทั้งหมด */
+}
+
+/* ปรับขนาดฟอนต์ในหัวข้อการ์ด */
+.ant-card-head {
+  font-size: 18px; /* ปรับขนาดฟอนต์ในหัวข้อของการ์ด */
+}
+
+/* ปรับขนาดฟอนต์ในเนื้อหาของการ์ด */
+.ant-card-body {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในเนื้อหาของการ์ด */
+}
+
+/* ปรับขนาดฟอนต์ในช่องค้นหา (Input) */
+.ant-input {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่องค้นหา */
+}
+
+/* ปรับขนาดฟอนต์ในช่องค้นหาประเภท search */
+.ant-input-search {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่องค้นหาประเภท search */
+}
+
+/* ปรับขนาดฟอนต์ใน Modal ทั้งหมด */
+.ant-modal {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน Modal */
+}
+
+/* ปรับขนาดฟอนต์ใน header ของ Modal */
+.ant-modal-header {
+  font-size: 18px; /* ปรับขนาดฟอนต์ในหัวข้อของ Modal */
+}
+
+/* ปรับขนาดฟอนต์ใน body ของ Modal */
+.ant-modal-body {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในเนื้อหาของ Modal */
+}
+
+/* ปรับขนาดฟอนต์ใน footer ของ Modal */
+.ant-modal-footer {
+  font-size: 14px; /* ปรับขนาดฟอนต์ใน footer ของ Modal */
+}
+
+/* ปรับขนาดฟอนต์ในช่อง Input */
+.ant-input {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง input */
+}
+
+/* ปรับขนาดฟอนต์ในช่อง Select */
+.ant-select-selector {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง select */
+}
+
+/* ปรับขนาดฟอนต์ใน DatePicker */
+.ant-picker-input input {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง DatePicker */
+}
+
+/* ปรับขนาดฟอนต์ใน Checkbox */
+.ant-checkbox-wrapper {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน Checkbox */
+}
+
+/* ปรับขนาดฟอนต์ใน Radio */
+.ant-radio-wrapper {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน Radio */
 }
