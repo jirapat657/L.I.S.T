@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "lucas-strategy-company-dev"
+    "default": "lucas-strategy-company-dev",
+    "prod": "lucas-strategy-company"
   }
 }
