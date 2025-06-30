@@ -125,29 +125,29 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
   // ฟังก์ชันล้างค่าฟิลเตอร์
   const handleReset = () => {
     form.resetFields();
-    handleFilterChange("issueDateFilter", { type: "", value: undefined });
-    handleFilterChange("startDateFilter", { type: "", value: undefined });
-    handleFilterChange("dueDateFilter", { type: "", value: undefined });
-    handleFilterChange("completeDateFilter", { type: "", value: undefined });
-    handleFilterChange("keyword", undefined);
-    handleFilterChange("status", undefined);
-    handleFilterChange("developer", undefined);
-    handleFilterChange("baTest", undefined);
+    // ใช้ค่าว่างหรือ null แทน undefined
+    handleFilterChange("issueDateFilter", { type: "", value: null });
+    handleFilterChange("startDateFilter", { type: "", value: null });
+    handleFilterChange("dueDateFilter", { type: "", value: null });
+    handleFilterChange("completeDateFilter", { type: "", value: null });
+    handleFilterChange("keyword", '');  // ใช้ '' แทน undefined
+    handleFilterChange("status", '');  // ใช้ '' แทน undefined
+    handleFilterChange("developer", '');  // ใช้ '' แทน undefined
+    handleFilterChange("baTest", '');  // ใช้ '' แทน undefined
 
     // ส่งค่าฟิลเตอร์ที่รีเซ็ตไปยัง parent เพื่อให้ข้อมูลทั้งหมดแสดง
     onSearch({
-      keyword: undefined,
-      status: undefined,
-      developer: undefined,
-      baTest: undefined,
-      issueDateFilter: { type: "", value: undefined },
-      startDateFilter: { type: "", value: undefined },
-      dueDateFilter: { type: "", value: undefined },
-      completeDateFilter: { type: "", value: undefined },
+      keyword: '',
+      status: '',
+      developer: '',
+      baTest: '',
+      issueDateFilter: { type: "", value: null },
+      startDateFilter: { type: "", value: null },
+      dueDateFilter: { type: "", value: null },
+      completeDateFilter: { type: "", value: null },
     });
 
     setIsSearching(false); // ตั้งค่า isSearching เป็น false เพื่อแสดงข้อมูลทั้งหมดที่ไม่ได้กรอง
-
   };
 
   const menu = (
