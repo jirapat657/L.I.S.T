@@ -149,3 +149,28 @@ button:focus-visible {
 .ant-modal-footer {
   font-size: 14px; /* ปรับขนาดฟอนต์ใน footer ของ Modal */
 }
+
+/* ปรับขนาดฟอนต์ในช่อง Input */
+.ant-input {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง input */
+}
+
+/* ปรับขนาดฟอนต์ในช่อง Select */
+.ant-select-selector {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง select */
+}
+
+/* ปรับขนาดฟอนต์ใน DatePicker */
+.ant-picker-input input {
+  font-size: 16px; /* ปรับขนาดฟอนต์ในช่อง DatePicker */
+}
+
+/* ปรับขนาดฟอนต์ใน Checkbox */
+.ant-checkbox-wrapper {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน Checkbox */
+}
+
+/* ปรับขนาดฟอนต์ใน Radio */
+.ant-radio-wrapper {
+  font-size: 16px; /* ปรับขนาดฟอนต์ใน Radio */
+}
