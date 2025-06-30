@@ -125,6 +125,7 @@ const AddProject: React.FC = () => {
       projectName: values.projectName,
       logo,  // ต้องเป็น object { file: File } หรือ undefined
       createBy: displayName,
+      modifiedBy: displayName, // เพิ่ม modifiedBy ให้ตรงกับ createBy
     });
   };
 
@@ -145,12 +146,15 @@ const AddProject: React.FC = () => {
     // 3. ไม่เปลี่ยนโลโก้ ไม่ต้องส่งค่า logo (ให้คงค่าเดิมไว้)
 
     // update
+    const currentUser = auth.currentUser;
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
     updateProjectMutation.mutate({
       id: viewTarget.id,
       values: {
         projectId: values.projectId,
         projectName: values.projectName,
         ...(logo !== undefined ? { logo } : {}), // ใส่ key logo เฉพาะกรณีเปลี่ยน/ลบ
+        modifiedBy: displayName, // เพิ่ม modifiedBy สำหรับการอัปเดต
       },
     });
 
@@ -385,6 +389,8 @@ const AddProject: React.FC = () => {
           </Form.Item>
           <div style={{ textAlign: 'right', marginBottom: 12, fontStyle: 'italic', color: '#888' }}>
             Create By: {viewTarget?.createBy || 'ไม่ทราบ'}
+            <br />
+            Modified By: {viewTarget?.modifiedBy || 'ไม่ทราบ'} {/* เพิ่มบรรทัดใหม่ */}
             <br />
             แก้ไขล่าสุด:{' '}
             {viewTarget?.updatedAt

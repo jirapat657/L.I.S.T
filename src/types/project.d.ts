@@ -9,6 +9,7 @@ export interface ProjectFormValues {
     file: File;
     [key: string]: unknown;
   };
+  modifiedBy: string
 }
 
 // 👇 ข้อมูลจริงที่จะเก็บใน Firestore
@@ -18,6 +19,7 @@ export interface ProjectData {
   projectName: string;
   logo: string | null; // ✅ เป็น URL หรือไม่มี
   createBy?: string;
+  modifiedBy?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
