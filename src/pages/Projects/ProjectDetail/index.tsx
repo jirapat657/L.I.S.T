@@ -1,11 +1,7 @@
 // src/pages/ProjectDetail/index.tsx
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Button,
-  message,
-} from 'antd';
+import { Button, message } from 'antd';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc, Timestamp } from 'firebase/firestore';
@@ -14,12 +10,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import IssueTable from '@/components/IssueTable';
 import type { Issue } from '@/types/projectDetail';
 import SearchFormWithDropdown from "@/components/SearchFormWithDropdown";
-import { useQuery } from '@tanstack/react-query';
-import { getUsers } from '@/api/user';
-import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
-import { defaultFilters, statusOptions } from '@/constants/searchFilters';
+import { defaultFilters } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
-import { useTableSearch } from '@/components/useTableSearch';
 
 dayjs.extend(isBetween);
 
@@ -38,21 +30,8 @@ const ProjectDetail: React.FC = () => {
 
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [projectName, setProjectName] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false); // ใช้ isSearching เพื่อควบคุมการกรองข้อมูล
-
-  // === ใช้ custom hook ===
-  const {
-    filters,
-    handleFilterChange,
-  } = useTableSearch(defaultFilters);
-
-  // --- Fetch users สำหรับ dropdown ---
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: getUsers,
-  });
-  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
-  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState(defaultFilters);
 
   // --- ดึงข้อมูล Issue ---
   const fetchIssues = useCallback(async () => {
@@ -116,8 +95,9 @@ const ProjectDetail: React.FC = () => {
   }, [id]);
 
   // --- ฟังก์ชันการค้นหา ---
-  const handleSearch = () => {
-    setIsSearching(true); // ตั้งค่า isSearching เป็น true เพื่อกรองข้อมูล
+  const handleSearch = (searchFilters: typeof filters) => {
+    setFilters(searchFilters);
+    setIsSearching(true);
   };
 
   const handleDelete = async (issueId: string) => {
@@ -132,7 +112,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   // --- Filter Table ---
-  const filteredData = isSearching ? filterIssues(issues, filters) : issues; // ใช้ isSearching ควบคุมการกรองข้อมูล
+  const filteredData = isSearching ? filterIssues(issues, filters) : issues;
 
   // --- ACTIONS ---
   const handleView = (issueId: string, projectId: string) => {
@@ -163,13 +143,8 @@ const ProjectDetail: React.FC = () => {
           marginBottom: 16
         }}>
           <SearchFormWithDropdown
-            onSearch={handleSearch} // ส่งฟังก์ชัน handleSearch ไปที่ SearchFormWithDropdown
+            onSearch={handleSearch}
             filters={filters}
-            handleFilterChange={handleFilterChange}
-            statusOptions={statusOptions}
-            developerOptions={developerOptions}
-            baTestOptions={baTestOptions}
-            setIsSearching={setIsSearching} // ส่ง setIsSearching เป็น prop
           />
         </div>
       </div>
