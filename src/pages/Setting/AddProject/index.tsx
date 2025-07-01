@@ -388,14 +388,10 @@ const AddProject: React.FC = () => {
             </Upload>
           </Form.Item>
           <div style={{ textAlign: 'right', marginBottom: 12, fontStyle: 'italic', color: '#888' }}>
-            Create By: {viewTarget?.createBy || 'ไม่ทราบ'}
+            Create By: {viewTarget?.createBy || 'ไม่ทราบ'}, {viewTarget?.createdAt ? new Date(viewTarget.createdAt.seconds * 1000).toLocaleString() : '-'}
             <br />
-            Modified By: {viewTarget?.modifiedBy || 'ไม่ทราบ'} {/* เพิ่มบรรทัดใหม่ */}
-            <br />
-            แก้ไขล่าสุด:{' '}
-            {viewTarget?.updatedAt
-              ? new Date(viewTarget.updatedAt.seconds * 1000).toLocaleString()
-              : '-'}
+            Modified By: {viewTarget?.modifiedBy || 'ไม่ทราบ'}, {viewTarget?.updatedAt ? new Date(viewTarget.updatedAt.seconds * 1000).toLocaleString() : '-'}
+            
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Button
