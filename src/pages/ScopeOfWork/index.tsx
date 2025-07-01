@@ -251,9 +251,9 @@ const ScopeOfWork = () => {
           onFinish={handleFinish}
           initialValues={{ docType: 'Scope of work' }}
         >
-          <Form.Item name="docNo" label="Doc No" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="docDate" label="Doc Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="docType" label="Doc Type" rules={[{ required: true }]}>
+          <Form.Item name="docNo" label="Doc. No." rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="docDate" label="Doc. Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="docType" label="Doc. Type" rules={[{ required: true }]}>
             <Select
               placeholder="เลือกประเภทเอกสาร"
               options={[
@@ -263,8 +263,8 @@ const ScopeOfWork = () => {
           </Form.Item>
           <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="customer" label="Customer" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
-          <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
+          <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={1} /></Form.Item>
+          <Form.Item name="remark" label="Remark"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item label="Upload Files">
             <Upload
               customRequest={handleCustomUpload}
