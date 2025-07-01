@@ -186,7 +186,6 @@ const AddProject: React.FC = () => {
       key: 'logo',
       render: (logo: string) => (logo ? <img src={logo} alt='logo' style={{ width: 40 }} /> : '—'),
     },
-    { title: 'Create By', dataIndex: 'createBy', key: 'createBy' },
     {
       title: '',
       key: 'actions',
