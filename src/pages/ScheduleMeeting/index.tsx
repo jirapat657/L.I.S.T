@@ -1,35 +1,5 @@
+//src/pages/ScheduleMeeting/index.tsx
 import { useEffect, useState } from 'react';
-
-// กำหนดประเภทของ gapi จาก Google API Client
-declare global {
-  interface Window {
-    gapi: {
-      load: (name: string, callback: () => void) => void;
-      client: {
-        init: (config: { apiKey: string; clientId: string; scope: string; discoveryDocs: string[] }) => Promise<void>;
-        calendar: {
-          events: {
-            list: (params: {
-              calendarId: string;
-              timeMin: string;
-              maxResults: number;
-              singleEvents: boolean;
-              orderBy: string;
-            }) => Promise<{ result: { items: Event[] } }>;
-          };
-        };
-      };
-      auth2: {
-        getAuthInstance: () => {
-          isSignedIn: {
-            get: () => boolean;
-          };
-          signIn: () => Promise<unknown>;
-        };
-      };
-    };
-  }
-}
 
 // กำหนดประเภทของ Event จาก Google Calendar API
 interface Event {
@@ -41,56 +11,103 @@ interface Event {
   };
 }
 
+interface GoogleUser {
+  credential: string;
+}
+
+interface GoogleIdentity {
+  accounts: {
+    id: {
+      initialize: (options: {
+        client_id: string;
+        callback: (response: { credential: string }) => void;
+      }) => void;
+      renderButton: (element: HTMLElement, options: { theme: string; size: string }) => void;
+      prompt: () => void;
+    };
+  };
+}
+
+// Extend the Window interface to include the google property with the correct type
+declare global {
+  interface Window {
+    google: GoogleIdentity;
+  }
+}
+
 const ScheduleMeeting = () => {
-  const [events, setEvents] = useState<Event[]>([]);  // กำหนดประเภทของ events
+  const [events, setEvents] = useState<Event[]>([]); // กำหนดประเภทของ events
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(null); // เปลี่ยนเป็นประเภทที่มีการกำหนด
 
   useEffect(() => {
-    const loadGoogleApi = () => {
-      if (window.gapi) {  // ตรวจสอบว่า gapi ถูกโหลดมาแล้ว
-        window.gapi.load('client:auth2', () => {
-          window.gapi.client.init({
-            apiKey: 'AIzaSyAA0HOLwaeNwBcle773IsOcYbgmq-Ty2NA',
-            clientId: '714676341308-p1gikv8ce6ujsgs0p18u19a6jn2n7kme.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/calendar.readonly',
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
-          }).then(() => {
-            const authInstance = window.gapi.auth2.getAuthInstance();
-            if (authInstance.isSignedIn.get()) {
-              setIsAuthenticated(true);
-              listUpcomingEvents();
-            } else {
-              authInstance.signIn().then(() => {
-                setIsAuthenticated(true);
-                listUpcomingEvents();
-              });
-            }
-          });
-        });
-      } else {
-        console.error("gapi is not loaded yet.");
-      }
+    const loadGoogleIdentityScript = () => {
+      // โหลด Google Identity Services (GIS)
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => initializeGoogleSignIn();
+      document.body.appendChild(script);
+    };
+
+    const initializeGoogleSignIn = () => {
+      window.google.accounts.id.initialize({
+        client_id: '714676341308-p1gikv8ce6ujsgs0p18u19a6jn2n7kme.apps.googleusercontent.com',
+        callback: handleCredentialResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signin-button')!,
+        { theme: 'outline', size: 'large' }
+      );
+      window.google.accounts.id.prompt(); // แสดงหน้าต่าง prompt
+    };
+
+    const handleCredentialResponse = (response: { credential: string }) => {
+      console.log('Encoded JWT ID token: ' + response.credential);
+      setGoogleUser(response);  // ใช้ข้อมูลที่ได้รับจากการลงชื่อเข้าใช้
+      setIsAuthenticated(true);
+      listUpcomingEvents();
     };
 
     const listUpcomingEvents = () => {
-      if (window.gapi && window.gapi.client) {  // ตรวจสอบว่า gapi.client พร้อมใช้งาน
-        window.gapi.client.calendar.events.list({
-          calendarId: 'primary',
-          timeMin: new Date().toISOString(),
-          maxResults: 10,
-          singleEvents: true,
-          orderBy: 'startTime',
-        }).then((response: { result: { items: Event[] } }) => {
-          const eventsList = response.result.items;
-          setEvents(eventsList);
-        }).catch((error) => {
-          console.error("Error fetching events:", error);
-        });
+      if (googleUser && googleUser.credential) {
+        const token = googleUser.credential;
+
+        // เริ่มต้นคำขอ API Google Calendar
+        fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          // กำหนดพารามิเตอร์ต่าง ๆ สำหรับคำขอ API
+          body: JSON.stringify({
+            calendarId: 'primary',
+            timeMin: new Date().toISOString(),  // กำหนดให้เริ่มต้นจากเวลาปัจจุบัน
+            maxResults: 10,
+            singleEvents: true,
+            orderBy: 'startTime',
+          }),
+          method: 'GET',
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Google Calendar API Response:', data);
+            if (data.items && data.items.length > 0) {
+              setEvents(data.items);
+            } else {
+              setEvents([]);
+            }
+          })
+          .catch((error) => {
+            console.error('Error fetching events:', error);
+          });
       }
     };
 
-    loadGoogleApi();
-  }, []);
+
+    loadGoogleIdentityScript();
+  }, [googleUser]);
 
   return (
     <div>
@@ -114,7 +131,10 @@ const ScheduleMeeting = () => {
           </ul>
         </div>
       ) : (
-        <p>Please sign in to view your Google Calendar events.</p>
+        <div>
+          <p>Please sign in to view your Google Calendar events.</p>
+          <div id="google-signin-button"></div>
+        </div>
       )}
     </div>
   );
