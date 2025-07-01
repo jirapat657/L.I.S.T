@@ -29,6 +29,7 @@ import ScopeOfWork from '@/pages/ScopeOfWork';
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
 import OtherDocument from '@/pages/OtherDocument'
+import ScheduleMeeting from '@/pages/ScheduleMeeting'
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -193,6 +194,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.OTHER_DOCUMENT}>
               <OtherDocument />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SCHEDULE_MEETING,
+          element: (
+            <PageContainer title={PAGE_TITLE.SCHEDULE_MEETING}>
+              <ScheduleMeeting />
             </PageContainer>
           ),
         },
