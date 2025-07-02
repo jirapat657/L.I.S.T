@@ -2,7 +2,7 @@
 import type { MenuProps } from 'antd'
 import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
-import { CalendarOutlined, FileTextFilled, HddFilled, SettingFilled, UnorderedListOutlined } from '@ant-design/icons'
+import { CalendarOutlined, FileTextFilled, HddFilled, SettingFilled, UnorderedListOutlined, WechatOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { Divider, Flex, Layout, Menu, Space } from 'antd'
 
@@ -58,6 +58,7 @@ export default function Sidebar() {
     getItem('Scope of Work', 'scope', <FileTextFilled />),
     getItem('Other Document', 'other-document', <FileTextFilled />),
     getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
+    getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
     getItem(
       <span style={{ color: 'white' }}>Setting</span>,
       'setting',

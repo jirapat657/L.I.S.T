@@ -30,6 +30,7 @@ import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
 import OtherDocument from '@/pages/OtherDocument'
 import ScheduleMeeting from '@/pages/ScheduleMeeting'
+import MeetingSummary from '@/pages/MeetingSummary'
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -202,6 +203,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.SCHEDULE_MEETING}>
               <ScheduleMeeting />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.MEETING_SUMMARY,
+          element: (
+            <PageContainer title={PAGE_TITLE.MEETING_SUMMARY}>
+              <MeetingSummary />
             </PageContainer>
           ),
         },
