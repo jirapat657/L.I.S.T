@@ -44,6 +44,19 @@ const MeetingSummary = () => {
     meeting.meetingNo.toLowerCase().includes(searchMeetingNo.toLowerCase())
   );
 
+  // ฟังก์ชันแปลงUID เป็นชื่อ
+  const getAttendeeNames = (attendeeIds: string[]) => {
+    if (!attendeeIds || !users.length) return '-';
+    
+    return attendeeIds
+      .map(id => {
+        const user = users.find(u => u.id === id);
+        return user ? user.userName : '';
+      })
+      .filter(name => name) // กรองชื่อที่ว่างออก
+      .join(', '); // รวมชื่อด้วย comma
+  };
+
   const columns = [
     {
       title: 'Meeting Date',
@@ -52,7 +65,11 @@ const MeetingSummary = () => {
     },
     { title: 'Meeting No.', dataIndex: 'meetingNo' },
     { title: 'Meeting Time', dataIndex: 'meetingTime' },
-    { title: 'Attendees', dataIndex: 'attendees' },
+    { 
+      title: 'Attendees', 
+      dataIndex: 'attendees',
+      render: (attendees: string[]) => getAttendeeNames(attendees),
+    },
     {
         title: 'Meeting Topic',
         dataIndex: 'meetingTopic',
@@ -85,7 +102,7 @@ const MeetingSummary = () => {
         },
     },
     {
-      title: 'Action',
+      title: '',
       key: 'actions',
       render: (_: unknown, record: MeetingSummaryData) => {
         const items = [
@@ -320,7 +337,7 @@ const MeetingSummary = () => {
           <Form.Item name="meetingPlace" label="Meeting Place/Platform"><Input /></Form.Item>
           <Form.Item name="meetingTopic" label="Meeting Topic"><Input /></Form.Item>
           {/* Dropdown สำหรับ Note Taker */}
-            <Form.Item name="noteTaker" label="Note Taker" rules={[{ required: true }]}>
+            <Form.Item name="noteTaker" label="Note Taker" >
             <Select
                 placeholder="Select Note Taker"
                 loading={loadingUsers}
@@ -328,7 +345,7 @@ const MeetingSummary = () => {
             />
             </Form.Item>
           {/* Dropdown สำหรับ Attendees */}
-            <Form.Item name="attendees" label="Attendees" rules={[{ required: true }]}>
+            <Form.Item name="attendees" label="Attendees" >
             <Select
                 mode="multiple"
                 placeholder="Select Attendees"
