@@ -17,7 +17,7 @@ import dayjs from 'dayjs';
 
 const MeetingSummary = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
-  const [currentFiles] = useState<FileData[]>([]);
+  const [currentFiles, setCurrentFiles] = useState<FileData[]>([]);
   const [editingMeetingSummary, setEditingMeetingSummary] = useState<MeetingSummaryData | null>(null);
   const [form] = Form.useForm();
   const [uploadFiles, setUploadFiles] = useState<FileData[]>([]);
@@ -44,7 +44,37 @@ const MeetingSummary = () => {
     { title: 'Meeting No.', dataIndex: 'meetingNo' },
     { title: 'Meeting Time', dataIndex: 'meetingTime' },
     { title: 'Attendees', dataIndex: 'attendees' },
-    { title: 'Meeting Topic', dataIndex: 'meetingTopic' },
+    {
+        title: 'Meeting Topic',
+        dataIndex: 'meetingTopic',
+        render: (meetingTopic: string, record: MeetingSummaryData) => {
+            // ตรวจสอบว่า record.files ไม่เป็น undefined และมีค่าอย่างน้อย 1 ไฟล์
+            const hasFiles = Array.isArray(record.files) && record.files.length > 0;
+
+            if (hasFiles) {
+            // ถ้ามีไฟล์เดียวจะดาวน์โหลดเลย
+            if (record.files && record.files.length === 1) {
+                return (
+                <Typography.Link href={record.files[0].url} target="_blank" rel="noopener noreferrer">
+                    {meetingTopic}
+                </Typography.Link>
+                );
+            } else if (record.files && record.files.length > 1) {
+                // ถ้ามีหลายไฟล์ จะเปิด Modal ให้เลือก
+                return (
+                <Typography.Link onClick={() => {
+                    setCurrentFiles(record.files || []); // ตรวจสอบไฟล์ที่ถูกอัปโหลด
+                    setFileModalOpen(true);
+                }}>
+                    {meetingTopic}
+                </Typography.Link>
+                );
+            }
+            } else {
+            return <span>{meetingTopic}</span>;
+            }
+        },
+    },
     {
       title: 'Action',
       key: 'actions',
@@ -312,6 +342,25 @@ const MeetingSummary = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal
+        open={fileModalOpen}
+        onCancel={() => setFileModalOpen(false)}
+        title="เลือกไฟล์ที่ต้องการดาวน์โหลด"
+        footer={null}
+        >
+        <List
+            dataSource={currentFiles}
+            renderItem={(file) => (
+            <List.Item key={file.url}>
+                <Typography.Link href={file.url} target="_blank" rel="noopener noreferrer">
+                {file.name}
+                </Typography.Link>
+            </List.Item>
+            )}
+        />
+        </Modal>
+
     </div>
   );
 };
