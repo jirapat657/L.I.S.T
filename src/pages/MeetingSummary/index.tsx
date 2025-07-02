@@ -1,5 +1,5 @@
 // src/pages/MeetingSummary/index.tsx
-import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Pagination, Row, Col } from 'antd';
+import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Pagination, Row, Col, Select } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAllMeetingSummaries, deleteMeetingSummaryById, updateMeetingSummaryById, createMeetingSummary as createMeetingSummaryApi } from '@/api/meetingSummary';
@@ -14,6 +14,8 @@ import { getAuth } from 'firebase/auth';
 import type { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
 import { useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { getUsers } from '@/api/user';  // import ฟังก์ชันการดึงข้อมูลผู้ใช้
+import type { UserData } from '@/types/users';
 
 const MeetingSummary = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
@@ -22,6 +24,13 @@ const MeetingSummary = () => {
   const [form] = Form.useForm();
   const [uploadFiles, setUploadFiles] = useState<FileData[]>([]);
   const [searchMeetingNo, setSearchMeetingNo] = useState('');
+
+  // ดึงข้อมูลผู้ใช้ทั้งหมดจาก Firestore
+  const { data: users = [], isLoading: loadingUsers } = useQuery<UserData[]>({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    // คุณสามารถตั้งการ retry หรือการกำหนดเวลา timeout ได้
+  });
 
   // ดึงข้อมูล meetingSummaries โดยระบุประเภทให้ชัดเจน
   const { data: meetingSummaries = [], isLoading } = useQuery<MeetingSummaryData[]>({
@@ -300,11 +309,33 @@ const MeetingSummary = () => {
             </Form.Item>
           <Form.Item name="meetingNo" label="Meeting No." rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="meetingTime" label="Meeting Time" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="meetingChannel" label="Meeting Channel"><Input /></Form.Item>
+          <Form.Item name="meetingChannel" label="Meeting Channel">
+            <Select defaultValue="Online">
+                <Select.Option value="Online">Online</Select.Option>
+                <Select.Option value="Onsite">Onsite</Select.Option>
+                <Select.Option value="Hybrid">Hybrid</Select.Option>
+            </Select>
+            </Form.Item>
+
           <Form.Item name="meetingPlace" label="Meeting Place/Platform"><Input /></Form.Item>
           <Form.Item name="meetingTopic" label="Meeting Topic"><Input /></Form.Item>
-          <Form.Item name="noteTaker" label="Note Taker"><Input /></Form.Item>
-          <Form.Item name="attendees" label="Attendees"><Input.TextArea rows={3} /></Form.Item>
+          {/* Dropdown สำหรับ Note Taker */}
+            <Form.Item name="noteTaker" label="Note Taker" rules={[{ required: true }]}>
+            <Select
+                placeholder="Select Note Taker"
+                loading={loadingUsers}
+                options={users.map(user => ({ label: user.userName, value: user.id }))}
+            />
+            </Form.Item>
+          {/* Dropdown สำหรับ Attendees */}
+            <Form.Item name="attendees" label="Attendees" rules={[{ required: true }]}>
+            <Select
+                mode="multiple"
+                placeholder="Select Attendees"
+                loading={loadingUsers}
+                options={users.map(user => ({ label: user.userName, value: user.id }))}
+            />
+            </Form.Item>
           <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
           <Form.Item label="Upload Files">
             <Upload
