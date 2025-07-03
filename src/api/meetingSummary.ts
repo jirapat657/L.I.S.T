@@ -3,8 +3,10 @@ import { db } from '@/services/firebase';
 import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import type { MeetingSummaryData, MeetingSummaryPayload } from '@/types/meetingSummary';
 
+const COLLECTION_NAME = 'LIMMeetingSummaries';
+
 // Firestore Collection Reference
-const meetingSummariesCollection = collection(db, 'meetingSummaries');
+const meetingSummariesCollection = collection(db, COLLECTION_NAME);
 
 // ฟังก์ชันที่ดึงข้อมูล meeting summaries
 export const getAllMeetingSummaries = async (): Promise<MeetingSummaryData[]> => {
@@ -40,7 +42,7 @@ export const createMeetingSummary = async (payload: MeetingSummaryPayload): Prom
 // Update an existing meeting summary by ID
 export const updateMeetingSummaryById = async (id: string, payload: MeetingSummaryPayload): Promise<void> => {
   try {
-    const meetingSummaryRef = doc(db, 'meetingSummaries', id);
+    const meetingSummaryRef = doc(db, COLLECTION_NAME, id);
     
     // แปลง payload สำหรับ updateDoc
     const updateData = {
@@ -67,7 +69,7 @@ export const updateMeetingSummaryById = async (id: string, payload: MeetingSumma
 // Delete a meeting summary by ID
 export const deleteMeetingSummaryById = async (id: string): Promise<void> => {
   try {
-    const meetingSummaryRef = doc(db, 'meetingSummaries', id);
+    const meetingSummaryRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(meetingSummaryRef);
   } catch (err) {
     console.error('Error deleting meeting summary:', err);
