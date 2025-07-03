@@ -108,7 +108,7 @@ const MeetingSummary = () => {
         const items = [
           {
             key: 'view',
-            label: (<><EyeOutlined /> View/Edit</>),
+            label: (<><EyeOutlined /> View</>),
             onClick: () => {
               setEditingMeetingSummary(record);
               setUploadFiles(record.files || []);
@@ -361,7 +361,7 @@ const MeetingSummary = () => {
               showUploadList={false}
               multiple
             >
-              <Button icon={<UploadOutlined />}>Upload</Button>
+              <Button icon={<UploadOutlined />}>Select File</Button>
             </Upload>
             <List
               size="small"
