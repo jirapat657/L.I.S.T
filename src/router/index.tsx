@@ -31,6 +31,7 @@ import AddUserSetting from '@/pages/Setting/AddUser';
 import OtherDocument from '@/pages/OtherDocument'
 import ScheduleMeeting from '@/pages/ScheduleMeeting'
 import MeetingSummary from '@/pages/MeetingSummary'
+import ToDoList from '@/pages/ToDoList'
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -131,6 +132,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.SUPPORT}>
               <Support />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.TODOLIST,
+          element: (
+            <PageContainer title={PAGE_TITLE.TODOLIST}>
+              <ToDoList />
             </PageContainer>
           ),
         },
