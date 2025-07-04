@@ -152,7 +152,7 @@ const ToDoList: React.FC = () => {
 
       <Space.Compact style={{ width: "100%", marginBottom: 24 }}>
         <Input
-          placeholder="เพิ่มสิ่งที่ต้องทำ..."
+          placeholder="My Todo's"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onPressEnter={handleAdd}
