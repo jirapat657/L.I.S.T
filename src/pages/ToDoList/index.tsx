@@ -14,7 +14,7 @@ import {
 import { Input, Button, List, Checkbox, Typography, Space, message, Modal, Spin } from "antd";
 import type { ToDoItem } from "@/types/toDoList";
 import { Timestamp } from "firebase/firestore";
-import { DeleteOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -140,11 +140,15 @@ const ToDoList: React.FC = () => {
   // ยกเลิก modal
   const handleCancelDelete = () => setDeleteId(null);
 
+  // --- Group tasks by date ---
+  const tasksByDate = groupTasksByDate(tasks);
+  // เรียงวันที่ (ล่าสุดอยู่บน)
+  const dateKeys = Object.keys(tasksByDate).sort((a, b) =>
+    new Date(b).getTime() - new Date(a).getTime()
+  );
+
   return (
     <div style={{ maxWidth: 1000, margin: "24px auto", padding: "0 16px" }}>
-      <Title level={2} style={{ textAlign: "center", marginBottom: 24 }}>
-        รายการสิ่งที่ต้องทำ
-      </Title>
 
       <Space.Compact style={{ width: "100%", marginBottom: 24 }}>
         <Input
@@ -159,7 +163,7 @@ const ToDoList: React.FC = () => {
           onClick={handleAdd}
           loading={addMutation.isPending}
         >
-          Add
+          <PlusOutlined /> Add
         </Button>
       </Space.Compact>
 
@@ -168,52 +172,58 @@ const ToDoList: React.FC = () => {
           <Spin tip="กำลังโหลด..." />
         </div>
       ) : (
-        <List
-          bordered
-          dataSource={tasks}
-          locale={{ emptyText: "ไม่มีรายการ" }}
-          renderItem={(task) => {
-            // Debug log id ทุกอัน
-            console.log("task id for list:", task.id, task);
-            return (
-              <List.Item
-                key={task.id}
-                actions={[
-                  <Button
-                    danger
-                    size="small"
-                    onClick={() => handleDeleteRequest(task.id)}
-                    loading={deleteMutation.variables === task.id && deleteMutation.isPending}
+        dateKeys.length === 0 ? (
+          <div style={{ textAlign: "center", color: "#888" }}>ไม่มีรายการ</div>
+        ) : (
+          dateKeys.map(dateStr => (
+            <div key={dateStr} style={{ marginBottom: 32 }}>
+              <Title level={4} style={{ margin: '16px 0 8px' }}>
+                {dateStr}
+              </Title>
+              <List
+                bordered
+                dataSource={tasksByDate[dateStr]}
+                renderItem={(task) => (
+                  <List.Item
+                    key={task.id}
+                    actions={[
+                      <Button
+                        danger
+                        size="small"
+                        onClick={() => handleDeleteRequest(task.id)}
+                        loading={deleteMutation.variables === task.id && deleteMutation.isPending}
+                      >
+                        <DeleteOutlined /> Delete
+                      </Button>
+                    ]}
                   >
-                    <DeleteOutlined /> Delete
-                  </Button>
-                ]}
-              >
-                <Checkbox
-                  checked={task.completed}
-                  onChange={() => handleToggle(task)}
-                  disabled={updateMutation.isPending}
-                />
-                <Text
-                  style={{
-                    marginLeft: 8,
-                    textDecoration: task.completed ? "line-through" : "none",
-                    color: task.completed ? "#999" : "inherit",
-                  }}
-                >
-                  {task.text}
-                </Text>
-              </List.Item>
-            );
-          }}
-        />
+                    <Checkbox
+                      checked={task.completed}
+                      onChange={() => handleToggle(task)}
+                      disabled={updateMutation.isPending}
+                    />
+                    <Text
+                      style={{
+                        marginLeft: 8,
+                        textDecoration: task.completed ? "line-through" : "none",
+                        color: task.completed ? "#999" : "inherit",
+                      }}
+                    >
+                      {task.text}
+                    </Text>
+                  </List.Item>
+                )}
+              />
+            </div>
+          ))
+        )
       )}
 
-      {/* Controlled Modal แบบ AddProject */}
+      {/* Modal ลบ */}
       <Modal
         open={!!deleteId}
         onCancel={handleCancelDelete}
-        footer={null}        // ใช้ custom footer ด้านใน modal
+        footer={null}
         centered
         width={400}
       >
@@ -233,9 +243,21 @@ const ToDoList: React.FC = () => {
           </Button>
         </div>
       </Modal>
-
     </div>
   );
 };
 
 export default ToDoList;
+
+
+// ==== utility function สำหรับ group ตามวัน ====
+function groupTasksByDate(tasks: ToDoItem[]): Record<string, ToDoItem[]> {
+  return tasks.reduce((acc, item) => {
+    const dateObj = item.createdAt?.toDate?.() || new Date();
+    // yyyy-mm-dd ของไทย (หรือจะใช้ en-US ก็ได้)
+    const dateStr = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    if (!acc[dateStr]) acc[dateStr] = [];
+    acc[dateStr].push(item);
+    return acc;
+  }, {} as Record<string, ToDoItem[]>);
+}
