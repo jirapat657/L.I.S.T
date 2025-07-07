@@ -236,10 +236,10 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
           onChange={(val) => handleFilterChange("completeDateFilter", val)}
         />
         <div style={{ marginTop: 16, textAlign: "right" }}>
-          <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
-            ค้นหา
+          <Button type="primary" style={{ boxShadow: '0 2px 0 #d9d9d9',border: '1px solid #d9d9d9',color: 'rgba(0, 0, 0, 0.88)',backgroundColor: '#ffffff',marginRight: 8, height: '32px' }} onClick={handleReset}><SyncOutlined /> Clear Search</Button>
+          <Button type="primary" htmlType="submit" style={{ height: '32px' }}>
+            <SearchOutlined/> ค้นหา
           </Button>
-          <Button onClick={handleReset}><SyncOutlined /> Clear Search</Button>
         </div>
       </Form>
     </div>
