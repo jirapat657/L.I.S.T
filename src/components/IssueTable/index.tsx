@@ -5,6 +5,7 @@ import { formatTimestamp } from '@/utils/dateUtils';
 import type { Issue } from '@/types/projectDetail';
 import type { MenuProps } from 'antd';
 import type { Timestamp } from 'firebase/firestore';
+import { useState } from 'react';
 
 interface IssueTableProps {
   issues: Issue[];
@@ -16,13 +17,16 @@ interface IssueTableProps {
 }
 
 const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onView, onEdit, onDuplicate }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const pageSize = 100;
 
   const columns = [
     {
       title: 'No.',
       dataIndex: 'no',
       key: 'no',
-      render: (_: unknown, __: unknown, index: number) => issues.length - index,
+      render: (_: unknown, __: unknown, index: number) => issues.length - ((currentPage - 1) * pageSize + index),
     },
     { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
     {
@@ -161,7 +165,10 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onVi
       dataSource={issues}
       rowKey="id"
       loading={loading}
-      pagination={false}
+      pagination={{
+        pageSize,
+        onChange: (page) => setCurrentPage(page),
+      }}
       scroll={{ x: 'max-content' }}
     />
   );

@@ -35,7 +35,7 @@ const AddProject: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<ProjectData | null>(null)
   const [viewTarget, setViewTarget] = useState<ProjectData | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 5
+  const pageSize = 20
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
   const [logoRemoved, setLogoRemoved] = useState(false);  // true ถ้าผู้ใช้กดลบ
 

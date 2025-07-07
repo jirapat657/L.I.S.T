@@ -45,7 +45,7 @@ const AddUserPage = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchId, setSearchId] = useState('')
   const [searchName, setSearchName] = useState('')
-  const pageSize = 5
+  const pageSize = 20
   const queryClient = useQueryClient()
   const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null)
 
