@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:prod": "vite build --mode prod",
+    "deploy:prod": "npm run build:prod && firebase deploy --only hosting:lucas-issue-management-prod"
   },
   "dependencies": {
     "@ant-design/colors": "^8.0.0",
