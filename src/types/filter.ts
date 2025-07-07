@@ -1,4 +1,5 @@
-import type dayjs from "dayjs";
+import type { FormInstance } from "antd";
+import type { Dayjs } from "dayjs";
 
 export interface FilterValues {
   keyword?: string;
@@ -13,17 +14,34 @@ export interface FilterValues {
 
 export interface DateFilterValue {
   type: string;
-   value?: dayjs.Dayjs | [dayjs.Dayjs | null, dayjs.Dayjs | null] | null;
+  value?: Dayjs | [Dayjs | null, Dayjs | null] | null;
 }
 
-type OptionType = { label: string; value: string };
+export type OptionType = { 
+  label: string; 
+  value: string;
+  disabled?: boolean; // เพิ่ม property disabled ที่อาจใช้ใน Select options
+};
 
 export interface SearchFormProps {
   onSearch: (values: FilterValues) => void;
   filters: FilterValues;
   handleFilterChange: <K extends keyof FilterValues>(field: K, value: FilterValues[K]) => void;
-  initialValues?: FilterValues;
+  initialValues?: Partial<FilterValues>; // ใช้ Partial เพราะ initialValues อาจไม่ต้องมีทุก field
   statusOptions?: OptionType[];
   developerOptions?: OptionType[];
   baTestOptions?: OptionType[];
+  form?: FormInstance; // เพิ่ม prop สำหรับ Form instance
 }
+
+// เพิ่ม type สำหรับ default filters ถ้าจำเป็น
+export const defaultFilters: FilterValues = {
+  keyword: undefined,
+  status: undefined,
+  developer: undefined,
+  baTest: undefined,
+  issueDateFilter: { type: "", value: undefined },
+  startDateFilter: { type: "", value: undefined },
+  dueDateFilter: { type: "", value: undefined },
+  completeDateFilter: { type: "", value: undefined }
+};
