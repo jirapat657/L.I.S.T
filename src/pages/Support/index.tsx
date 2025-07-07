@@ -1,17 +1,24 @@
 // src/pages/Support/index.tsx
+
 import { useEffect, useState } from 'react';
-import { message } from 'antd';
+import { message, Button } from 'antd';
 import { getDocs, collection, orderBy, query, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import IssueTable from '@/components/IssueTable';
 import type { Issue } from '@/types/projectDetail';
 import { useNavigate } from 'react-router-dom';
 import SearchFormWithDropdown from '@/components/SearchFormWithDropdown';
-import { defaultFilters } from '@/constants/searchFilters';
+
+import { statusOptions, defaultFilters } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
+import { useTableSearch } from '@/components/useTableSearch';
+
+import { getUsers } from '@/api/user';
+import { useQuery } from '@tanstack/react-query';
+import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import type { FilterValues } from '@/types/filter';
+import { SyncOutlined } from '@ant-design/icons';
 
 dayjs.extend(isBetween);
 
@@ -27,11 +34,24 @@ const COLLECTION_NAME = 'LIMIssues';
 const Support: React.FC = () => {
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [filters, setFilters] = useState<FilterValues>(defaultFilters);
   const navigate = useNavigate();
 
-  // ดึงข้อมูล issues จาก Firestore
+  // Custom hook สำหรับ filter state
+  const {
+    filters,
+    handleFilterChange,
+    handleReset,
+  } = useTableSearch(defaultFilters);
+
+  // ดึง user สำหรับ dropdown
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  });
+  const developerOptions = getDeveloperOptions(users);
+  const baTestOptions = getBATestOptions(users);
+
+  // ดึงข้อมูล
   useEffect(() => {
     const fetchAllIssues = async () => {
       setLoading(true);
@@ -72,7 +92,6 @@ const Support: React.FC = () => {
     fetchAllIssues();
   }, []);
 
-  // ฟังก์ชันลบ issue
   const handleDelete = async (issueId: string) => {
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, issueId));
@@ -84,42 +103,40 @@ const Support: React.FC = () => {
     }
   };
 
-  // ฟังก์ชันดูรายละเอียด issue
   const handleView = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/view/${issueId}`);
   };
 
-  // ฟังก์ชันแก้ไข issue
   const handleEdit = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/edit/${issueId}`);
   };
 
-  // ฟังก์ชันทำซ้ำ issue
   const handleDuplicate = (issueId: string, projectId: string) => {
     navigate(`/projects/${projectId}/duplicate/${issueId}`);
   };
 
-  // ฟังก์ชันค้นหา
-  const handleSearch = (searchFilters: FilterValues) => {
-    setFilters(searchFilters);
-    setIsSearching(true);
-  };
+  // === FILTER DATA ===
+  const filteredData = filterIssues(issues, filters);
 
   return (
     <div>
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "flex-end", 
-        alignItems: "center", 
-        marginBottom: 16 
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button onClick={handleReset}>
+          <SyncOutlined /> Clear Search
+        </Button>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
         <SearchFormWithDropdown
-          onSearch={handleSearch}
+          onSearch={() => {}}
           filters={filters}
+          handleFilterChange={handleFilterChange}
+          statusOptions={statusOptions}
+          developerOptions={developerOptions}
+          baTestOptions={baTestOptions}
         />
       </div>
       <IssueTable 
-        issues={isSearching ? filterIssues(issues, filters) : issues}
+        issues={filteredData}
         onDelete={handleDelete}
         loading={loading}
         onView={handleView}

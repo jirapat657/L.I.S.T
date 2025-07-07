@@ -1,17 +1,25 @@
 // src/pages/ProjectDetail/index.tsx
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, message } from 'antd';
+import {
+  Button,
+  message,
+} from 'antd';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { collection, deleteDoc, doc, getDocs, query, where, orderBy, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import IssueTable from '@/components/IssueTable';
 import type { Issue } from '@/types/projectDetail';
 import SearchFormWithDropdown from "@/components/SearchFormWithDropdown";
-import { defaultFilters } from '@/constants/searchFilters';
+import { useQuery } from '@tanstack/react-query';
+import { getUsers } from '@/api/user';
+import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
+import { defaultFilters, statusOptions } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
+import { useTableSearch } from '@/components/useTableSearch';
 
 dayjs.extend(isBetween);
 
@@ -30,8 +38,21 @@ const ProjectDetail: React.FC = () => {
 
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [projectName, setProjectName] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [filters, setFilters] = useState(defaultFilters);
+
+  // === ใช้ custom hook ===
+  const {
+    filters,
+    handleFilterChange,
+    handleReset,
+  } = useTableSearch(defaultFilters);
+
+  // --- Fetch users สำหรับ dropdown ---
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  });
+  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
 
   // --- ดึงข้อมูล Issue ---
   const fetchIssues = useCallback(async () => {
@@ -94,10 +115,8 @@ const ProjectDetail: React.FC = () => {
     if (id) fetchProjectName();
   }, [id]);
 
-  // --- ฟังก์ชันการค้นหา ---
-  const handleSearch = (searchFilters: typeof filters) => {
-    setFilters(searchFilters);
-    setIsSearching(true);
+  const handleSearch = () => {
+    // ปกติใช้ filteredData อัตโนมัติ
   };
 
   const handleDelete = async (issueId: string) => {
@@ -112,7 +131,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   // --- Filter Table ---
-  const filteredData = isSearching ? filterIssues(issues, filters) : issues;
+  const filteredData = filterIssues(issues, filters);
 
   // --- ACTIONS ---
   const handleView = (issueId: string, projectId: string) => {
@@ -135,6 +154,11 @@ const ProjectDetail: React.FC = () => {
           <PlusOutlined /> Add Issue
         </Button>
       </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button onClick={handleReset}>
+          <SyncOutlined /> Clear Search
+        </Button>
+      </div>
       <div style={{ width: "100%" }}>
         <div style={{
           display: "flex",
@@ -145,6 +169,10 @@ const ProjectDetail: React.FC = () => {
           <SearchFormWithDropdown
             onSearch={handleSearch}
             filters={filters}
+            handleFilterChange={handleFilterChange}
+            statusOptions={statusOptions}
+            developerOptions={developerOptions}
+            baTestOptions={baTestOptions}
           />
         </div>
       </div>
