@@ -20,61 +20,66 @@ import {
   const COLLECTION_NAME = 'LIMProjects';
   
   export const addProject = async (values: ProjectFormValues & { createBy: string }) => {
+    // กำหนดค่าเริ่มต้นสำหรับ logo
+    let logoUrl: string | null = null; // ใช้ null แทน empty string เพื่อความชัดเจน
 
-    let logoUrl = '';
-    const file = values.logo?.file;
-
-    if (file) {
+    // กรณีที่มีการอัปโหลดไฟล์โลโก้
+    if (values.logo && typeof values.logo === 'object' && values.logo.file) {
+      const file = values.logo.file;
       const storageRef = ref(storage, `project-logos/${Date.now()}-${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       logoUrl = await getDownloadURL(snapshot.ref);
+    } 
+    // กรณีส่ง URL มาโดยตรง (เพื่อความสอดคล้องกับ type ที่ปรับแล้ว)
+    else if (typeof values.logo === 'string') {
+      logoUrl = values.logo;
     }
 
-    const payload = {
+    const payload: ProjectData = {
+      id: values.projectId, // ใส่ id ไว้ด้วยเพื่อความครบถ้วน
       projectId: values.projectId,
       projectName: values.projectName,
       logo: logoUrl,
       createBy: values.createBy,
-      modifiedBy: values.createBy, // กำหนด modifiedBy ให้เป็นผู้สร้างในตอนเริ่มต้น
+      modifiedBy: values.createBy,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
 
-    const docRef = doc(db, COLLECTION_NAME, values.projectId); // ✅ ใช้ projectId เป็น doc ID
-    await setDoc(docRef, payload); // ✅ ใช้ setDoc แทน addDoc
+    const docRef = doc(db, COLLECTION_NAME, values.projectId);
+    await setDoc(docRef, payload);
 
-    return values.projectId; // ✅ คืน ID เดิมที่ส่งเข้าไป
+    return values.projectId;
   };
 
   export const updateProject = async (
     id: string,
     values: Partial<ProjectFormValues>
   ) => {
-    let logoUrl: string | null = null;
-
-    const file = values.logo?.file;
-    if (file instanceof File) {
-      const storageRef = ref(storage, `project-logos/${Date.now()}-${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      logoUrl = await getDownloadURL(snapshot.ref);
-    } else if (values.logo && typeof values.logo === 'string') {
-      // ✅ กรณีที่ส่ง url string มา ให้เก็บ url เดิม
-      logoUrl = values.logo;
-    }
-
-    const currentUser = auth.currentUser;
-    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
-
+    // เตรียม payload พื้นฐาน
     const payload: Partial<ProjectData> = {
       projectId: values.projectId,
       projectName: values.projectName,
-      logo: logoUrl, // <<-- เซตตรงๆไปเลย ไม่ต้อง &&!
-      modifiedBy: displayName, // อัปเดต modifiedBy ด้วยชื่อผู้ที่แก้ไข
+      modifiedBy: auth.currentUser?.displayName || auth.currentUser?.email || 'ไม่ทราบผู้ใช้',
       updatedAt: Timestamp.now(),
     };
 
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await updateDoc(docRef, payload);
+    // จัดการโลโก้ 3 กรณี
+    if (values.logo === null) {
+      // กรณีลบโลโก้
+      payload.logo = null;
+    } else if (typeof values.logo === 'object' && values.logo?.file) {
+      // กรณีอัปโหลดไฟล์ใหม่
+      const storageRef = ref(storage, `project-logos/${Date.now()}-${values.logo.file.name}`);
+      const snapshot = await uploadBytes(storageRef, values.logo.file);
+      payload.logo = await getDownloadURL(snapshot.ref);
+    } else if (typeof values.logo === 'string') {
+      // กรณีใช้ URL เดิม (ไม่เปลี่ยนแปลง)
+      payload.logo = values.logo;
+    }
+    // ถ้าไม่ส่ง logo มา = ไม่ต้องอัปเดตโลโก้
+
+    await updateDoc(doc(db, COLLECTION_NAME, id), payload);
   };
 
   

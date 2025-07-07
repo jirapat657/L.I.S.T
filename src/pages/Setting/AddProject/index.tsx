@@ -133,36 +133,32 @@ const AddProject: React.FC = () => {
   const handleUpdate = async (values: ProjectFormValues) => {
     if (!viewTarget) return;
 
-    let logo: { file: File } | undefined = undefined;
-
-    // 1. เปลี่ยนโลโก้ใหม่ (อัพไฟล์ใหม่)
-    if (logoFileList.length && logoFileList[0].originFileObj) {
-      logo = { file: logoFileList[0].originFileObj as File };
+    // กำหนดค่า logo ตามสถานะ
+    let logoValue: { file: File } | string | null;
+    
+    if (logoRemoved) {
+      // ผู้ใช้กดลบโลโก้
+      logoValue = null;
+    } else if (logoFileList.length > 0 && logoFileList[0].originFileObj) {
+      // อัปโหลดไฟล์ใหม่
+      logoValue = { file: logoFileList[0].originFileObj };
+    } else {
+      // ไม่เปลี่ยนแปลงโลโก้ - ส่ง URL เดิมไป
+      logoValue = viewTarget.logo || null;
     }
-    // 2. ลบโลโก้
-    else if (logoRemoved && viewTarget.logo) {
-      logo = undefined; // หรือถ้า api รับ null ก็ส่ง null แต่ตาม type = undefined
-    }
-    // 3. ไม่เปลี่ยนโลโก้ ไม่ต้องส่งค่า logo (ให้คงค่าเดิมไว้)
 
-    // update
-    const currentUser = auth.currentUser;
-    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
     updateProjectMutation.mutate({
       id: viewTarget.id,
       values: {
         projectId: values.projectId,
         projectName: values.projectName,
-        ...(logo !== undefined ? { logo } : {}), // ใส่ key logo เฉพาะกรณีเปลี่ยน/ลบ
-        modifiedBy: displayName, // เพิ่ม modifiedBy สำหรับการอัปเดต
+        logo: logoValue,
+        modifiedBy: auth.currentUser?.displayName || auth.currentUser?.email || 'ไม่ทราบผู้ใช้',
       },
     });
 
-    setLogoRemoved(false); // reset flag หลังอัปเดต
+    setLogoRemoved(false);
   };
-
-
-
 
   const handleDelete = () => {
     if (!deleteTarget) return
