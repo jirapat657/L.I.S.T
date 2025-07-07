@@ -9,7 +9,6 @@ export interface IssueFormValues {
   description?: string;
   type?: string;       
   priority?: string;   
-  enquiry?: string;
   status?: string;
   startDate?: Timestamp | null;
   dueDate?: Timestamp | null;
@@ -42,7 +41,6 @@ export interface FormValues {
   description?: string;
   type?: string;       
   priority?: string;   
-  enquiry?: string;
   status?: string;
   startDate?: Dayjs;
   dueDate?: Dayjs;
@@ -73,7 +71,6 @@ export interface IssueData {
   description: string;
   type?: string;       
   priority?: string;   
-  enquiry?: string;
   status: string;
   startDate?: Timestamp | null;
   dueDate?: Timestamp | null;

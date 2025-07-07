@@ -107,7 +107,7 @@ const AddProject: React.FC = () => {
   const handleSubmit = async (values: ProjectFormValues) => {
     const exists = await checkProjectIdExists(values.projectId);
     if (exists) {
-      message.error('Project ID นี้ถูกใช้ไปแล้ว กรุณาใช้ ID อื่น');
+      message.error('Project ID นี้มีอยู่แล้ว กรุณาระบุรหัสอื่น');
       return;
     }
     const currentUser = auth.currentUser;
@@ -304,7 +304,7 @@ const AddProject: React.FC = () => {
                   if (!value) return Promise.resolve();
                   const exists = await checkProjectIdExists(value); // 🔍 เรียกฟังก์ชันเช็ค
                   if (exists) {
-                    return Promise.reject(new Error('Project ID นี้มีอยู่แล้ว กรุณาใช้ค่าอื่น'));
+                    return Promise.reject(new Error('Project ID นี้มีอยู่แล้ว กรุณาระบุรหัสอื่น'));
                   }
                   return Promise.resolve();
                 },
