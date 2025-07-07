@@ -165,8 +165,11 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
               <Select
                 showSearch
                 allowClear
-                placeholder="Select Status"
-                options={statusOptions}
+                placeholder="Select Status" 
+                options={[
+                  { label: 'All', value: '' }, // เพิ่ม option "All"
+                  ...statusOptions.filter(opt => opt.value !== '') // ใช้ค่าจาก props แต่ไม่เอา value ว่างถ้ามี
+                ]}
                 onChange={(value) => handleFilterChange("status", value)}
               />
             </Form.Item>

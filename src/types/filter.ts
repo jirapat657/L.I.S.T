@@ -34,14 +34,3 @@ export interface SearchFormProps {
   form?: FormInstance; // เพิ่ม prop สำหรับ Form instance
 }
 
-// เพิ่ม type สำหรับ default filters ถ้าจำเป็น
-export const defaultFilters: FilterValues = {
-  keyword: undefined,
-  status: undefined,
-  developer: undefined,
-  baTest: undefined,
-  issueDateFilter: { type: "", value: undefined },
-  startDateFilter: { type: "", value: undefined },
-  dueDateFilter: { type: "", value: undefined },
-  completeDateFilter: { type: "", value: undefined }
-};
