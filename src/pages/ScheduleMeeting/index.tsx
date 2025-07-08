@@ -78,17 +78,26 @@ const ScheduleMeeting = () => {
   }, []);
 
   const addNewEvent = useCallback((accessToken: string) => {
+    // ตรวจสอบว่ามีข้อมูลครบถ้วน
+    if (!newEvent.summary || !newEvent.startTime || !newEvent.endTime) {
+      console.error('Missing required event fields');
+      return;
+    }
+
+    // สร้าง event object ตามรูปแบบที่ Google Calendar API ต้องการ
     const event = {
       summary: newEvent.summary,
       start: {
-        dateTime: newEvent.startTime,
+        dateTime: new Date(newEvent.startTime).toISOString(), // แปลงเป็น ISO string
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       end: {
-        dateTime: newEvent.endTime,
+        dateTime: new Date(newEvent.endTime).toISOString(), // แปลงเป็น ISO string
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     };
+
+    console.log('Sending event data:', JSON.stringify(event, null, 2)); // Debug log
 
     fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       method: 'POST',
@@ -98,19 +107,22 @@ const ScheduleMeeting = () => {
       },
       body: JSON.stringify(event),
     })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) {
+          const errorData = await response.json(); // อ่าน error response
+          console.error('Error details:', errorData);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
       })
       .then((data: Event) => {
-        console.log('Event created:', data);
+        console.log('Event created successfully:', data);
         listUpcomingEvents(accessToken);
         setNewEvent({ summary: '', startTime: '', endTime: '' });
       })
       .catch((error) => {
         console.error('Error creating event:', error);
+        alert('Failed to create event. Please check console for details.');
       });
   }, [newEvent.summary, newEvent.startTime, newEvent.endTime, listUpcomingEvents]);
 
