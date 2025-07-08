@@ -240,7 +240,7 @@ const AddProject: React.FC = () => {
             setSearchName('')
           }}
         >
-          <SyncOutlined /> ล้างการค้นหา
+          <SyncOutlined /> Clear Search
         </Button>
       </div>
 

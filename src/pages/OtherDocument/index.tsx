@@ -261,7 +261,7 @@ const OtherDocument = () => {
             setSearchProjectsName('')
           }}
         >
-          <SyncOutlined /> ล้างการค้นหา
+          <SyncOutlined /> Clear Search
         </Button>
       </div>
 
