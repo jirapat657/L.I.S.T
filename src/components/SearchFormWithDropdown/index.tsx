@@ -138,7 +138,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
     <div
       style={{
         padding: 16,
-        width: 750,
+        width: 350,
         background: "#FFFFFF",
         borderRadius: 12,
         boxShadow: "0 4px 24px 0 rgba(0,0,0,0.08)",
@@ -160,7 +160,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
               />
             </Form.Item>
           </Col>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="Status" name="status" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
@@ -174,7 +174,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
               />
             </Form.Item>
           </Col>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="Developer" name="developer" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
@@ -187,7 +187,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
           </Col>
         </Row>
         <Row gutter={16} style={{ marginBottom: 8 }}>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="BA/Test" name="baTest" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
