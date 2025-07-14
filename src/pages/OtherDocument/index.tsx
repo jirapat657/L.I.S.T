@@ -332,40 +332,39 @@ const OtherDocument = () => {
         >
           <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="docDate" label="Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
-         <Form.Item name="docType" label="Document Type" rules={[{ required: true }]}>
-  {/* ถ้าเลือกเพิ่มประเภทใหม่จะให้แสดง Input */}
-  <Select
-    placeholder="เลือกประเภทเอกสาร"
-    onChange={(value) => {
-      if (value === 'เพิ่มประเภทใหม่') {
-        setIsNewType(true);  // เปลี่ยนให้กรอกประเภทใหม่
-      } else {
-        setIsNewType(false);  // กลับไปเลือกประเภทที่มี
-      }
-    }}
-  >
-    {docTypes.map((type) => (
-      <Select.Option key={type} value={type}>
-        {type}
-      </Select.Option>
-    ))}
-    <Select.Option value="เพิ่มประเภทใหม่">เพิ่มประเภทใหม่</Select.Option> {/* เพิ่มตัวเลือกเพื่อให้กรอกประเภทใหม่ */}
-  </Select>
-</Form.Item>
+         <Form.Item name="docType" label="Type" rules={[{ required: true }]}>
+          {/* ถ้าเลือกเพิ่มประเภทใหม่จะให้แสดง Input */}
+          <Select
+            placeholder="เลือกประเภทเอกสาร"
+            onChange={(value) => {
+              if (value === 'เพิ่มประเภทใหม่') {
+                setIsNewType(true);  // เปลี่ยนให้กรอกประเภทใหม่
+              } else {
+                setIsNewType(false);  // กลับไปเลือกประเภทที่มี
+              }
+            }}
+          >
+            {docTypes.map((type) => (
+              <Select.Option key={type} value={type}>
+                {type}
+              </Select.Option>
+            ))}
+            <Select.Option value="เพิ่มประเภทใหม่" style={{ color: '#1890FF', fontWeight: 'bold' }}><PlusOutlined></PlusOutlined> Add</Select.Option> {/* เพิ่มตัวเลือกเพื่อให้กรอกประเภทใหม่ */}
+          </Select>
+        </Form.Item>
 
-{/* แสดงช่องกรอกประเภทใหม่เมื่อผู้ใช้เลือก "เพิ่มประเภทใหม่" */}
-{isNewType && (
-  <Form.Item name="newType" label="New Type" rules={[{ required: true }]}>
-    <Input
-      name="newType"
-      placeholder="กรอกประเภทใหม่"
-      autoFocus
-    />
-  </Form.Item>
-)}
-
-          <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
-          <Form.Item name="remark" label="Remark"><Input.TextArea rows={2} /></Form.Item>
+        {/* แสดงช่องกรอกประเภทใหม่เมื่อผู้ใช้เลือก "เพิ่มประเภทใหม่" */}
+        {isNewType && (
+          <Form.Item name="newType" label="New Type" rules={[{ required: true }]}>
+            <Input
+              name="newType"
+              placeholder="กรอกประเภทใหม่"
+              autoFocus
+            />
+          </Form.Item>
+        )}
+          <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={1} /></Form.Item>
+          <Form.Item name="remark" label="Remark"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item label="Upload Files">
             <Upload
               customRequest={handleCustomUpload}
