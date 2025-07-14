@@ -123,14 +123,31 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
 
   const handleReset = () => {
     form.resetFields();
-    handleFilterChange("keyword", undefined);
-    handleFilterChange("status", undefined);
-    handleFilterChange("developer", undefined);
-    handleFilterChange("baTest", undefined);
-    handleFilterChange("issueDateFilter", { type: "", value: undefined });
-    handleFilterChange("startDateFilter", { type: "", value: undefined });
-    handleFilterChange("dueDateFilter", { type: "", value: undefined });
-    handleFilterChange("completeDateFilter", { type: "", value: undefined });
+
+    // ตั้งค่า default values หลังจาก reset
+    const defaultValues = {
+      keyword: '',
+      status: '',
+      developer: '',
+      baTest: '',
+      issueDateFilter: null,
+      startDateFilter: null,
+      dueDateFilter: null,
+      completeDateFilter: null,
+    };
+
+    form.setFieldsValue(defaultValues);
+
+    // Reset filters ให้ตรงกับ default values
+    handleFilterChange("keyword", defaultValues.keyword);
+    handleFilterChange("status", defaultValues.status);
+    handleFilterChange("developer", defaultValues.developer);
+    handleFilterChange("baTest", defaultValues.baTest);
+    handleFilterChange("issueDateFilter", { type: "", value: defaultValues.issueDateFilter });
+    handleFilterChange("startDateFilter", { type: "", value: defaultValues.startDateFilter });
+    handleFilterChange("dueDateFilter", { type: "", value: defaultValues.dueDateFilter });
+    handleFilterChange("completeDateFilter", { type: "", value: defaultValues.completeDateFilter });
+
     setOpen(false);
   };
 
