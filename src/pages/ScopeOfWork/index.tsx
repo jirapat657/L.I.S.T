@@ -196,7 +196,7 @@ const ScopeOfWork = () => {
         </Button>
       </div>
 
-      <Input.Search
+      <Input
         placeholder="Project Name"
         allowClear
         onChange={(e) => setSearch(e.target.value)}

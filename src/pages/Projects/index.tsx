@@ -29,11 +29,10 @@ const Projects: React.FC = () => {
 
   return (
     <div>
-      <Input.Search
+      <Input
         placeholder="Project Name"
         allowClear
         onChange={(e) => setSearchTerm(e.target.value)}
-        onSearch={(value) => setSearchTerm(value)}
         style={{ marginBottom: 16, maxWidth: 300 }}
       />
 
