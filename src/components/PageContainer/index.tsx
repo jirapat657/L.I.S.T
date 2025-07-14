@@ -54,7 +54,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
     {
       key: 'email',
       label: (
-        <div style={{ fontWeight: 500, color: '#7D0012', textAlign: 'center' }}>
+        <div style={{ fontSize:20 ,fontWeight: 500, color: '#7D0012', textAlign: 'center' }}>
           {user.email}
         </div>
       ),
@@ -66,7 +66,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
    {
       key: 'username',
       label: (
-        <div style={{ fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
+        <div style={{ fontSize:16 ,fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
           <strong>ชื่อ:</strong> {user.userName}
         </div>
       ),
@@ -75,7 +75,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
     {
       key: 'position',
       label: (
-        <div style={{ fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
+        <div style={{ fontSize:16 ,fontWeight: 500, color: '#000', pointerEvents: 'none' }}>
           <strong>ตำแหน่ง:</strong> {user.jobPosition}
         </div>
       ),
@@ -87,7 +87,7 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
     {
       key: 'logout',
       label: (
-        <span style={{ color: 'red' }}>
+        <span style={{ fontSize:16 ,color: 'red' }}>
           <BiLogOut style={{ marginRight: 8 }} />
           Log out
         </span>
@@ -124,8 +124,8 @@ export default function PageContainer({ children, title = '' }: PageContainerPro
             }}
           >
             <div>
-              <div style={{ fontWeight: 500, color: '#7D0012' }}>{user.userName}</div>
-              <div style={{ fontSize: 12, color: '#888' }}>{user.jobPosition}</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: '#7D0012' }}>{user.userName}</div>
+              <div style={{ fontSize: 14, color: '#888' }}>{user.jobPosition}</div>
             </div>
             <Avatar style={{ backgroundColor: 'black', color: 'white' }}>
               {firstChar}

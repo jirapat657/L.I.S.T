@@ -2,7 +2,7 @@
 import type { MenuProps } from 'antd'
 import React, { useContext, useState } from 'react'
 import { BsTable } from 'react-icons/bs'
-import { FileTextOutlined, HddFilled, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons'
+import { CalendarOutlined, EditOutlined, FileTextFilled, HddFilled, SettingFilled, UnorderedListOutlined, WechatOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { Divider, Flex, Layout, Menu, Space } from 'antd'
 
@@ -54,12 +54,16 @@ export default function Sidebar() {
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
     getItem('Support', 'support', <HddFilled />),
+    getItem('To Do List', 'todolist', <EditOutlined />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
-    getItem('Scope of Work', 'scope', <FileTextOutlined />),
+    getItem('Scope of Work', 'scope', <FileTextFilled />),
+    getItem('Other Document', 'other-document', <FileTextFilled />),
+    getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
+    getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
     getItem(
       <span style={{ color: 'white' }}>Setting</span>,
       'setting',
-      <SettingOutlined />,
+      <SettingFilled />,
       [
         getItem(
           <Link to={PATH.SETTING_ADD_PROJECT} style={{ color: 'white' }}>

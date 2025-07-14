@@ -37,23 +37,78 @@ const Projects: React.FC = () => {
         style={{ marginBottom: 16, maxWidth: 300 }}
       />
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]} justify="start">
         {filteredData.map((item) => (
           <Col key={item.id} xs={24} sm={12} md={8} lg={6} xl={4}>
             <Card
               hoverable
               onClick={() => navigate(`/projects/${item.id}`)}
+              style={{
+                height: 200,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+              bodyStyle={{
+                padding: '12px',
+                flex: 'none', // Prevent body from growing
+              }}
               cover={
-                item.logo ? (
-                  <img
-                    src={item.logo}
-                    alt="project logo"
-                    style={{ height: 140, objectFit: 'contain', padding: 16 }}
-                  />
-                ) : null
+                <div
+                  style={{
+                    height: 120, // Reduced height to accommodate text better
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    backgroundColor: '#fafafa',
+                  }}
+                >
+                  {item.logo ? (
+                    <img
+                      src={item.logo}
+                      alt="project logo"
+                      style={{
+                        maxHeight: '100%',
+                        maxWidth: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        background: '#eee',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#999',
+                      }}
+                    >
+                      No Image
+                    </div>
+                  )}
+                </div>
               }
             >
-              <p style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8, textAlign:'center'}}>{item.projectName}</p>
+              <div
+                style={{
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  lineHeight: '1.25em',
+                  height: '3.75em', // 1.25em x 3 lines
+                  wordBreak: 'break-word',
+                }}
+                title={item.projectName} // Show full name on hover
+              >
+                {item.projectName}
+              </div>
             </Card>
           </Col>
         ))}

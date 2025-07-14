@@ -1,7 +1,6 @@
 // src/pages/Support/index.tsx
-
 import { useEffect, useState } from 'react';
-import { message, Button } from 'antd';
+import { message, Button, Form } from 'antd'; // เพิ่ม Form ใน import จาก antd
 import { getDocs, collection, orderBy, query, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import IssueTable from '@/components/IssueTable';
@@ -35,12 +34,13 @@ const Support: React.FC = () => {
   const [issues, setIssues] = useState<IssueWithDateString[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchForm] = Form.useForm(); // ย้ายมาอยู่ตรงนี้
 
   // Custom hook สำหรับ filter state
   const {
     filters,
     handleFilterChange,
-    handleReset,
+     handleReset: resetFromHook, // เปลี่ยนชื่อเพื่อไม่ให้ซ้ำ
   } = useTableSearch(defaultFilters);
 
   // ดึง user สำหรับ dropdown
@@ -50,6 +50,11 @@ const Support: React.FC = () => {
   });
   const developerOptions = getDeveloperOptions(users);
   const baTestOptions = getBATestOptions(users);
+
+  const handleReset = () => {
+  resetFromHook(); // เรียกใช้ฟังก์ชันจาก hook
+  searchForm.resetFields(); // รีเซ็ต form
+};
 
   // ดึงข้อมูล
   useEffect(() => {
@@ -118,15 +123,26 @@ const Support: React.FC = () => {
   // === FILTER DATA ===
   const filteredData = filterIssues(issues, filters);
 
+  // ฟังก์ชันตรวจสอบว่ามีการเปลี่ยนแปลง filter หรือไม่
+  const hasFiltersChanged = () => {
+    return (
+      filters.keyword !== defaultFilters.keyword ||
+      filters.status !== defaultFilters.status ||
+      filters.developer !== defaultFilters.developer ||
+      filters.baTest !== defaultFilters.baTest ||
+      filters.issueDateFilter.type !== defaultFilters.issueDateFilter.type ||
+      filters.startDateFilter.type !== defaultFilters.startDateFilter.type ||
+      filters.dueDateFilter.type !== defaultFilters.dueDateFilter.type ||
+      filters.completeDateFilter.type !== defaultFilters.completeDateFilter.type
+    );
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button onClick={handleReset}>
-          <SyncOutlined /> Clear Search
-        </Button>
-      </div>
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
         <SearchFormWithDropdown
+          form={searchForm}
+          initialValues={defaultFilters}
           onSearch={() => {}}
           filters={filters}
           handleFilterChange={handleFilterChange}
@@ -134,6 +150,11 @@ const Support: React.FC = () => {
           developerOptions={developerOptions}
           baTestOptions={baTestOptions}
         />
+        {hasFiltersChanged() && (
+          <Button onClick={handleReset} style={{ marginLeft: "10px" }}>
+            <SyncOutlined /> Clear Search
+          </Button>
+        )}
       </div>
       <IssueTable 
         issues={filteredData}

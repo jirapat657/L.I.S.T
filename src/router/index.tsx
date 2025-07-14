@@ -28,6 +28,10 @@ import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
 import ScopeOfWork from '@/pages/ScopeOfWork';
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
+import OtherDocument from '@/pages/OtherDocument'
+import ScheduleMeeting from '@/pages/ScheduleMeeting'
+import MeetingSummary from '@/pages/MeetingSummary'
+import ToDoList from '@/pages/ToDoList'
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -132,6 +136,14 @@ export function Router() {
           ),
         },
         {
+          path: PATH.TODOLIST,
+          element: (
+            <PageContainer title={PAGE_TITLE.TODOLIST}>
+              <ToDoList />
+            </PageContainer>
+          ),
+        },
+        {
           path: PATH.PROJECTS,
           element: (
             <PageContainer title={PAGE_TITLE.PROJECTS}>
@@ -184,6 +196,30 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.SCOPE}>
               <ScopeOfWork />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.OTHER_DOCUMENT,
+          element: (
+            <PageContainer title={PAGE_TITLE.OTHER_DOCUMENT}>
+              <OtherDocument />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.SCHEDULE_MEETING,
+          element: (
+            <PageContainer title={PAGE_TITLE.SCHEDULE_MEETING}>
+              <ScheduleMeeting />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.MEETING_SUMMARY,
+          element: (
+            <PageContainer title={PAGE_TITLE.MEETING_SUMMARY}>
+              <MeetingSummary />
             </PageContainer>
           ),
         },

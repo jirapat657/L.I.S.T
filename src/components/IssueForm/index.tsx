@@ -9,6 +9,7 @@ import type { FormInstance } from 'antd/es/form';
 import { safeDate } from '@/utils/dateUtils';
 import { priorityOptions, typeOptions } from '@/pages/Projects/AddIssueForm/helper';
 import { getBATestOptions, getDeveloperOptions } from '@/utils/userOptions';
+import { statusOptions } from '@/constants/searchFilters';
 
 type Props = {
   issue: IssueData;
@@ -25,13 +26,6 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
 
     const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
     const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
-    
-    const statusOptions = [
-        { label: 'Awaiting', value: 'Awaiting' },
-        { label: 'Inprogress', value: 'Inprogress' },
-        { label: 'Complete', value: 'Complete' },
-        { label: 'Cancel', value: 'Cancel' },
-        ];
 
   return (
     <Form
@@ -44,7 +38,6 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         description: issue.description,
         type: issue.type,           
         priority: issue.priority,
-        enquiry: issue.enquiry,
         status: issue.status,
         startDate: safeDate(issue.startDate),
         dueDate: safeDate(issue.dueDate),
@@ -80,12 +73,6 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
         <Col span={12}>
           <Form.Item label="Priority" name="priority">
             <Select disabled={disabled} showSearch placeholder="Select Priority" options={priorityOptions} />
-          </Form.Item>
-        </Col>
-
-        <Col span={24}>
-          <Form.Item label="Enquiry" name="enquiry">
-            <Input.TextArea rows={4} disabled={disabled}/>
           </Form.Item>
         </Col>
 
@@ -149,7 +136,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           <Form.Item label="Developer" name="developer">
                 <Select
                 showSearch
-                placeholder="เลือก Developer"
+                placeholder="Select Developer"
                 disabled={disabled}
                 options={developerOptions}
                 />
@@ -160,7 +147,7 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
           <Form.Item label="BA/Test" name="baTest">
                 <Select
                 showSearch
-                placeholder="เลือก BA/Test"
+                placeholder="Select BA/Test"
                 disabled={disabled}
                 options={baTestOptions}
                 />

@@ -1,6 +1,7 @@
 export const theme = {
   token: {
     colorPrimary: '#080808', // สีพื้นหลังPrimary
+    fontSizeBase: 16, // ปรับขนาดฟอนต์พื้นฐาน
   },
   components: {
     Table: {

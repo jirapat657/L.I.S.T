@@ -15,6 +15,10 @@ export const PATH = Object.freeze({
   SCOPE: '/scope',         
   SETTING_ADD_PROJECT: '/setting/add-project',
   SETTING_ADD_USER: '/setting/add-user',
+  OTHER_DOCUMENT: '/other-document',
+  SCHEDULE_MEETING: '/schedule-meeting',
+  MEETING_SUMMARY: '/meeting-summary',
+  TODOLIST: '/todolist'
 })
 
 export const PAGE_TITLE = Object.freeze({
@@ -29,4 +33,8 @@ export const PAGE_TITLE = Object.freeze({
   SCOPE: 'Scope of Work',
   SETTING_ADD_PROJECT: 'Add Project',
   SETTING_ADD_USER: 'Add User',
+  OTHER_DOCUMENT: 'Other Document',
+  SCHEDULE_MEETING: 'Meeting Summary',
+  MEETING_SUMMARY: 'Meeting Summary',
+  TODOLIST: 'To Do List'
 });

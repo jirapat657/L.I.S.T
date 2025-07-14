@@ -16,7 +16,7 @@ async function main() {
     const user = await admin.auth().createUser({
       email: "adminj@demo.com",
       password: "11223344",
-      displayName: "Admin",
+      displayName: "adminJ",
     });
     // สร้าง Firestore profile ด้วย
     await admin.firestore().collection("LIMUsers").doc(user.uid).set({

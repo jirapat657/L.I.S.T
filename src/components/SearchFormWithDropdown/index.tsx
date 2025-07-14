@@ -1,7 +1,6 @@
 // src/components/SearchFormWithDropdown/index.tsx
-
-import React, { useRef, useState } from "react";
-import { Button, Dropdown, Form, Input, Select, DatePicker, Row, Col } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Button, Dropdown, Form, Input, Select, DatePicker, Row, Col, type FormInstance } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
 import type { DateFilterValue, FilterValues } from "@/types/filter";
 
@@ -15,6 +14,7 @@ interface SearchFormProps {
   statusOptions?: OptionType[];
   developerOptions?: OptionType[];
   baTestOptions?: OptionType[];
+  form?: FormInstance;
 }
 
 const issueDateFilterOptions = [
@@ -27,7 +27,6 @@ const issueDateFilterOptions = [
 
 const { RangePicker } = DatePicker;
 
-// Helper สำหรับแต่ละ field
 function DateFilterRow({
   label,
   filter,
@@ -80,16 +79,9 @@ function DateFilterRow({
           <Form.Item label=" ">
             <RangePicker
               style={{ width: "100%" }}
-               value={
-                  // ตรวจสอบว่าค่า filter.value เป็น array ที่มี 2 element หรือไม่
-                  Array.isArray(filter.value) && filter.value.length === 2
-                    ? filter.value
-                    : null
-                }
+              value={Array.isArray(filter.value) && filter.value.length === 2 ? filter.value : null}
               format="DD/MM/YY"
-              onChange={(v) =>
-                onChange({ type: "customRange", value: v })
-              }
+              onChange={(v) => onChange({ type: "customRange", value: v })}
               allowClear
             />
           </Form.Item>
@@ -107,46 +99,63 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
   statusOptions = [],
   developerOptions = [],
   baTestOptions = [],
+  form: propForm,
 }) => {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm(propForm);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false); // <--- เพิ่ม state
+  const [open, setOpen] = useState(false);
+
+  // Sync form values when filters change
+  useEffect(() => {
+    form.setFieldsValue({
+      keyword: filters.keyword,
+      status: filters.status,
+      developer: filters.developer,
+      baTest: filters.baTest,
+      // Date fields are handled separately in DateFilterRow
+    });
+  }, [filters, form]);
 
   const handleFinish = () => {
     onSearch(filters);
-    setOpen(false); // <--- ปิดเมนูเมื่อกดค้นหา
-  };
-
-  const emptyFilters: FilterValues = {
-    keyword: undefined,
-    status: undefined,
-    developer: undefined,
-    baTest: undefined,
-    issueDateFilter: { type: "", value: undefined },
-    startDateFilter: { type: "", value: undefined },
-    dueDateFilter: { type: "", value: undefined },
-    completeDateFilter: { type: "", value: undefined }
+    setOpen(false);
   };
 
   const handleReset = () => {
     form.resetFields();
-    handleFilterChange("issueDateFilter", { type: "", value: undefined });
-    handleFilterChange("startDateFilter", { type: "", value: undefined });
-    handleFilterChange("dueDateFilter", { type: "", value: undefined });
-    handleFilterChange("completeDateFilter", { type: "", value: undefined });
-    handleFilterChange("keyword", undefined);
-    handleFilterChange("status", undefined);
-    handleFilterChange("developer", undefined);
-    handleFilterChange("baTest", undefined);
 
-    onSearch(emptyFilters); // ส่งค่า reset ที่ตรง type
+    // ตั้งค่า default values หลังจาก reset
+    const defaultValues = {
+      keyword: '',
+      status: '',
+      developer: '',
+      baTest: '',
+      issueDateFilter: null,
+      startDateFilter: null,
+      dueDateFilter: null,
+      completeDateFilter: null,
+    };
+
+    form.setFieldsValue(defaultValues);
+
+    // Reset filters ให้ตรงกับ default values
+    handleFilterChange("keyword", defaultValues.keyword);
+    handleFilterChange("status", defaultValues.status);
+    handleFilterChange("developer", defaultValues.developer);
+    handleFilterChange("baTest", defaultValues.baTest);
+    handleFilterChange("issueDateFilter", { type: "", value: defaultValues.issueDateFilter });
+    handleFilterChange("startDateFilter", { type: "", value: defaultValues.startDateFilter });
+    handleFilterChange("dueDateFilter", { type: "", value: defaultValues.dueDateFilter });
+    handleFilterChange("completeDateFilter", { type: "", value: defaultValues.completeDateFilter });
+
+    setOpen(false);
   };
 
   const menu = (
     <div
       style={{
         padding: 16,
-        width: 750,
+        width: 350,
         background: "#FFFFFF",
         borderRadius: 12,
         boxShadow: "0 4px 24px 0 rgba(0,0,0,0.08)",
@@ -163,58 +172,51 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
             <Form.Item label="ค้นหา" name="keyword" style={{ marginBottom: 0 }}>
               <Input
                 placeholder="Issue Code / Title"
-                value={filters.keyword}
-                onChange={(e) =>
-                  handleFilterChange("keyword", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("keyword", e.target.value)}
                 allowClear
               />
             </Form.Item>
           </Col>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="Status" name="status" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
                 allowClear
-                placeholder="Select Status"
-                options={statusOptions}
-                value={filters.status}
+                placeholder="Select Status" 
+                options={[
+                  { label: 'All', value: '' }, // เพิ่ม option "All"
+                  ...statusOptions.filter(opt => opt.value !== '') // ใช้ค่าจาก props แต่ไม่เอา value ว่างถ้ามี
+                ]}
                 onChange={(value) => handleFilterChange("status", value)}
               />
             </Form.Item>
           </Col>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="Developer" name="developer" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
                 allowClear
                 placeholder="Select Developer"
                 options={developerOptions}
-                value={filters.developer}
-                onChange={(value) =>
-                  handleFilterChange("developer", value)
-                }
+                onChange={(value) => handleFilterChange("developer", value)}
               />
             </Form.Item>
           </Col>
         </Row>
         <Row gutter={16} style={{ marginBottom: 8 }}>
-          <Col span={13}>
+          <Col span={24}>
             <Form.Item label="BA/Test" name="baTest" style={{ marginBottom: 0 }}>
               <Select
                 showSearch
                 allowClear
                 placeholder="Select BA/Test"
                 options={baTestOptions}
-                value={filters.baTest}
-                onChange={(value) =>
-                  handleFilterChange("baTest", value)
-                }
+                onChange={(value) => handleFilterChange("baTest", value)}
               />
             </Form.Item>
           </Col>
         </Row>
-        {/* ช่องวันแต่ละอัน */}
+        
         <DateFilterRow
           label="Issue Date"
           filter={filters.issueDateFilter}
@@ -235,11 +237,25 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
           filter={filters.completeDateFilter}
           onChange={(val) => handleFilterChange("completeDateFilter", val)}
         />
+        
         <div style={{ marginTop: 16, textAlign: "right" }}>
-          <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
-            ค้นหา
+          <Button 
+            type="primary" 
+            style={{ 
+              boxShadow: '0 2px 0 #d9d9d9',
+              border: '1px solid #d9d9d9',
+              color: 'rgba(0, 0, 0, 0.88)',
+              backgroundColor: '#ffffff',
+              marginRight: 8, 
+              height: '32px' 
+            }} 
+            onClick={handleReset}
+          >
+            <SyncOutlined /> Clear Search
           </Button>
-          <Button onClick={handleReset}><SyncOutlined /> Clear Search</Button>
+          <Button type="primary" htmlType="submit" style={{ height: '32px' }}>
+            <SearchOutlined/> ค้นหา
+          </Button>
         </div>
       </Form>
     </div>
@@ -252,7 +268,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
       placement="bottomRight"
       arrow
       open={open}
-      onOpenChange={setOpen} // <--- เพิ่ม
+      onOpenChange={setOpen}
     >
       <Button
         icon={<SearchOutlined />}

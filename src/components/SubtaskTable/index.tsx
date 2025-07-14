@@ -100,7 +100,7 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
             showSearch
             style={{ width: 150 }}
             options={userOptions}
-            placeholder="เลือก BA/Test"
+            placeholder="Select BA/Test"
           />
         ),
     },

@@ -35,7 +35,7 @@ const AddProject: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<ProjectData | null>(null)
   const [viewTarget, setViewTarget] = useState<ProjectData | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 5
+  const pageSize = 20
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
   const [logoRemoved, setLogoRemoved] = useState(false);  // true ถ้าผู้ใช้กดลบ
 
@@ -107,7 +107,7 @@ const AddProject: React.FC = () => {
   const handleSubmit = async (values: ProjectFormValues) => {
     const exists = await checkProjectIdExists(values.projectId);
     if (exists) {
-      message.error('Project ID นี้ถูกใช้ไปแล้ว กรุณาใช้ ID อื่น');
+      message.error('Project ID นี้มีอยู่แล้ว กรุณาระบุรหัสอื่น');
       return;
     }
     const currentUser = auth.currentUser;
@@ -125,6 +125,7 @@ const AddProject: React.FC = () => {
       projectName: values.projectName,
       logo,  // ต้องเป็น object { file: File } หรือ undefined
       createBy: displayName,
+      modifiedBy: displayName, // เพิ่ม modifiedBy ให้ตรงกับ createBy
     });
   };
 
@@ -132,33 +133,32 @@ const AddProject: React.FC = () => {
   const handleUpdate = async (values: ProjectFormValues) => {
     if (!viewTarget) return;
 
-    let logo: { file: File } | undefined = undefined;
-
-    // 1. เปลี่ยนโลโก้ใหม่ (อัพไฟล์ใหม่)
-    if (logoFileList.length && logoFileList[0].originFileObj) {
-      logo = { file: logoFileList[0].originFileObj as File };
+    // กำหนดค่า logo ตามสถานะ
+    let logoValue: { file: File } | string | null;
+    
+    if (logoRemoved) {
+      // ผู้ใช้กดลบโลโก้
+      logoValue = null;
+    } else if (logoFileList.length > 0 && logoFileList[0].originFileObj) {
+      // อัปโหลดไฟล์ใหม่
+      logoValue = { file: logoFileList[0].originFileObj };
+    } else {
+      // ไม่เปลี่ยนแปลงโลโก้ - ส่ง URL เดิมไป
+      logoValue = viewTarget.logo || null;
     }
-    // 2. ลบโลโก้
-    else if (logoRemoved && viewTarget.logo) {
-      logo = undefined; // หรือถ้า api รับ null ก็ส่ง null แต่ตาม type = undefined
-    }
-    // 3. ไม่เปลี่ยนโลโก้ ไม่ต้องส่งค่า logo (ให้คงค่าเดิมไว้)
 
-    // update
     updateProjectMutation.mutate({
       id: viewTarget.id,
       values: {
         projectId: values.projectId,
         projectName: values.projectName,
-        ...(logo !== undefined ? { logo } : {}), // ใส่ key logo เฉพาะกรณีเปลี่ยน/ลบ
+        logo: logoValue,
+        modifiedBy: auth.currentUser?.displayName || auth.currentUser?.email || 'ไม่ทราบผู้ใช้',
       },
     });
 
-    setLogoRemoved(false); // reset flag หลังอัปเดต
+    setLogoRemoved(false);
   };
-
-
-
 
   const handleDelete = () => {
     if (!deleteTarget) return
@@ -182,7 +182,6 @@ const AddProject: React.FC = () => {
       key: 'logo',
       render: (logo: string) => (logo ? <img src={logo} alt='logo' style={{ width: 40 }} /> : '—'),
     },
-    { title: 'Create By', dataIndex: 'createBy', key: 'createBy' },
     {
       title: '',
       key: 'actions',
@@ -241,7 +240,7 @@ const AddProject: React.FC = () => {
             setSearchName('')
           }}
         >
-          <SyncOutlined /> ล้างการค้นหา
+          <SyncOutlined /> Clear Search
         </Button>
       </div>
 
@@ -301,7 +300,7 @@ const AddProject: React.FC = () => {
                   if (!value) return Promise.resolve();
                   const exists = await checkProjectIdExists(value); // 🔍 เรียกฟังก์ชันเช็ค
                   if (exists) {
-                    return Promise.reject(new Error('Project ID นี้มีอยู่แล้ว กรุณาใช้ค่าอื่น'));
+                    return Promise.reject(new Error('Project ID นี้มีอยู่แล้ว กรุณาระบุรหัสอื่น'));
                   }
                   return Promise.resolve();
                 },
@@ -384,12 +383,10 @@ const AddProject: React.FC = () => {
             </Upload>
           </Form.Item>
           <div style={{ textAlign: 'right', marginBottom: 12, fontStyle: 'italic', color: '#888' }}>
-            Create By: {viewTarget?.createBy || 'ไม่ทราบ'}
+            Create By: {viewTarget?.createBy || 'ไม่ทราบ'}, {viewTarget?.createdAt ? new Date(viewTarget.createdAt.seconds * 1000).toLocaleString() : '-'}
             <br />
-            แก้ไขล่าสุด:{' '}
-            {viewTarget?.updatedAt
-              ? new Date(viewTarget.updatedAt.seconds * 1000).toLocaleString()
-              : '-'}
+            Modified By: {viewTarget?.modifiedBy || 'ไม่ทราบ'}, {viewTarget?.updatedAt ? new Date(viewTarget.updatedAt.seconds * 1000).toLocaleString() : '-'}
+            
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Button
