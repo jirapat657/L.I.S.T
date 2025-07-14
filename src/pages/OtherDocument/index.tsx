@@ -331,7 +331,7 @@ const OtherDocument = () => {
           initialValues={{ docType: 'Other Document' }}
         >
           <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="docDate" label="Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="docDate" label="Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY"/></Form.Item>
          <Form.Item name="docType" label="Type" rules={[{ required: true }]}>
           {/* ถ้าเลือกเพิ่มประเภทใหม่จะให้แสดง Input */}
           <Select

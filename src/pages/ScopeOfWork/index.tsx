@@ -252,7 +252,7 @@ const ScopeOfWork = () => {
           initialValues={{ docType: 'Scope of work' }}
         >
           <Form.Item name="docNo" label="Doc. No." rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="docDate" label="Doc. Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="docDate" label="Doc. Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY"/></Form.Item>
           <Form.Item name="docType" label="Doc. Type" rules={[{ required: true }]}>
             <Select
               placeholder="เลือกประเภทเอกสาร"
