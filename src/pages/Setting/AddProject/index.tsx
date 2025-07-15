@@ -276,7 +276,7 @@ const AddProject: React.FC = () => {
               total={filteredData.length}
               onChange={setCurrentPage}
               showSizeChanger={false}
-              showTotal={(total) => `หน้า ${currentPage} / ${Math.ceil(total / pageSize)}`}
+              // showTotal={(total) => `หน้า ${currentPage} / ${Math.ceil(total / pageSize)}`}
             />
           </div>
         )}

@@ -168,6 +168,7 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onVi
       pagination={{
         pageSize,
         onChange: (page) => setCurrentPage(page),
+        showTotal: (total) => <div style={{ position: 'absolute', left: '16px' }}>ทั้งหมด {total} รายการ</div>,
       }}
       scroll={{ x: 'max-content' }}
     />
