@@ -1,6 +1,7 @@
 // src/components/IssueForm/index.tsx
 import React from 'react';
 import { Form, Input, DatePicker, Select, Row, Col } from 'antd';
+import type { RuleObject } from 'antd/es/form';
 import type { IssueData } from '@/types/issue';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
@@ -18,14 +19,37 @@ type Props = {
 };
 
 const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
-
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
-    });
+  });
 
-    const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
-    const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
+  const developerOptions = React.useMemo(() => getDeveloperOptions(users), [users]);
+  const baTestOptions = React.useMemo(() => getBATestOptions(users), [users]);
+
+  const validateStartDate = (_: RuleObject, value: dayjs.Dayjs) => {
+    const dueDate = form.getFieldValue('dueDate');
+    if (value && dueDate && value.isAfter(dueDate)) {
+      return Promise.reject(new Error('Start Date must be before or equal to Due Date'));
+    }
+    return Promise.resolve();
+  };
+
+  const validateDueDate = (_: RuleObject, value: dayjs.Dayjs) => {
+    const startDate = form.getFieldValue('startDate');
+    if (value && startDate && value.isBefore(startDate)) {
+      return Promise.reject(new Error('Due Date must be after or equal to Start Date'));
+    }
+    return Promise.resolve();
+  };
+
+  const validateCompleteDate = (_: RuleObject, value: dayjs.Dayjs) => {
+    const startDate = form.getFieldValue('startDate');
+    if (value && startDate && value.isBefore(startDate)) {
+      return Promise.reject(new Error('Complete Date must be after or equal to Start Date'));
+    }
+    return Promise.resolve();
+  };
 
   return (
     <Form
@@ -90,68 +114,98 @@ const IssueForm: React.FC<Props> = ({ issue, form, disabled = true }) => {
 
         <Col span={12}>
           <Form.Item label="Status" name="status" rules={[{ required: true }]}>
-            <Select disabled={disabled} options={statusOptions}
-            onChange={(value) => {
-                            const now = dayjs();
-                            if (value === 'Inprogress') {
-                              form.setFieldsValue({ startDate: now });
-                            } else if (value === 'Complete') {
-                              form.setFieldsValue({ completeDate: now });
-                            }
-                          }}></Select>
-          </Form.Item>
-        </Col>
-
-        <Col span={12}>
-          <Form.Item label="Start Date" name="startDate">
-            <DatePicker
-              format="DD/MM/YY"
-              disabled={disabled}
-              style={{ width: '100%' }}
+            <Select 
+              disabled={disabled} 
+              options={statusOptions}
+              onChange={(value) => {
+                const now = dayjs();
+                if (value === 'Inprogress') {
+                  form.setFieldsValue({ startDate: now });
+                } else if (value === 'Complete') {
+                  form.setFieldsValue({ completeDate: now });
+                }
+              }}
             />
           </Form.Item>
         </Col>
 
         <Col span={12}>
-          <Form.Item label="Due Date" name="dueDate">
+          <Form.Item 
+            label="Start Date" 
+            name="startDate"
+            rules={[
+              { validator: validateStartDate },
+            ]}
+          >
             <DatePicker
               format="DD/MM/YY"
               disabled={disabled}
               style={{ width: '100%' }}
+              onChange={() => {
+                form.validateFields(['dueDate', 'completeDate']);
+              }}
             />
           </Form.Item>
         </Col>
 
         <Col span={12}>
-          <Form.Item label="Complete Date" name="completeDate">
+          <Form.Item 
+            label="Due Date" 
+            name="dueDate"
+            rules={[
+              { validator: validateDueDate },
+            ]}
+          >
             <DatePicker
               format="DD/MM/YY"
               disabled={disabled}
               style={{ width: '100%' }}
+              onChange={() => {
+                form.validateFields(['startDate']);
+              }}
+            />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
+          <Form.Item 
+            label="Complete Date" 
+            name="completeDate"
+            rules={[
+              { validator: validateCompleteDate },
+            ]}
+          >
+            <DatePicker
+              format="DD/MM/YY"
+              disabled={disabled}
+              style={{ width: '100%' }}
+              onChange={() => {
+                form.validateFields(['startDate']);
+              }}
             />
           </Form.Item>
         </Col>
 
         <Col span={12}>
           <Form.Item label="Developer" name="developer">
-                <Select
-                showSearch
-                placeholder="Select Developer"
-                disabled={disabled}
-                options={developerOptions}
-                />
-            </Form.Item>
+            <Select
+              showSearch
+              placeholder="Select Developer"
+              disabled={disabled}
+              options={developerOptions}
+            />
+          </Form.Item>
         </Col>
 
         <Col span={12}>
           <Form.Item label="BA/Test" name="baTest">
-                <Select
-                showSearch
-                placeholder="Select BA/Test"
-                disabled={disabled}
-                options={baTestOptions}
-                />
-            </Form.Item>
+            <Select
+              showSearch
+              placeholder="Select BA/Test"
+              disabled={disabled}
+              options={baTestOptions}
+            />
+          </Form.Item>
         </Col>
 
         <Col span={12}>
