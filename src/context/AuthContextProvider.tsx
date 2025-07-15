@@ -1,11 +1,8 @@
-// src/context/AuthContextProvider.tsx
-
-import { auth, functions } from '@/services/firebase' // <-- ปรับชื่อ FirebaseApp ตามที่คุณตั้งไว้
+import { auth, db } from '@/services/firebase' // <-- ปรับชื่อ FirebaseApp ตามที่คุณตั้งไว้
 import type { UserData } from '@/types/users'
 import type { User as FirebaseUser } from 'firebase/auth'
 import { onAuthStateChanged } from 'firebase/auth'
-import { Timestamp } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
+import { doc, getDoc, Timestamp, type DocumentData } from 'firebase/firestore'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AuthContext } from './AuthContext'
 
@@ -23,20 +20,12 @@ export type AuthContextType = {
   loading: boolean
 }
 
-type GetUserByEmailResult = { profile: UserData | null }
-
-async function getUserProfileFromCloudFunction(email: string): Promise<UserData | null> {
+async function getUserProfileFromCloudFunction(): Promise<UserData | null> {
   try {
-    const getUser = httpsCallable<
-      { email: string }, // input type
-      GetUserByEmailResult // output type
-    >(functions, 'getUserByEmail')
-    const result = await getUser({ email })
-    console.log('Cloud Function result:', result.data) // ดู structure
-    console.log('Firestore profile (result.data.profile):', result.data?.profile)
+    const uid = auth?.currentUser?.uid
+    const userProfileColelctionRef: DocumentData = await getDoc(doc(db, 'LIMUsers', uid ?? ''))
 
-    // ปรับโครงสร้างตาม Cloud Function ที่คุณเขียน
-    return result.data?.profile ?? null
+    return { ...userProfileColelctionRef.data(), uid: uid }
   } catch (error) {
     console.log('errorAuthContextProvider:', error)
     // ถ้าไม่พบ user หรือ error อื่น ๆ
@@ -52,13 +41,11 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // เช็ก email ก่อนเรียก cloud function
-        console.log('userrrr', user)
         if (!user.email) {
           // fallback profile สำหรับ user ที่ไม่มี email
           setCurrentUser({
             user,
             profile: {
-              id: user.uid,
               userId: user.uid,
               userName: '',
               email: '',
@@ -77,7 +64,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
         try {
           // มี email แล้วค่อยเรียก cloud function
           const [rawUserData, getToken] = await Promise.all([
-            getUserProfileFromCloudFunction(user.email),
+            getUserProfileFromCloudFunction(),
             user.getIdToken(),
           ])
 
@@ -92,7 +79,6 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
             }
           } else {
             profile = {
-              id: user.uid,
               userId: user.uid,
               userName: '',
               email: user.email,
@@ -114,7 +100,6 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
 
           const getToken = await user.getIdToken()
           const fallbackProfile: UserData = {
-            id: user.uid,
             userId: user.uid,
             userName: '',
             email: user.email ?? '',

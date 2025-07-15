@@ -141,40 +141,6 @@ exports.deleteUser = functions.https.onCall(async (data) => {
   }
 })
 
-// ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากอีเมล (ใช้ https.onCall)
-exports.getUserByEmail = functions.https.onCall(async (data, context) => {
-  const email = data?.email || data?.data?.email || ''
-
-  if (!email) {
-    throw new functions.https.HttpsError('invalid-argument', 'Email is required')
-  }
-
-  try {
-    // 1. ดึงจาก Auth (เช่น uid)
-    const userRecord = await authen.getUserByEmail(email)
-    const uid = userRecord.uid
-
-    // 2. ดึง profile จาก Firestore (เช่น collection 'users')
-    const userDoc = await db.collection('LIMUsers').doc(uid).get()
-
-    let userProfile = null
-    if (userDoc.exists) {
-      userProfile = userDoc.data()
-      console.log('🔥 userProfile from Firestore:', userProfile)
-    } else {
-      console.log('⚠️ ไม่พบ userProfile ใน Firestore')
-    }
-
-    // 3. ส่งกลับ ข้อมูล auth + profile (รวมกัน)
-    return {
-      auth: userRecord.toJSON(),
-      profile: userProfile, // จะ null ถ้าไม่เจอใน firestore
-    }
-  } catch (error) {
-    throw new functions.https.HttpsError('not-found', 'User not found')
-  }
-})
-
 exports.updateUserStatus = functions.https.onCall(async (data) => {
   const uid = data.id || data.data?.id
   const status = data.status || data.data?.status
