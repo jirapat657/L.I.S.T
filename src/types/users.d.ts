@@ -14,6 +14,7 @@ export interface UserFormValues {
 }
 
 export interface UserData extends Omit<UserFormValues, 'password'> {
+  id: string; // ← เพิ่มบรรทัดนี้
   uid?: string // Auth.uid ของ Firebase (แนะนำให้ตรงกับ doc.id จะดีที่สุด)
   userId: string // รหัสที่แสดง เช่น LC-000001
   userName: string
