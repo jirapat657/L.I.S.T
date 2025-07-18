@@ -3,6 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export interface IssueFormValues {
   projectId: string;
+  projectName?: string;
   issueCode: string;
   issueDate: Timestamp;
   title?: string;
@@ -65,6 +66,7 @@ export interface Subtask {
 export interface IssueData {
   id: string;
   projectId: string;
+  projectName?: string;
   issueCode: string;
   issueDate: Timestamp;
   title: string;
