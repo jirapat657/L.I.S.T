@@ -166,3 +166,20 @@ export const addSubtask = async (issueId: string, subtask: Omit<Subtask, 'id'>) 
     })
   )
 }
+
+
+// ==========
+// Dashboard
+// ==========
+// ✅ ดึงทุก issue โดยไม่ filter (สำหรับ dashboard)
+export const getAllIssues = async (): Promise<IssueData[]> => {
+  const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'))
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(
+    (doc) =>
+      ({
+        id: doc.id,
+        ...doc.data(),
+      } as IssueData)
+  )
+}
