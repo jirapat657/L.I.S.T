@@ -4,7 +4,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAllIssues } from '@/api/issue'
 import type { IssueData } from '@/types/issue'
-import { Card, Row, Col, Spin, Divider } from 'antd'
+import { Card, Row, Col, Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 
@@ -309,32 +309,30 @@ const Dashboard = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 24, marginBottom: 16 }}>Dashboard</h1>
-      <Divider />
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
-          <Card title="Status Distribution (Pie Chart)" bordered={false}>
+          <Card title="Status Overview" bordered={false}>
             <PieChart data={pieData} options={pieOptions} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title="Issues Over Time (Line Chart)" bordered={false}>
+          <Card title="Issue" bordered={false}>
             <LineChart data={lineData} options={lineOptions} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title="Issue Type (Bar Chart)" bordered={false}>
+          <Card title="Type" bordered={false}>
             <BarChart data={barTypeData} options={barOptions} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title="Priority Breakdown (Bar Chart)" bordered={false}>
+          <Card title="Priority Breakdown" bordered={false}>
             <BarChart data={barPriorityData} options={barOptions} />
           </Card>
         </Col>
       </Row>
       <Col xs={24}>
-        <Card title="Project On Time vs Late Time (Horizontal Bar)" bordered={false}>
+        <Card title="Project" bordered={false}>
           <BarChart data={barProjectData} options={hBarOptions} />
         </Card>
       </Col>

@@ -54,12 +54,12 @@ export default function Sidebar() {
   const items: MenuItem[] = [
     getItem('Dashboard', 'dashboard', <BsTable />),
     getItem('Support', 'support', <HddFilled />),
-    getItem('To Do List', 'todolist', <EditOutlined />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
     getItem('Scope of Work', 'scope', <FileTextFilled />),
     getItem('Other Document', 'other-document', <FileTextFilled />),
     getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
     getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
+    getItem('To Do List', 'todolist', <EditOutlined />),
     getItem(
       <span style={{ color: 'white' }}>Setting</span>,
       'setting',
