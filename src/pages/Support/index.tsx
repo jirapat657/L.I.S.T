@@ -1,49 +1,32 @@
-// src/pages/Support/index.tsx
-import { useEffect, useState } from 'react';
-import { message, Button, Form } from 'antd'; // เพิ่ม Form ใน import จาก antd
-import { getDocs, collection, orderBy, query, deleteDoc, doc, Timestamp } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import React, { useState } from 'react';
+import { message, Button, Form, Modal } from 'antd';
 import IssueTable from '@/components/IssueTable';
-import type { Issue } from '@/types/projectDetail';
 import { useNavigate } from 'react-router-dom';
 import SearchFormWithDropdown from '@/components/SearchFormWithDropdown';
-
 import { statusOptions, defaultFilters } from '@/constants/searchFilters';
 import { filterIssues } from '@/utils/filterItems';
 import { useTableSearch } from '@/components/useTableSearch';
-
 import { getUsers } from '@/api/user';
 import { useQuery } from '@tanstack/react-query';
 import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
-import dayjs from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
 import { SyncOutlined } from '@ant-design/icons';
+import { useIssuesWithProjectName } from '@/hooks/useIssuesWithProjectName';
+import { deleteIssue } from '@/api/issue';
 
-dayjs.extend(isBetween);
-
-type IssueWithDateString = Issue & {
-  issueDate?: string;
-  startDate?: string;
-  dueDate?: string;
-  completeDate?: string;
-};
-
-const COLLECTION_NAME = 'LIMIssues';
+type DeleteTarget = { id: string; issueCode?: string } | null;
 
 const Support: React.FC = () => {
-  const [issues, setIssues] = useState<IssueWithDateString[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: issues, loading, refetch } = useIssuesWithProjectName();
   const navigate = useNavigate();
-  const [searchForm] = Form.useForm(); // ย้ายมาอยู่ตรงนี้
+  const [searchForm] = Form.useForm();
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
-  // Custom hook สำหรับ filter state
   const {
     filters,
     handleFilterChange,
-     handleReset: resetFromHook, // เปลี่ยนชื่อเพื่อไม่ให้ซ้ำ
+    handleReset: resetFromHook,
   } = useTableSearch(defaultFilters);
 
-  // ดึง user สำหรับ dropdown
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
@@ -52,59 +35,22 @@ const Support: React.FC = () => {
   const baTestOptions = getBATestOptions(users);
 
   const handleReset = () => {
-  resetFromHook(); // เรียกใช้ฟังก์ชันจาก hook
-  searchForm.resetFields(); // รีเซ็ต form
-};
+    resetFromHook();
+    searchForm.resetFields();
+  };
 
-  // ดึงข้อมูล
-  useEffect(() => {
-    const fetchAllIssues = async () => {
-      setLoading(true);
-      try {
-        const q = query(
-          collection(db, COLLECTION_NAME),
-          orderBy('createdAt', 'desc')
-        );
-        const qSnap = await getDocs(q);
-        const issuesArray = qSnap.docs.map((docSnap) => {
-          const data = docSnap.data();
-
-          // แปลงวันที่เป็น string (YYYY-MM-DD)
-          const parseDate = (d: Timestamp | string | null | undefined): string => {
-            if (d && typeof d === 'object' && 'toDate' in d) {
-              return d.toDate().toISOString().slice(0, 10);
-            }
-            return typeof d === "string" ? d : "";
-          };
-
-          return {
-            id: docSnap.id,
-            ...(data as Omit<Issue, 'id'>),
-            issueDate: parseDate(data.issueDate),
-            startDate: parseDate(data.startDate),
-            dueDate: parseDate(data.dueDate),
-            completeDate: parseDate(data.completeDate),
-          };
-        });
-        setIssues(issuesArray);
-      } catch (error) {
-        console.error(error);
-        message.error('Failed to load issues');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAllIssues();
-  }, []);
-
-  const handleDelete = async (issueId: string) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    message.loading({ content: 'กำลังลบ...', key: 'delete' });
     try {
-      await deleteDoc(doc(db, COLLECTION_NAME, issueId));
-      setIssues((prev) => prev.filter((item) => item.id !== issueId));
-      message.success('Deleted successfully');
+      await deleteIssue(deleteTarget.id);
+      message.success({ content: 'ลบสำเร็จ', key: 'delete' });
+      await refetch();
     } catch (error) {
-      console.error('Delete failed:', error);
-      message.error('Failed to delete');
+      console.error('ลบไม่สำเร็จ:', error);
+      message.error({ content: 'ลบไม่สำเร็จ', key: 'delete' });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -120,10 +66,8 @@ const Support: React.FC = () => {
     navigate(`/projects/${projectId}/duplicate/${issueId}`);
   };
 
-  // === FILTER DATA ===
-  const filteredData = filterIssues(issues, filters);
+  const filteredData = issues ? filterIssues(issues, filters) : [];
 
-  // ฟังก์ชันตรวจสอบว่ามีการเปลี่ยนแปลง filter หรือไม่
   const hasFiltersChanged = () => {
     return (
       filters.keyword !== defaultFilters.keyword ||
@@ -157,13 +101,37 @@ const Support: React.FC = () => {
         )}
       </div>
       <IssueTable 
+        showProjectName={true}
         issues={filteredData}
-        onDelete={handleDelete}
         loading={loading}
+        onDelete={(id, _projectId, record) =>
+          setDeleteTarget({ id, issueCode: record?.issueCode })
+        }
         onView={handleView}
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
       />
+
+      <Modal
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        footer={null}
+        centered
+        width={400}
+      >
+        <p style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
+          คุณต้องการลบ Issue{' '}
+          <strong>{deleteTarget?.issueCode || deleteTarget?.id}</strong>
+          {' '}หรือไม่?
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+          <Button type='primary' danger onClick={handleDeleteConfirm}>
+            ลบ
+          </Button>
+          <Button onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>
+        </div>
+      </Modal>
+
     </div>
   );
 };

@@ -167,6 +167,32 @@ export const addSubtask = async (issueId: string, subtask: Omit<Subtask, 'id'>) 
   )
 }
 
+// ==========
+// Delete Issue
+// ==========
+export const deleteIssue = async (issueId: string) => {
+  try {
+    // 1. ลบ Subtasks ทั้งหมดของ Issue นี้ก่อน (ถ้ามี)
+    const subtasksRef = collection(db, COLLECTION_NAME, issueId, 'subtasks');
+    const subtasksSnapshot = await getDocs(subtasksRef);
+    
+    // ลบ subtasks ทีละตัว
+    const deleteSubtaskPromises = subtasksSnapshot.docs.map((doc) => 
+      deleteDoc(doc.ref)
+    );
+    await Promise.all(deleteSubtaskPromises);
+
+    // 2. ลบ Issue หลัก
+    const issueRef = doc(db, COLLECTION_NAME, issueId);
+    await deleteDoc(issueRef);
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting issue:', error);
+    throw error;
+  }
+};
+
 
 // ==========
 // Dashboard

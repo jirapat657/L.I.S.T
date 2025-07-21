@@ -74,14 +74,13 @@ const AddIssueForm: React.FC = () => {
       // หา projectCode จาก projects, id
       const currentProject = projects.find((p) => p.id === id);
       const projectCode = currentProject?.projectId;
-      const projectName = currentProject?.projectName; // <--- สมมติว่าใช้ 'name'
-      if (!projectCode) throw new Error('ไม่พบ projectId (code)');
-      if (!projectName) throw new Error('ไม่พบชื่อโปรเจกต์');
+      
+      if (!projectCode) throw new Error('ไม่พบ projectId (code)');      
 
       const issuePayload = {
         ...rest,
         projectId: projectCode,
-        projectName, 
+        
         issueDate: values.issueDate
           ? Timestamp.fromDate(values.issueDate.toDate())
           : Timestamp.now(),

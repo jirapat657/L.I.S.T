@@ -4,19 +4,20 @@ import type { Dayjs } from 'dayjs';
 export interface Issue {
   id: string;
   issueCode: string;
-  issueDate: string;
+  issueDate?: string | Timestamp | null;
   title: string;
   description: string;
   status: string;
-  startDate: string;
-  dueDate: string;
-  completeDate: string;
-  onLateTime: string;
-  developer: string;
-  baTest: string;
-  remark: string;
-  document: string;
+  startDate?: string | Timestamp | null;
+  dueDate?: string | Timestamp | null;
+  completeDate?: string | Timestamp | null;
+  onLateTime?: string;
+  developer?: string;
+  baTest?: string;
+  remark?: string;
+  document?: string;
   projectId: string;
+  projectName?: string;
 }
 
 export interface Filters {

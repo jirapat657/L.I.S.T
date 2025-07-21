@@ -9,14 +9,15 @@ import { useState } from 'react';
 
 interface IssueTableProps {
   issues: Issue[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string, projectId: string, record: Issue) => void;
   loading?: boolean;
   onView?: (issueId: string, projectId: string) => void;
   onEdit?: (issueId: string, projectId: string) => void;
   onDuplicate?: (issueId: string, projectId: string) => void;
+  showProjectName?: boolean; // เพิ่ม prop นี้
 }
 
-const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onView, onEdit, onDuplicate }) => {
+const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onView, onEdit, onDuplicate, showProjectName }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const pageSize = 100;
@@ -28,6 +29,13 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onVi
       key: 'no',
       render: (_: unknown, __: unknown, index: number) => issues.length - ((currentPage - 1) * pageSize + index),
     },
+    ...(showProjectName
+      ? [{
+          title: 'Project Name',
+          dataIndex: 'projectName',
+          key: 'projectName',
+        }]
+      : []),
     { title: 'Issue Code', dataIndex: 'issueCode', key: 'issueCode' },
     {
       title: 'Issue Date',
@@ -143,7 +151,7 @@ const IssueTable: React.FC<IssueTableProps> = ({ issues, onDelete, loading, onVi
           { key: 'view', label: (<><EyeOutlined /> View</>) ,onClick: () => onView?.(record.id, record.projectId)}, 
           { key: 'edit', label: (<><EditOutlined /> Edit</>), onClick: () => onEdit?.(record.id, record.projectId) },
           { key: 'duplicate', label: (<><CopyOutlined /> Duplicate</>), onClick: () => onDuplicate?.(record.id, record.projectId) },
-          { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true, onClick: () => onDelete(record.id) },
+          { key: 'delete', label: (<><DeleteOutlined /> Delete</>), danger: true, onClick: () => onDelete(record.id, record.projectId, record) },
         ];
         return (
           <Dropdown
