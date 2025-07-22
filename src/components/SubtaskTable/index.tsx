@@ -44,8 +44,28 @@ const SubtaskTable: React.FC<SubtaskTableProps> = ({
     {
       title: 'Date',
       dataIndex: 'date',
-      render: (value: Timestamp | null | undefined) =>
-        value?.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-',
+      render: (value: Timestamp | null | undefined, record: Subtask) =>
+        readOnly ? (
+          value?.toDate ? dayjs(value.toDate()).format('DD/MM/YY') : '-'
+        ) : (
+          <DatePicker
+            format="DD/MM/YY"
+            value={
+              value
+                ? value instanceof Timestamp
+                  ? dayjs(value.toDate())
+                  : dayjs(value)
+                : null
+            }
+            onChange={(date) =>
+              onUpdate(
+                record.id,
+                'date',
+                date ? Timestamp.fromDate(date.toDate()) : null
+              )
+            }
+          />
+        ),
     },
     {
       title: 'Details',
