@@ -188,6 +188,8 @@ const ProjectDetail: React.FC = () => {
             statusOptions={statusOptions}
             developerOptions={developerOptions}
             baTestOptions={baTestOptions}
+            isProjectSearchEnabled={false} // เปิดใช้งานการค้นหาโปรเจกต์
+            handleReset={handleReset}  // ส่งฟังก์ชัน handleReset ไปที่ SearchFormWithDropdown
           />
           {hasFiltersChanged() && (
             <Button onClick={handleReset}>

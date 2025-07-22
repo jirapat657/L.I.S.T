@@ -209,3 +209,45 @@ export const getAllIssues = async (): Promise<IssueData[]> => {
       } as IssueData)
   )
 }
+
+
+// ฟังก์ชันดึง issues โดยใช้ projectName
+export const getIssuesByProjectName = async (projectName: string): Promise<IssueData[]> => {
+  // ดึงข้อมูล projectId จาก projectName
+  const projectsQuery = query(
+    collection(db, 'LIMProjects'),
+    where('projectName', '==', projectName) // ค้นหาจาก projectName
+  )
+  const projectsSnapshot = await getDocs(projectsQuery)
+
+  if (projectsSnapshot.empty) {
+    console.error('No project found with that name');
+    return [] // หากไม่พบ project ให้ส่งกลับ array ว่าง
+  }
+
+  // ดึง projectId จากข้อมูลที่ค้นพบ
+  const projectId = projectsSnapshot.docs[0].id
+  const projectData = projectsSnapshot.docs[0].data(); // ดึงข้อมูลของโปรเจกต์
+
+  // ใช้ projectId เพื่อดึง issues จาก LIMIssues
+  const issuesQuery = query(
+    collection(db, COLLECTION_NAME),
+    where('projectId', '==', projectId), // กรองด้วย projectId
+    orderBy('createdAt', 'desc')
+  )
+
+  const issuesSnapshot = await getDocs(issuesQuery)
+
+  // เพิ่ม projectName เข้าไปในแต่ละ issue
+  const issuesWithProjectName = issuesSnapshot.docs.map((doc) => {
+    const issueData = doc.data();
+    return {
+      id: doc.id,
+      ...issueData,
+      projectName: projectData.projectName,  // เพิ่ม projectName ที่ดึงมาจาก LIMProjects
+    } as IssueData;
+  });
+
+  return issuesWithProjectName;
+}
+

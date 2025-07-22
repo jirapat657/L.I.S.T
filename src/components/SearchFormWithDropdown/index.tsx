@@ -15,6 +15,9 @@ interface SearchFormProps {
   developerOptions?: OptionType[];
   baTestOptions?: OptionType[];
   form?: FormInstance;
+  isProjectSearchEnabled?: boolean;  
+  projectOptions?: OptionType[];
+  handleReset?: () => void; // เพิ่ม handleReset ที่รับฟังก์ชันจาก parent
 }
 
 const issueDateFilterOptions = [
@@ -100,6 +103,9 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
   developerOptions = [],
   baTestOptions = [],
   form: propForm,
+  isProjectSearchEnabled = true,  // กำหนดค่าเริ่มต้นเป็น true
+  projectOptions = [], // Set default empty array here
+  handleReset  // รับฟังก์ชัน handleReset จาก parent
 }) => {
   const [form] = Form.useForm(propForm);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -112,43 +118,30 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
       status: filters.status,
       developer: filters.developer,
       baTest: filters.baTest,
+      projectName: filters.projectName, // Add projectName to synced fields
       // Date fields are handled separately in DateFilterRow
     });
   }, [filters, form]);
+
+  // ฟังก์ชันที่จะทำงานทุกครั้งที่มีการเปลี่ยนแปลงในฟอร์ม
+  const handleFormChange = (changedValues: Partial<FilterValues>) => {
+    // เมื่อมีการเปลี่ยนแปลงค่าในฟอร์ม จะเรียก onSearch ทันที
+    onSearch({
+      ...filters,
+      ...changedValues,  // อัปเดตค่า filters ด้วยค่าที่เปลี่ยนแปลง
+    });
+  };
 
   const handleFinish = () => {
     onSearch(filters);
     setOpen(false);
   };
 
-  const handleReset = () => {
-    form.resetFields();
-
-    // ตั้งค่า default values หลังจาก reset
-    const defaultValues = {
-      keyword: '',
-      status: '',
-      developer: '',
-      baTest: '',
-      issueDateFilter: null,
-      startDateFilter: null,
-      dueDateFilter: null,
-      completeDateFilter: null,
-    };
-
-    form.setFieldsValue(defaultValues);
-
-    // Reset filters ให้ตรงกับ default values
-    handleFilterChange("keyword", defaultValues.keyword);
-    handleFilterChange("status", defaultValues.status);
-    handleFilterChange("developer", defaultValues.developer);
-    handleFilterChange("baTest", defaultValues.baTest);
-    handleFilterChange("issueDateFilter", { type: "", value: defaultValues.issueDateFilter });
-    handleFilterChange("startDateFilter", { type: "", value: defaultValues.startDateFilter });
-    handleFilterChange("dueDateFilter", { type: "", value: defaultValues.dueDateFilter });
-    handleFilterChange("completeDateFilter", { type: "", value: defaultValues.completeDateFilter });
-
-    setOpen(false);
+  // ฟังก์ชันสำหรับรีเซ็ตค่าฟอร์มจาก parent
+  const handleClearSearch = () => {
+    if (handleReset) {
+      handleReset();  // เรียกฟังก์ชัน handleReset จาก parent
+    }
   };
 
   const menu = (
@@ -166,7 +159,26 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
         layout="vertical"
         onFinish={handleFinish}
         initialValues={initialValues}
+        onValuesChange={(_, values) => handleFormChange(values)}  // ฟังก์ชันที่จะทำงานทันทีเมื่อมีการเปลี่ยนแปลงค่า
       >
+        {isProjectSearchEnabled && (
+          <Row gutter={16} style={{ marginBottom: 8 }}>
+            <Col span={24}>
+              <Form.Item label="Project Name" name="projectName" style={{ marginBottom: 0 }}>
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Select Project"
+                  onChange={(value) => {
+                    handleFilterChange("projectName", value); // อัปเดต state filter
+                    onSearch({ ...filters, projectName: value }); // ค้นหาโดยอัตโนมัติ
+                  }}
+                  options={projectOptions}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
         <Row gutter={16} style={{ marginBottom: 8 }}>
           <Col span={24}>
             <Form.Item label="ค้นหา" name="keyword" style={{ marginBottom: 0 }}>
@@ -249,7 +261,7 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
               marginRight: 8, 
               height: '32px' 
             }} 
-            onClick={handleReset}
+            onClick={handleClearSearch}
           >
             <SyncOutlined /> Clear Search
           </Button>

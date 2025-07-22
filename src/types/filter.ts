@@ -10,6 +10,7 @@ export interface FilterValues {
   startDateFilter: DateFilterValue;
   dueDateFilter: DateFilterValue;
   completeDateFilter: DateFilterValue;
+  projectName?: string;  // เพิ่ม projectName
 }
 
 export interface DateFilterValue {
