@@ -25,8 +25,6 @@ const Support: React.FC = () => {
   const [filteredData, setFilteredData] = useState<IssueWithProjectName[]>([]);
   const [projectOptions, setProjectOptions] = useState<OptionType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setError] = useState<Error | null>(null);
-
   const navigate = useNavigate();
   const [searchForm] = Form.useForm();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; issueCode?: string } | null>(null);
@@ -52,7 +50,7 @@ const Support: React.FC = () => {
   // ดึง issues + ผูก projectName ให้แต่ละ issue
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    
     try {
       const [issuesData, projectsData] = await Promise.all([
         getAllIssues(),
@@ -68,7 +66,7 @@ const Support: React.FC = () => {
       setIssues(issuesWithProjectName);
       setFilteredData(issuesWithProjectName); // default = all
     } catch (err) {
-      setError(err as Error);
+      console.error('Error fetching issues:', err);
       message.error('ไม่สามารถโหลดข้อมูลได้');
     } finally {
       setLoading(false);
