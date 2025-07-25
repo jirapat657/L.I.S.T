@@ -1,8 +1,24 @@
 // src/utils/filterItems.ts
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
 import { getDateRange } from "./dateFilters";
-import type { Issue } from "@/types/projectDetail"; // หรือ type อื่นๆ สำหรับแต่ละหน้า
+import type { Issue } from "@/types/projectDetail";
 import type { FilterValues } from "@/types/filter";
+
+function getDayjsDate(d: Date | string | { toDate: () => Date } | undefined | null) {
+  if (!d) return undefined;
+  if (typeof d === "object" && typeof (d as { toDate?: () => Date }).toDate === "function") {
+    return dayjs((d as { toDate: () => Date }).toDate());
+  }
+  if (typeof d === "string" || d instanceof Date) {
+    return dayjs(d);
+  }
+  return undefined;
+}
 
 export function filterIssues(issues: Issue[], filters: FilterValues) {
   const [issueStart, issueEnd] = getDateRange(filters.issueDateFilter);
@@ -24,30 +40,50 @@ export function filterIssues(issues: Issue[], filters: FilterValues) {
     const matchBaTest =
       !filters.baTest || (item.baTest ?? '') === filters.baTest;
 
-    // --- Filter วัน ---
+    // Date filters
+    const issueDate = getDayjsDate(item.issueDate);
     const matchIssueDate =
-      !issueStart ||
-      !issueEnd ||
-      (item.issueDate &&
-        dayjs(item.issueDate).isBetween(issueStart, issueEnd, "day", "[]"));
+      (!issueStart && !issueEnd) ||
+      (
+        issueDate &&
+        (
+          (!issueStart || issueDate.isSameOrAfter(issueStart, "day")) &&
+          (!issueEnd   || issueDate.isSameOrBefore(issueEnd, "day"))
+        )
+      );
 
+    const startDate = getDayjsDate(item.startDate);
     const matchStartDate =
-      !startStart ||
-      !startEnd ||
-      (item.startDate &&
-        dayjs(item.startDate).isBetween(startStart, startEnd, "day", "[]"));
+      (!startStart && !startEnd) ||
+      (
+        startDate &&
+        (
+          (!startStart || startDate.isSameOrAfter(startStart, "day")) &&
+          (!startEnd   || startDate.isSameOrBefore(startEnd, "day"))
+        )
+      );
 
+    const dueDate = getDayjsDate(item.dueDate);
     const matchDueDate =
-      !dueStart ||
-      !dueEnd ||
-      (item.dueDate &&
-        dayjs(item.dueDate).isBetween(dueStart, dueEnd, "day", "[]"));
+      (!dueStart && !dueEnd) ||
+      (
+        dueDate &&
+        (
+          (!dueStart || dueDate.isSameOrAfter(dueStart, "day")) &&
+          (!dueEnd   || dueDate.isSameOrBefore(dueEnd, "day"))
+        )
+      );
 
+    const completeDate = getDayjsDate(item.completeDate);
     const matchCompleteDate =
-      !compStart ||
-      !compEnd ||
-      (item.completeDate &&
-        dayjs(item.completeDate).isBetween(compStart, compEnd, "day", "[]"));
+      (!compStart && !compEnd) ||
+      (
+        completeDate &&
+        (
+          (!compStart || completeDate.isSameOrAfter(compStart, "day")) &&
+          (!compEnd   || completeDate.isSameOrBefore(compEnd, "day"))
+        )
+      );
 
     return (
       matchKeyword &&

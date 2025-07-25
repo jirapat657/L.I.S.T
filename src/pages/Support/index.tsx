@@ -1,5 +1,5 @@
 // src/pages/Support/index.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { message, Button, Form, Modal } from 'antd';
 import IssueTable from '@/components/IssueTable';
 import { useNavigate } from 'react-router-dom';
@@ -11,18 +11,22 @@ import { getUsers } from '@/api/user';
 import { useQuery } from '@tanstack/react-query';
 import { getDeveloperOptions, getBATestOptions } from '@/utils/userOptions';
 import { SyncOutlined } from '@ant-design/icons';
-import { useIssuesWithProjectName } from '@/hooks/useIssuesWithProjectName';
-import { deleteIssue, getIssuesByProjectName } from '@/api/issue';
+import { getAllIssues, deleteIssue, getIssuesByProjectName } from '@/api/issue';
 import { getProjects } from '@/api/project';
 import type { FilterValues } from '@/types/filter';
 import type { IssueData } from '@/types/issue';
 import type { OptionType } from '@/types/filter';
 
+type IssueWithProjectName = IssueData & { projectName: string };
+
 const Support: React.FC = () => {
   // State สำหรับเก็บข้อมูลทั้งหมดของ issue และข้อมูลที่ฟิลเตอร์แล้ว
-  const { data: issues = [], loading, refetch } = useIssuesWithProjectName();  // ดึงข้อมูล issues ทั้งหมดที่มี projectName
-  const [filteredData, setFilteredData] = useState<IssueData[]>([]);  // เก็บข้อมูลที่กรองแล้ว
-  const [projectOptions, setProjectOptions] = useState<OptionType[]>([]);  // ตัวเลือกโปรเจกต์
+  const [issues, setIssues] = useState<IssueWithProjectName[]>([]);
+  const [filteredData, setFilteredData] = useState<IssueWithProjectName[]>([]);
+  const [projectOptions, setProjectOptions] = useState<OptionType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [, setError] = useState<Error | null>(null);
+
   const navigate = useNavigate();
   const [searchForm] = Form.useForm();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; issueCode?: string } | null>(null);
@@ -39,24 +43,54 @@ const Support: React.FC = () => {
     queryFn: getUsers,
   });
 
-  // ดึงข้อมูลโปรเจกต์เพื่อใช้ใน dropdown
+  // ดึงข้อมูลโปรเจกต์เพื่อใช้ใน dropdown และ mapping
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
   });
 
-  // Initialize project options and filtered data
+  // ดึง issues + ผูก projectName ให้แต่ละ issue
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [issuesData, projectsData] = await Promise.all([
+        getAllIssues(),
+        getProjects()
+      ]);
+      const projectMap = Object.fromEntries(
+        projectsData.map((p: { id: string; projectName: string }) => [p.id, p.projectName])
+      );
+      const issuesWithProjectName: IssueWithProjectName[] = issuesData.map((issue: IssueData) => ({
+        ...issue,
+        projectName: projectMap[issue.projectId] || 'Unknown'
+      }));
+      setIssues(issuesWithProjectName);
+      setFilteredData(issuesWithProjectName); // default = all
+    } catch (err) {
+      setError(err as Error);
+      message.error('ไม่สามารถโหลดข้อมูลได้');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // โหลดข้อมูลครั้งแรก
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ตั้งค่าตัวเลือกโปรเจกต์
   useEffect(() => {
     if (projects.length > 0) {
       setProjectOptions(
-        projects.map((project) => ({
+        projects.map((project: { id: string; projectName: string }) => ({
           label: project.projectName,
           value: project.projectName,
         }))
       );
     }
-    setFilteredData(issues as IssueData[]);  // ตั้งค่าเริ่มต้นให้แสดงข้อมูลทั้งหมด
-  }, [projects, issues]);
+  }, [projects]);
 
   const developerOptions = getDeveloperOptions(users);
   const baTestOptions = getBATestOptions(users);
@@ -64,7 +98,7 @@ const Support: React.FC = () => {
   const handleReset = () => {
     resetFromHook();
     searchForm.resetFields();
-    setFilteredData(issues as IssueData[]);  // รีเซ็ตให้แสดงข้อมูลทั้งหมด
+    setFilteredData(issues);  // รีเซ็ตให้แสดงข้อมูลทั้งหมด
   };
 
   const handleDeleteConfirm = async () => {
@@ -73,8 +107,10 @@ const Support: React.FC = () => {
     try {
       await deleteIssue(deleteTarget.id);
       message.success({ content: 'ลบสำเร็จ', key: 'delete' });
-      await refetch();
-      setFilteredData(filteredData.filter(issue => issue.id !== deleteTarget.id));  // รีเฟรชข้อมูลหลังลบ
+      await fetchData();
+      setFilteredData(prev =>
+        prev.filter(issue => issue.id !== deleteTarget.id)
+      );  // อัปเดตข้อมูลหลังลบ
     } catch (error) {
       console.error('ลบไม่สำเร็จ:', error);
       message.error({ content: 'ลบไม่สำเร็จ', key: 'delete' });
@@ -98,18 +134,24 @@ const Support: React.FC = () => {
   // ฟังก์ชันสำหรับค้นหาข้อมูล
   const handleSearch = async (filters: FilterValues) => {
     try {
-      let searchResults: IssueData[] = [];
+      let searchResults: IssueWithProjectName[] = [];
 
       // ขั้นตอนที่ 1: ดึงข้อมูลจาก Firebase ถ้ามีการเลือก projectName
       if (filters.projectName) {
-        searchResults = await getIssuesByProjectName(filters.projectName);
+        // getIssuesByProjectName return IssueData[] → ต้อง map ใส่ projectName อีก
+        const rawIssues = await getIssuesByProjectName(filters.projectName);
+        const matchedProject = projects.find((p: { id: string; projectName: string }) => p.projectName === filters.projectName);
+        searchResults = rawIssues.map((issue: IssueData) => ({
+          ...issue,
+          projectName: matchedProject?.projectName || 'Unknown'
+        }));
       } else {
         searchResults = issues;  // ถ้าไม่มีการเลือก projectName ให้ใช้ข้อมูลทั้งหมด
       }
 
       // ขั้นตอนที่ 2: ฟิลเตอร์ข้อมูลตามเงื่อนไขอื่นๆ เช่น status, developer, baTest
       const filtered = filterIssues(searchResults, filters);
-      setFilteredData(filtered as IssueData[]);  // อัปเดตข้อมูลที่กรองแล้ว
+      setFilteredData(filtered as IssueWithProjectName[]);  // อัปเดตข้อมูลที่กรองแล้ว
 
     } catch (error) {
       console.error('Search error:', error);
@@ -117,19 +159,30 @@ const Support: React.FC = () => {
     }
   };
 
-  // เช็คว่ามีการเปลี่ยนแปลงเงื่อนไขการค้นหาหรือไม่
   const hasFiltersChanged = () => {
-    return (
-      filters.keyword !== defaultFilters.keyword ||
-      filters.status !== defaultFilters.status ||
-      filters.developer !== defaultFilters.developer ||
-      filters.baTest !== defaultFilters.baTest ||
-      filters.projectName !== defaultFilters.projectName ||
-      filters.issueDateFilter.type !== defaultFilters.issueDateFilter.type ||
-      filters.startDateFilter.type !== defaultFilters.startDateFilter.type ||
-      filters.dueDateFilter.type !== defaultFilters.dueDateFilter.type ||
-      filters.completeDateFilter.type !== defaultFilters.completeDateFilter.type
-    );
+    for (const key of Object.keys(defaultFilters) as (keyof FilterValues)[]) {
+      const defaultValue = defaultFilters[key];
+      const filterValue = filters[key];
+      if (
+        typeof defaultValue === "object" &&
+        defaultValue !== null &&
+        "type" in defaultValue
+      ) {
+        // date filter case
+        if (
+          typeof filterValue !== "object" ||
+          filterValue === null ||
+          !("type" in filterValue) ||
+          filterValue.type !== defaultValue.type
+        ) {
+          return true;
+        }
+      } else {
+        // string/primitive case
+        if (filterValue !== defaultValue) return true;
+      }
+    }
+    return false;
   };
 
   return (
@@ -146,7 +199,7 @@ const Support: React.FC = () => {
           baTestOptions={baTestOptions}
           projectOptions={projectOptions}
           isProjectSearchEnabled={true}
-          handleReset={handleReset}  // ส่งฟังก์ชัน handleReset ไปที่ SearchFormWithDropdown
+          handleReset={handleReset}
         />
         {hasFiltersChanged() && (
           <Button onClick={handleReset} style={{ marginLeft: "10px" }}>
@@ -155,7 +208,7 @@ const Support: React.FC = () => {
         )}
       </div>
 
-      <IssueTable 
+      <IssueTable
         showProjectName={true}
         issues={filteredData}
         loading={loading}

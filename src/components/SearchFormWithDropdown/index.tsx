@@ -34,10 +34,12 @@ function DateFilterRow({
   label,
   filter,
   onChange,
+  onAutoSearch,
 }: {
   label: string;
   filter: DateFilterValue;
   onChange: (filter: DateFilterValue) => void;
+  onAutoSearch?: () => void;
 }) {
   return (
     <Row gutter={8} style={{ marginBottom: 8 }}>
@@ -47,7 +49,10 @@ function DateFilterRow({
             style={{ width: "100%" }}
             value={filter?.type ?? ""}
             options={issueDateFilterOptions}
-            onChange={(type) => onChange({ type, value: undefined })}
+            onChange={(type) => {
+              onChange({ type, value: undefined });
+              onAutoSearch?.(); // 👈 trigger search
+            }}
             placeholder="เลือกวิธีค้นหา"
             allowClear
           />
@@ -60,7 +65,10 @@ function DateFilterRow({
               picker="month"
               style={{ width: "100%" }}
               value={filter.value || null}
-              onChange={(v) => onChange({ type: "customMonth", value: v })}
+              onChange={(v) => {
+                onChange({ type: "customMonth", value: v });
+                onAutoSearch?.(); // 👈 trigger search
+              }}
               placeholder="เลือกเดือน"
               allowClear
             />
@@ -72,7 +80,10 @@ function DateFilterRow({
               picker="year"
               style={{ width: "100%" }}
               value={filter.value || null}
-              onChange={(v) => onChange({ type: "customYear", value: v })}
+              onChange={(v) => {
+                onChange({ type: "customYear", value: v });
+                onAutoSearch?.();
+              }}
               placeholder="เลือกปี"
               allowClear
             />
@@ -84,7 +95,10 @@ function DateFilterRow({
               style={{ width: "100%" }}
               value={Array.isArray(filter.value) && filter.value.length === 2 ? filter.value : null}
               format="DD/MM/YY"
-              onChange={(v) => onChange({ type: "customRange", value: v })}
+              onChange={(v) => {
+                onChange({ type: "customRange", value: v });
+                onAutoSearch?.();
+              }}
               allowClear
             />
           </Form.Item>
@@ -232,22 +246,38 @@ const SearchFormWithDropdown: React.FC<SearchFormProps> = ({
         <DateFilterRow
           label="Issue Date"
           filter={filters.issueDateFilter}
-          onChange={(val) => handleFilterChange("issueDateFilter", val)}
+          
+          onChange={(val) => {
+            handleFilterChange("issueDateFilter", val);
+            onSearch({ ...filters, issueDateFilter: val });
+          }}
         />
         <DateFilterRow
           label="Start Date"
           filter={filters.startDateFilter}
-          onChange={(val) => handleFilterChange("startDateFilter", val)}
+
+          onChange={(val) => {
+            handleFilterChange("startDateFilter", val);
+            onSearch({ ...filters, startDateFilter: val });
+          }}
         />
         <DateFilterRow
           label="Due Date"
           filter={filters.dueDateFilter}
-          onChange={(val) => handleFilterChange("dueDateFilter", val)}
+          
+          onChange={(val) => {
+            handleFilterChange("dueDateFilter", val);
+            onSearch({ ...filters, dueDateFilter: val });
+          }}
         />
         <DateFilterRow
           label="Complete Date"
           filter={filters.completeDateFilter}
-          onChange={(val) => handleFilterChange("completeDateFilter", val)}
+          
+          onChange={(val) => {
+            handleFilterChange("completeDateFilter", val);
+            onSearch({ ...filters, completeDateFilter: val });
+          }}
         />
         
         <div style={{ marginTop: 16, textAlign: "right" }}>
