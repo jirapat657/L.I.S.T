@@ -56,6 +56,7 @@ export default function Sidebar() {
     getItem('Support', 'support', <HddFilled />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
     getItem('Scope of Work', 'scope', <FileTextFilled />),
+    getItem('Client Service Sheet', 'clientservicesheet', <FileTextFilled />),
     getItem('Other Document', 'other-document', <FileTextFilled />),
     getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
     getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
@@ -88,7 +89,7 @@ export default function Sidebar() {
   ]
 
   return (
-    <Layout.Sider className={styles.sidebarContainer}>
+    <Layout.Sider className={styles.sidebarContainer} width={210}>
       <Space direction="vertical">
         <img src='/icons/headerSidebar.png' alt='Logo' className={styles.logo} />
       </Space>

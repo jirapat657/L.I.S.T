@@ -26,12 +26,16 @@ import ViewIssue from '@/pages/Projects/ViewIssue';
 import EditIssueForm from '@/pages/Projects/EditIssueForm';
 import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
 import ScopeOfWork from '@/pages/ScopeOfWork';
+import ClientServiceSheet from '@/pages/ClientServiceSheet';
+import AddClientServiceSheet from '@/pages/ClientServiceSheet/AddClientServiceSheet';
+import ServiceSheetPrint from '@/pages/ClientServiceSheet/ServiceSheetPrint'
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
 import OtherDocument from '@/pages/OtherDocument'
 import ScheduleMeeting from '@/pages/ScheduleMeeting'
 import MeetingSummary from '@/pages/MeetingSummary'
 import ToDoList from '@/pages/ToDoList'
+
 
 export function Router() {
   const { currentUser, loading } = useAuth()
@@ -198,6 +202,26 @@ export function Router() {
               <ScopeOfWork />
             </PageContainer>
           ),
+        },
+        {
+          path: PATH.CLIENTSERVICESHEET,
+          element: (
+            <PageContainer title={PAGE_TITLE.CLIENTSERVICESHEET}>
+              <ClientServiceSheet />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.ADD_CLIENT_SERVICE_SHEET,
+          element: (
+            <PageContainer title={PAGE_TITLE.ADD_CLIENT_SERVICE_SHEET}>
+              <AddClientServiceSheet />
+            </PageContainer>
+          ),
+        },
+        {
+          path: "/service-sheets/print/:id",
+          element: <ServiceSheetPrint />,
         },
         {
           path: PATH.OTHER_DOCUMENT,
