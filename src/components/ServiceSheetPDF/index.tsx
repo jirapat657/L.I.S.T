@@ -31,17 +31,18 @@ type ClientServiceSheetData = {
   startTime?: string
   endTime?: string
   tasks?: ServiceTask[]
-  remark?: string 
-  customer?: PartyInfo
-  serviceByInfo?: PartyInfo
-  chargeFlags?: ('included'|'free'|'extra')[]
+  remark?: string
+  customerInfo?: PartyInfo    // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
+  serviceByInfo?: PartyInfo // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
+  chargeTypes?: ('included'|'free'|'extra')[] // แก้ไข: เปลี่ยนชื่อให้ตรงกับการใช้งาน
+  extraChargeDescription?: string; // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
 }
 
 /* ---------------- Styles ---------------- */
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Sarabun',
-    padding: 18,          // ขอบกระดาษ (mm-ish)
+    padding: 18,
     fontSize: 8,
     lineHeight: 1.35
   },
@@ -58,10 +59,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    // textAlign: 'right',
     marginRight: 35,
     marginBottom: 20
-
   },
 
   // Info boxes
@@ -77,41 +76,43 @@ const styles = StyleSheet.create({
   label: { fontWeight: 'bold' },
 
   // Table
-  table: { borderWidth: 1, borderColor: '#000', borderRadius: 4, marginTop: 4 },
-  tHead: { flexDirection: 'row', backgroundColor: '#f0f0f0', textAlign: 'center' },
+  table: { borderWidth: 1, borderColor: '#000', borderRadius: 4, marginTop: 4, overflow: 'hidden' }, // [เพิ่ม] overflow: 'hidden' เพื่อให้ border-radius แสดงผลถูกต้อง
+  tHead: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderBottomWidth: 1, borderColor: '#000' }, // [แก้ไข] เพิ่มเส้นใต้
   tRow: {
     flexDirection: 'row',
-    alignItems: 'stretch', // เปลี่ยนกลับเป็น stretch
+    alignItems: 'stretch',
+    
+    borderColor: '#f0f0f0', // [แก้ไข] สีเส้นให้อ่อนลง
+    minHeight: 24
+  },
+  tRowLast: { // [เพิ่ม] สไตล์สำหรับแถวสุดท้าย ไม่ต้องมีเส้นใต้
+    flexDirection: 'row',
+    alignItems: 'stretch',
     minHeight: 24,
-    borderColor: '#000',
   },
   cell: {
     borderRightWidth: 1,
     borderColor: '#000',
     padding: 6,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    height: '100%', // กำหนดให้เซลล์สูงเต็มที่
-    flex: 1, // สำหรับคอลัมน์ที่ต้องการให้ขยายตาม
+    justifyContent: 'center', // [แก้ไข] จัดกึ่งกลางแนวตั้งสำหรับข้อความสั้นๆ
+    flexGrow: 1, // [แก้ไข] ให้ขยายเต็มพื้นที่
+    flexShrink: 1,
   },
-  cellLast: {
+  cellLast: { // [แก้ไข] ทำให้สไตล์สอดคล้องกัน
     padding: 6,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    height: '100%',
-    borderRightWidth: 0,
+    justifyContent: 'center',
+    flexGrow: 1,
+    flexShrink: 1,
   },
   cNo: { 
     width: 30,
-    justifyContent: 'center',
-    textAlign: 'center',
-    height: '100%',
+    flexGrow: 0, // [เพิ่ม] ไม่ต้องขยาย
+    textAlign: 'center'
   },
-  cTask: { flexGrow: 1, minWidth: 240, maxWidth: 240 },
-  cType: { width: 60, textAlign: 'center' },
-  cStatus: { width: 60, textAlign: 'center' },
-  cServiceBy: { width: 160 },
+  cTask: { flexBasis: 240, flexGrow: 1 }, // [แก้ไข] ใช้ flexBasis และ flexGrow
+  cType: { width: 60, flexGrow: 0, textAlign: 'center' },
+  cStatus: { width: 60, flexGrow: 0, textAlign: 'center' },
+  cServiceBy: { flexBasis: 160, flexGrow: 1 }, // [แก้ไข] ใช้ flexBasis และ flexGrow
 
   // Remark
   remarkBox: { borderWidth: 1, borderColor: '#000', borderRadius: 4, padding: 8, minHeight: 77, marginTop: 10 },
@@ -128,17 +129,18 @@ const styles = StyleSheet.create({
   signRow: { 
     flexDirection: 'row', 
     gap: 10, 
-    marginTop: 20, // เพิ่ม marginTop เพื่อให้มีที่ว่างสำหรับ label
+    marginTop: 25, // [แก้ไข] เพิ่ม marginTop
   },
   signBoxContainer: {
     flex: 1,
-    position: 'relative', // จำเป็นสำหรับการจัดตำแหน่ง absolute ของ label
+    position: 'relative', 
   },
   signLabel: {
     fontWeight: 'bold',
     position: 'absolute',
-    top: -15, // ย้าย label ขึ้นไปเหนือกล่อง
-    backgroundColor: '#fff', // เพิ่มพื้นหลังเพื่อไม่ให้คำซ้อนกับเส้นขอบ
+    top: -15, 
+    left: 8, // [เพิ่ม] จัดตำแหน่งให้สวยงาม
+    backgroundColor: '#fff', 
     paddingHorizontal: 4,
   },
   signBox: { 
@@ -156,8 +158,10 @@ const styles = StyleSheet.create({
 const fmtDate = (d: any) =>
   d?.toDate ? dayjs(d.toDate()).format('DD/MM/YYYY') : dayjs(d).isValid() ? dayjs(d).format('DD/MM/YYYY') : '-'
 
-const isChecked = (flags: ClientServiceSheetData['chargeFlags'], k: 'included'|'free'|'extra') =>
-  !!flags?.includes(k)
+// ฟังก์ชัน isChecked ถูกลบไปเนื่องจากไม่มีการเรียกใช้ในโค้ดที่ให้มา
+// หากต้องการใช้ สามารถนำกลับมาได้
+// const isChecked = (flags: ClientServiceSheetData['chargeTypes'], k: 'included'|'free'|'extra') =>
+//   !!flags?.includes(k)
 
 /* ---------------- Component ---------------- */
 export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetData; logoSrc?: string }) => (
@@ -205,32 +209,27 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetD
         </View>
 
         {/* Data Rows */}
-        {(sheet.tasks?.length ? sheet.tasks : []).map((t, i) => (
-          <View key={i} style={styles.tRow}>
-            <View style={[styles.cell, styles.cNo]}><Text>{i + 1}</Text></View>
-            <View style={[styles.cell, styles.cTask]}><Text wrap>{t.description || '-'}</Text></View>
-            <View style={[styles.cell, styles.cType]}><Text>{t.type || '-'}</Text></View>
-            <View style={[styles.cell, styles.cStatus]}><Text>{t.status || '-'}</Text></View>
-            <View style={[styles.cellLast, styles.cServiceBy]}><Text>{t.serviceBy || '-'}</Text></View>
-          </View>
-        ))}
-
-        {/* Empty Rows (minimum 5 rows total) */}
-        {Array.from({ length: Math.max(0, 9 - (sheet.tasks?.length || 0)) }).map((_, i) => (
-          <View key={`empty-${i}`} style={styles.tRow}>
-            <View style={[styles.cell, styles.cNo]}><Text> </Text></View>
-            <View style={[styles.cell, styles.cTask]}><Text> </Text></View>
-            <View style={[styles.cell, styles.cType]}><Text> </Text></View>
-            <View style={[styles.cell, styles.cStatus]}><Text> </Text></View>
-            <View style={[styles.cellLast, styles.cServiceBy]}><Text> </Text></View>
-          </View>
-        ))}
+        {/* [แก้ไข] เพิ่มการวนลูปสำหรับแถวว่าง และใช้ style ของแถวสุดท้าย */}
+        {Array.from({ length: Math.max(9, sheet.tasks?.length || 0) }).map((_, i) => {
+            const t = sheet.tasks?.[i]
+            const isLastRow = i === Math.max(9, sheet.tasks?.length || 0) - 1
+            const rowStyle = isLastRow ? styles.tRowLast : styles.tRow
+            return (
+              <View key={t?.description ? `task-${i}` : `empty-${i}`} style={rowStyle}>
+                <View style={[styles.cell, styles.cNo]}><Text>{t ? i + 1 : ' '}</Text></View>
+                <View style={[styles.cell, styles.cTask]}><Text wrap>{t?.description || ' '}</Text></View>
+                <View style={[styles.cell, styles.cType]}><Text wrap>{t?.type || ' '}</Text></View>
+                <View style={[styles.cell, styles.cStatus]}><Text wrap>{t?.status || ' '}</Text></View>
+                <View style={[styles.cellLast, styles.cServiceBy]}><Text wrap>{t?.serviceBy || ' '}</Text></View>
+              </View>
+            )
+        })}
       </View>
 
       {/* Remark */}
       <View style={styles.remarkBox}>
         <Text style={styles.label}>Remark :</Text>
-        <Text>{sheet.remark || ' '}</Text>
+        <Text wrap>{sheet.remark || ' '}</Text>
       </View>
 
       {/* Codes + Charge flags */}
@@ -258,7 +257,7 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetD
           </View>
           <View style={styles.checkRow}>
             <View style={[styles.check, sheet.chargeTypes?.includes('extra') && styles.checked]} />
-            <Text>Extra Charge: {sheet.extraChargeDescription || '__________________'}</Text>
+            <Text wrap>Extra Charge: {sheet.extraChargeDescription || '__________________'}</Text>
           </View>
         </View>
       </View>
@@ -268,9 +267,9 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetD
         <View style={styles.signBoxContainer}>
           <Text style={styles.signLabel}>Customer</Text>
           <View style={styles.signBox}>
-            <Text>Company: {sheet.customerInfo?.company || '-'}</Text>
-            <Text>Name: {sheet.customerInfo?.name || '-'}</Text>
-            <Text>Date: {sheet.customerInfo?.date ? new Date(sheet.customerInfo.date).toLocaleDateString() : '-'}</Text>
+            <Text wrap>Company: {sheet.customerInfo?.company || '-'}</Text>
+            <Text wrap>Name: {sheet.customerInfo?.name || '-'}</Text>
+            <Text>Date: {sheet.customerInfo?.date ? fmtDate(sheet.customerInfo.date) : '-'}</Text>
             <Text>Signature: {sheet.customerInfo?.signature || '-'}</Text>
           </View>
         </View>
@@ -278,9 +277,9 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetD
         <View style={styles.signBoxContainer}>
           <Text style={styles.signLabel}>Service by</Text>
           <View style={styles.signBox}>
-            <Text>Company: {sheet.serviceByInfo?.company || '-'}</Text>
-            <Text>Name: {sheet.serviceByInfo?.name || '-'}</Text>
-            <Text>Date: {sheet.serviceByInfo?.date ? new Date(sheet.serviceByInfo.date).toLocaleDateString() : '-'}</Text>
+            <Text wrap>Company: {sheet.serviceByInfo?.company || '-'}</Text>
+            <Text wrap>Name: {sheet.serviceByInfo?.name || '-'}</Text>
+            <Text>Date: {sheet.serviceByInfo?.date ? fmtDate(sheet.serviceByInfo.date) : '-'}</Text>
             <Text>Signature: {sheet.serviceByInfo?.signature || '-'}</Text>
           </View>
         </View>
