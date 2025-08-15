@@ -28,6 +28,7 @@ import DuplicateIssueForm from '@/pages/Projects/DuplicateIssueForm';
 import ScopeOfWork from '@/pages/ScopeOfWork';
 import ClientServiceSheet from '@/pages/ClientServiceSheet';
 import AddClientServiceSheet from '@/pages/ClientServiceSheet/AddClientServiceSheet';
+import DuplicateClientServiceSheet from '@/pages/ClientServiceSheet/DuplicateClientServiceSheet';
 import ServiceSheetPrint from '@/pages/ClientServiceSheet/ServiceSheetPrint'
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
@@ -216,6 +217,14 @@ export function Router() {
           element: (
             <PageContainer title={PAGE_TITLE.ADD_CLIENT_SERVICE_SHEET}>
               <AddClientServiceSheet />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.DUPLICATE_CLIENT_SERVICE_SHEET,
+          element: (
+            <PageContainer title={PAGE_TITLE.DUPLICATE_CLIENT_SERVICE_SHEET}>
+              <DuplicateClientServiceSheet />
             </PageContainer>
           ),
         },
