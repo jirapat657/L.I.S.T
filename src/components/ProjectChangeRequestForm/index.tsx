@@ -1,4 +1,4 @@
-// src/components/ClientServiceSheetForm/index.tsx
+//src/components/ProjectChangeRequestForm/index.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Form,
@@ -10,49 +10,62 @@ import {
   Select,
   Table,
   Popconfirm,
-  Checkbox,
   Divider,
+  Checkbox, // [เพิ่ม] Import Checkbox
   type FormInstance,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Timestamp } from 'firebase/firestore';
 
-// [แก้ไข] นำเข้า Type ที่ถูกต้อง
-import type {
-  ServiceTask,
-  ClientServiceSheet_Firestore,
-} from '@/types/clientServiceSheet';
+// --- Placeholder Types (กรุณาแทนที่ด้วย Type จริงจาก src/types) ---
+type ChangeRequestTask = {
+  id: string;
+  sequence?: string;
+  description?: string;
+  requestedBy?: string;
+  approved?: string;
+};
 
-/* --------------------------------------------- */
-/* Props Interface                      */
-/* --------------------------------------------- */
-interface ClientServiceSheetFormProps {
-  // [แก้ไข] ใช้ Type สำหรับ Firestore
-  initialValues?: Partial<ClientServiceSheet_Firestore>;
-  onFinish: (values: ClientServiceSheet_Firestore) => Promise<void>;
+type PartyInfo = {
+  company?: string;
+  name?: string;
+  date?: Timestamp | null;
+  signature?: string;
+};
+
+// [แก้ไข] เพิ่มฟิลด์สำหรับ Charge Section
+type ProjectChangeRequest_Firestore = {
+  id: string;
+  projectName?: string;
+  projectStage?: string;
+  jobCode?: string;
+  date?: Timestamp | null;
+  tasks?: ChangeRequestTask[];
+  chargeTypes?: ('included' | 'free' | 'extra')[];
+  extraChargeDescription?: string;
+  remark?: string;
+  customerInfo?: PartyInfo;
+  serviceByInfo?: PartyInfo;
+};
+// --- สิ้นสุดส่วนของ Placeholder ---
+
+interface ProjectChangeRequestFormProps {
+  initialValues?: Partial<ProjectChangeRequest_Firestore>;
+  onFinish: (values: ProjectChangeRequest_Firestore) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   submitButtonText?: string;
   formInstance?: FormInstance;
 }
 
-/* --------------------------------------------- */
-/* Local types & Options                 */
-/* --------------------------------------------- */
-type ChargeType = ('included' | 'free' | 'extra')[];
-
-// [เพิ่ม] Type สำหรับค่าที่ได้จาก Form โดยตรง (ก่อนแปลงเป็น Timestamp)
+// [แก้ไข] เพิ่มฟิลด์สำหรับ Charge Section
 type FormValues = {
   projectName?: string;
-  serviceLocation?: string;
-  startTime?: string;
-  endTime?: string;
+  projectStage?: string;
   jobCode?: string;
   date?: dayjs.Dayjs;
-  user?: string;
-  totalHours?: number | string;
-  chargeTypes?: ChargeType;
+  chargeTypes?: ('included' | 'free' | 'extra')[];
   extraChargeDescription?: string;
   remark?: string;
   customerInfo?: {
@@ -69,99 +82,78 @@ type FormValues = {
   };
 };
 
+// --- Placeholder Options (กรุณาแทนที่ด้วยข้อมูลจริง) ---
+const projectStageOptions = [
+  { label: 'Initiation', value: 'Initiation' },
+  { label: 'Planning', value: 'Planning' },
+  { label: 'Execution', value: 'Execution' },
+  { label: 'Closing', value: 'Closing' },
+];
+// ---
 
-const typeOptions = [
-  { label: 'Installation', value: 'Installation' },
-  { label: 'Maintenance', value: 'Maintenance' },
-  { label: 'Repair', value: 'Repair' },
-  { label: 'Onsite Service', value: 'Onsite Service' },
-];
-const statusOptions = [
-  { label: 'Complete', value: 'Complete' },
-  { label: 'Follow up', value: 'Follow up' },
-];
-const userOptions = [
-  { label: 'Tech A', value: 'Tech A' },
-  { label: 'Tech B', value: 'Tech B' },
-  { label: 'Support', value: 'Support' },
-];
-
-/* --------------------------------------------- */
-/* Subtable Component                */
-/* --------------------------------------------- */
-const ServiceTaskTable: React.FC<{
-  tasks: ServiceTask[];
-  onUpdate: (id: string, field: keyof ServiceTask, value: ServiceTask[keyof ServiceTask]) => void;
+const ChangeRequestTaskTable: React.FC<{
+  tasks: ChangeRequestTask[];
+  onUpdate: (id: string, field: keyof ChangeRequestTask, value: any) => void;
   onDelete: (id: string) => void;
-  userOptions: { label: string; value: string }[];
-}> = ({ tasks, onUpdate, onDelete, userOptions }) => {
+}> = ({ tasks, onUpdate, onDelete }) => {
   const columns = [
     {
-      title: 'No.',
-      render: (_: unknown, __: unknown, index: number) => index + 1,
-      width: 60,
-    },
-    {
-      title: 'Task Description',
-      dataIndex: 'description',
-      render: (text: string, record: ServiceTask) => (
+      title: 'Seq.',
+      dataIndex: 'sequence',
+      width: 80,
+      render: (text: string, record: ChangeRequestTask) => (
         <Input
           value={text}
+          onChange={(e) => onUpdate(record.id, 'sequence', e.target.value)}
+          placeholder="Seq."
+        />
+      ),
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      render: (text: string, record: ChangeRequestTask) => (
+        <Input.TextArea
+          value={text}
           onChange={(e) => onUpdate(record.id, 'description', e.target.value)}
+          autoSize={{ minRows: 1, maxRows: 4 }}
         />
       ),
     },
     {
-      title: 'Type',
-      dataIndex: 'type',
-      render: (text: string, record: ServiceTask) => (
-        <Select
+      title: 'Requested By',
+      dataIndex: 'requestedBy',
+      width: 200,
+      render: (text: string, record: ChangeRequestTask) => (
+        <Input.TextArea
           value={text}
-          options={typeOptions}
-          onChange={(value) => onUpdate(record.id, 'type', value)}
-          style={{ width: 160 }}
-          placeholder="Select type"
+          onChange={(e) => onUpdate(record.id, 'requestedBy', e.target.value)}
+          autoSize={{ minRows: 1, maxRows: 4 }}
+          placeholder="Enter requester"
         />
       ),
-      width: 170,
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (text: string, record: ServiceTask) => (
-        <Select
+      title: 'Approved',
+      dataIndex: 'approved',
+      width: 200,
+      render: (text: string, record: ChangeRequestTask) => (
+        <Input.TextArea
           value={text}
-          options={statusOptions}
-          onChange={(value) => onUpdate(record.id, 'status', value)}
-          style={{ width: 160 }}
-          placeholder="Select status"
+          onChange={(e) => onUpdate(record.id, 'approved', e.target.value)}
+          autoSize={{ minRows: 1, maxRows: 4 }}
+          placeholder="Enter approver"
         />
       ),
-      width: 170,
-    },
-    {
-      title: 'Service By',
-      dataIndex: 'serviceBy',
-      render: (text: string, record: ServiceTask) => (
-        <Select
-          value={text}
-          options={userOptions}
-          onChange={(value) => onUpdate(record.id, 'serviceBy', value)}
-          style={{ width: 180 }}
-          showSearch
-          placeholder="Select user"
-        />
-      ),
-      width: 190,
     },
     {
       title: '',
       key: 'actions',
       width: 80,
       align: 'center' as const,
-      render: (_: unknown, record: ServiceTask) => (
+      render: (_: any, record: ChangeRequestTask) => (
         <Popconfirm
-          title="Delete this task?"
+          title="Delete this item?"
           onConfirm={() => onDelete(record.id)}
           okText="Delete"
           cancelText="Cancel"
@@ -182,12 +174,9 @@ const ServiceTaskTable: React.FC<{
   );
 };
 
-const defaultInitialValues: Partial<ClientServiceSheet_Firestore> = {};
+const defaultInitialValues: Partial<ProjectChangeRequest_Firestore> = {};
 
-/* --------------------------------------------- */
-/* Main Form Component               */
-/* --------------------------------------------- */
-const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
+const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
   initialValues = defaultInitialValues,
   onFinish,
   onCancel,
@@ -196,7 +185,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   formInstance,
 }) => {
   const [form] = Form.useForm(formInstance);
-  const [tasks, setTasks] = useState<ServiceTask[]>([]);
+  const [tasks, setTasks] = useState<ChangeRequestTask[]>([]);
 
   useEffect(() => {
     const initialTasks =
@@ -233,92 +222,70 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       ...prev,
       {
         id: `new-${Date.now()}`,
+        sequence: '',
         description: '',
-        type: '',
-        status: '',
-        serviceBy: '',
+        requestedBy: '',
+        approved: '',
       },
     ]);
+
   const handleUpdateTask = (
     id: string,
-    field: keyof ServiceTask,
-    value: ServiceTask[keyof ServiceTask]
+    field: keyof ChangeRequestTask,
+    value: any
   ) =>
     setTasks((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     );
+
   const handleDeleteTask = (id: string) =>
     setTasks((prev) => prev.filter((row) => row.id !== id));
 
-  function hasToDate(obj: unknown): obj is { toDate: () => Date } {
-    return (
-      typeof obj === 'object' &&
-      obj !== null &&
-      'toDate' in obj &&
-      typeof (obj as { toDate: unknown }).toDate === 'function'
-    );
-  }
-
-  const toTimestamp = (
-    val: dayjs.Dayjs | Timestamp | Date | string | null | undefined
-  ): Timestamp | null => {
+  const toTimestamp = (val: any): Timestamp | null => {
     if (!val) return null;
     if (val instanceof Timestamp) return val;
-    if (hasToDate(val)) {
-      return Timestamp.fromDate(val.toDate());
-    }
-    return Timestamp.fromDate(new Date(val as string | Date));
+    if (val.toDate) return Timestamp.fromDate(val.toDate());
+    return Timestamp.fromDate(new Date(val));
   };
 
   const handleFormSubmit = (values: FormValues) => {
-    const payload: ClientServiceSheet_Firestore = {
+    // [แก้ไข] เพิ่มฟิลด์ใหม่เข้าไปใน payload
+    const payload: ProjectChangeRequest_Firestore = {
       id: initialValues.id || '',
       projectName: values.projectName || '',
-      serviceLocation: values.serviceLocation || '',
-      startTime: values.startTime || '',
-      endTime: values.endTime || '',
+      projectStage: values.projectStage || '',
       jobCode: values.jobCode || '',
+      date: toTimestamp(values.date),
+      tasks,
+      chargeTypes: values.chargeTypes || [],
       extraChargeDescription: values.extraChargeDescription || '',
       remark: values.remark || '',
-      tasks,
-      date: toTimestamp(values.date) || null,
-      user: values.user || '',
-      totalHours: Number(values.totalHours) || 0,
-      chargeTypes: values.chargeTypes || [],
       customerInfo: {
         company: values.customerInfo?.company || '',
         name: values.customerInfo?.name || '',
-        date: toTimestamp(values.customerInfo?.date) || null,
+        date: toTimestamp(values.customerInfo?.date),
         signature: values.customerInfo?.signature || '',
       },
       serviceByInfo: {
         company: values.serviceByInfo?.company || '',
         name: values.serviceByInfo?.name || '',
-        date: toTimestamp(values.serviceByInfo?.date) || null,
+        date: toTimestamp(values.serviceByInfo?.date),
         signature: values.serviceByInfo?.signature || '',
       },
     };
-    
     onFinish(payload);
   };
-
-  const chargeTypes = Form.useWatch<ChargeType>('chargeTypes', form);
+  
+  // [เพิ่ม] ใช้ useWatch เพื่อติดตามค่าของ Checkbox
+  const chargeTypes = Form.useWatch('chargeTypes', form);
 
   return (
     <Form
       layout="vertical"
       form={form}
       onFinish={handleFormSubmit}
-      // [แก้ไข] นำ `...initialValues` ออกจากส่วนนี้
-      initialValues={{
-        date: dayjs(),
-        chargeTypes: [],
-        customerInfo: {},
-        serviceByInfo: {},
-        remark: '',
-      }}
+      initialValues={{ date: dayjs(), chargeTypes: [] }}
     >
-      {/* ----- Base fields ----- */}
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
@@ -331,29 +298,11 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         </Col>
         <Col span={12}>
           <Form.Item
-            label="Service Location"
-            name="serviceLocation"
+            label="Project Stage"
+            name="projectStage"
             rules={[{ required: true }]}
           >
-            <Input placeholder="Enter service location" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            label="Start Time"
-            name="startTime"
-            rules={[{ required: true }]}
-          >
-            <Input type="time" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            label="End Time"
-            name="endTime"
-            rules={[{ required: true }]}
-          >
-            <Input type="time" />
+            <Select options={projectStageOptions} placeholder="Select stage" />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -366,36 +315,20 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
             <DatePicker style={{ width: '100%' }} format="DD/MM/YY" />
           </Form.Item>
         </Col>
-        <Col span={12}>
-          <Form.Item label="User" name="user" rules={[{ required: true }]}>
-            <Select showSearch options={userOptions} placeholder="Select user" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            label="Total Hours"
-            name="totalHours"
-          >
-            <Input placeholder="Enter total hours" type="number" min={0} />
-          </Form.Item>
-        </Col>
       </Row>
 
-      {/* ----- Tasks section ----- */}
-      <Divider orientation="left">Service Tasks</Divider>
+      <Divider orientation="left">Change Request Items</Divider>
       <div style={{ textAlign: 'right', margin: '12px 0' }}>
         <Button onClick={handleAddTask}>
-          <PlusOutlined /> Add Task
+          <PlusOutlined /> Add Item
         </Button>
       </div>
-      <ServiceTaskTable
+      <ChangeRequestTaskTable
         tasks={tasks}
         onUpdate={handleUpdateTask}
         onDelete={handleDeleteTask}
-        userOptions={userOptions}
       />
 
-      {/* ----- Remark section ----- */}
       <Divider orientation="left">Remark</Divider>
       <Form.Item name="remark" label="Additional Notes">
         <Input.TextArea
@@ -404,7 +337,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         />
       </Form.Item>
 
-      {/* ----- Charge section ----- */}
+      {/* Charge Section */}
       <Divider orientation="left">Charge</Divider>
       <Form.Item label="Charge Types" style={{ marginBottom: 0 }}>
         <Row gutter={8} align="middle">
@@ -421,7 +354,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           </Col>
           {chargeTypes?.includes('extra') && (
             <Col flex="auto">
-              <Form.Item name="extraChargeDescription" rules={[{ required: true }]} noStyle>
+              <Form.Item name="extraChargeDescription" noStyle>
                 <Input placeholder="Describe the extra charge" />
               </Form.Item>
             </Col>
@@ -429,7 +362,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         </Row>
       </Form.Item>
 
-      {/* ----- Signatures section ----- */}
       <Divider orientation="left">Signatures</Divider>
       <Row gutter={24}>
         <Col span={12}>
@@ -464,7 +396,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         </Col>
       </Row>
 
-      {/* ----- Footer Buttons ----- */}
       <div
         style={{
           display: 'flex',
@@ -483,4 +414,4 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   );
 };
 
-export default ClientServiceSheetForm;
+export default ProjectChangeRequestForm;

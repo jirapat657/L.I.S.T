@@ -161,10 +161,10 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
         
         <View style={styles.companyBlock}>
           {logoSrc ? <Image style={styles.logo} src={logoSrc} /> : <View style={[styles.logo]} />}
-          <Text>ลูคัส สแทรททิจี จำกัด (สำนักงานใหญ่)</Text>
-          <Text>49 ซอย 12 ถนนโชตนา ตำบลช้างเผือก อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50300</Text>
-          <Text>เลขประจำตัวผู้เสียภาษี 0505567004571</Text>
-          <Text>เบอร์: 064-9978756</Text>
+          <Text>ลูคัส สแทรททิจี จำกัด (สำนักงานใหญ่) &nbsp;</Text>
+          <Text>49 ซอย 12 ถนนโชตนา ตำบลช้างเผือก อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50300 &nbsp;</Text>
+          <Text>เลขประจำตัวผู้เสียภาษี 0505567004571 &nbsp;</Text>
+          <Text>เบอร์มือถือ: 064-9978756</Text>
           <Text>www.ls.co.th</Text>
         </View>
         <Text style={styles.title}>Client Service Sheet</Text>

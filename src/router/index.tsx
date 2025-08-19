@@ -30,6 +30,10 @@ import ClientServiceSheet from '@/pages/ClientServiceSheet';
 import AddClientServiceSheet from '@/pages/ClientServiceSheet/AddClientServiceSheet';
 import DuplicateClientServiceSheet from '@/pages/ClientServiceSheet/DuplicateClientServiceSheet';
 import ServiceSheetPrint from '@/pages/ClientServiceSheet/ServiceSheetPrint'
+import ProjectChangeRequest from '@/pages/ProjectChangeRequest'
+import AddProjectChangeRequest from '@/pages/ProjectChangeRequest/AddProjectChangeRequest'
+import DuplicateProjectChangeRequest from '@/pages/ProjectChangeRequest/DuplicateProjectChangeRequest'
+import ProjectChangeRequestPrint from '@/pages/ProjectChangeRequest/ProjectChangeRequestPrint'
 import AddProjectSetting from '@/pages/Setting/AddProject';
 import AddUserSetting from '@/pages/Setting/AddUser';
 import OtherDocument from '@/pages/OtherDocument'
@@ -231,6 +235,34 @@ export function Router() {
         {
           path: "/service-sheets/print/:id",
           element: <ServiceSheetPrint />,
+        },
+        {
+          path: PATH.PROJECTCHANGEREQUEST,
+          element: (
+            <PageContainer title={PAGE_TITLE.PROJECTCHANGEREQUEST}>
+              <ProjectChangeRequest />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.ADD_PROJECT_CHANGE_REQUEST,
+          element: (
+            <PageContainer title={PAGE_TITLE.ADD_PROJECT_CHANGE_REQUEST}>
+              <AddProjectChangeRequest />
+            </PageContainer>
+          ),
+        },
+        {
+          path: PATH.DUPLICATE_PROJECT_CHANGE_REQUEST,
+          element: (
+            <PageContainer title={PAGE_TITLE.DUPLICATE_PROJECT_CHANGE_REQUEST}>
+              <DuplicateProjectChangeRequest />
+            </PageContainer>
+          ),
+        },
+        {
+          path: "/project-change-requests/print/:id",
+          element: <ProjectChangeRequestPrint />,
         },
         {
           path: PATH.OTHER_DOCUMENT,

@@ -5,70 +5,65 @@ import {
   doc,
   getDocs,
   getDoc,
-  setDoc,
   deleteDoc,
   updateDoc,
   Timestamp,
   orderBy,
   query,
+  addDoc,
 } from 'firebase/firestore'
 import { db } from '@/services/firebase'
-import type { ClientServiceSheetData } from '@/types/clientServiceSheet'
+// [แก้ไข] นำเข้า Type สำหรับ Firestore โดยเฉพาะ
+import type { ClientServiceSheet_Firestore } from '@/types/clientServiceSheet'
 
 const COLLECTION_NAME = 'LIMClientServiceSheets'
 
 /**
  * เพิ่ม Client Service Sheet ใหม่
- * - values ต้องแปลงวันที่ (date) เป็น Firestore Timestamp ก่อนเรียกใช้
- * - totalHours ต้องเป็น number
+ * @param values ข้อมูลที่ไม่มี id, createdAt, updatedAt (เพราะจะถูกสร้างใหม่)
+ * @returns ID ของเอกสารที่ถูกสร้างขึ้น
  */
 export const addClientServiceSheet = async (
-  values: Omit<ClientServiceSheetData, 'id' | 'createdAt' | 'updatedAt'>
+  values: Omit<ClientServiceSheet_Firestore, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
+  // [ปรับปรุง] ใช้ addDoc เพื่อให้ Firestore สร้าง ID ให้อัตโนมัติและโค้ดกระชับขึ้น
   const colRef = collection(db, COLLECTION_NAME)
-  const docRef = doc(colRef) // สร้าง doc ใหม่ ให้ id อัตโนมัติ
-
-  // รับรองว่า date เป็น Timestamp, totalHours เป็น number
-  const payload: ClientServiceSheetData = {
+  
+  const payload = {
     ...values,
-    id: docRef.id,
-    date:
-      typeof values.date === 'string'
-        ? Timestamp.fromDate(new Date(values.date))
-        : values.date ?? Timestamp.now(),
-    totalHours: typeof values.totalHours === 'string'
-      ? Number(values.totalHours)
-      : values.totalHours,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   }
 
-  await setDoc(docRef, payload)
+  const docRef = await addDoc(colRef, payload)
+  
+  // อัปเดตเอกสารด้วย ID ของตัวเองเพื่อให้ง่ายต่อการ query ในอนาคต
+  await updateDoc(docRef, { id: docRef.id });
+
   return docRef.id
 }
 
 /**
- * อัปเดต Client Service Sheet (ระบุ id ที่ต้องการอัปเดต)
- * - values สามารถระบุแค่บางฟิลด์ก็ได้
+ * อัปเดต Client Service Sheet
+ * @param id ID ของเอกสารที่ต้องการอัปเดต
+ * @param values ข้อมูลส่วนที่ต้องการอัปเดต
  */
 export const updateClientServiceSheet = async (
   id: string,
-  values: Partial<ClientServiceSheetData>
+  // [แก้ไข] Type ของ values ควรเป็น Partial และไม่ควรมี id
+  values: Partial<Omit<ClientServiceSheet_Firestore, 'id'>>
 ) => {
   const docRef = doc(db, COLLECTION_NAME, id)
-  // แปลง date เป็น Timestamp ถ้าส่งมาเป็น string
-  const toUpdate: Partial<ClientServiceSheetData> = { ...values, updatedAt: Timestamp.now() }
-  if (toUpdate.date && typeof toUpdate.date === 'string') {
-    toUpdate.date = Timestamp.fromDate(new Date(toUpdate.date))
+  const payload = {
+    ...values,
+    updatedAt: Timestamp.now(),
   }
-  if (toUpdate.totalHours && typeof toUpdate.totalHours === 'string') {
-    toUpdate.totalHours = Number(toUpdate.totalHours)
-  }
-  await updateDoc(docRef, toUpdate)
+  await updateDoc(docRef, payload)
 }
 
 /**
  * ลบ Client Service Sheet
+ * @param id ID ของเอกสารที่ต้องการลบ
  */
 export const deleteClientServiceSheet = async (id: string) => {
   const docRef = doc(db, COLLECTION_NAME, id)
@@ -76,19 +71,24 @@ export const deleteClientServiceSheet = async (id: string) => {
 }
 
 /**
- * ดึง Client Service Sheet ทั้งหมด (เรียงตาม createdAt ใหม่สุดก่อน)
+ * ดึง Client Service Sheet ทั้งหมด (เรียงตามวันที่สร้างใหม่สุดก่อน)
+ * @returns Array ของ Client Service Sheet
  */
-export const getClientServiceSheets = async (): Promise<ClientServiceSheetData[]> => {
+export const getClientServiceSheets = async (): Promise<ClientServiceSheet_Firestore[]> => {
   const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'))
   const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => doc.data() as ClientServiceSheetData)
+  // [แก้ไข] ระบุ Type ที่ return ให้ชัดเจน
+  return snapshot.docs.map(doc => doc.data() as ClientServiceSheet_Firestore)
 }
 
 /**
  * ดึง Client Service Sheet ตาม id
+ * @param id ID ของเอกสารที่ต้องการ
+ * @returns ข้อมูลเอกสาร หรือ null หากไม่พบ
  */
-export const getClientServiceSheetById = async (id: string) => {
+export const getClientServiceSheetById = async (id: string): Promise<ClientServiceSheet_Firestore | null> => {
   const docRef = doc(db, COLLECTION_NAME, id)
   const docSnap = await getDoc(docRef)
-  return docSnap.exists() ? docSnap.data() as ClientServiceSheetData : null
+  // [แก้ไข] ระบุ Type ที่ return ให้ชัดเจน
+  return docSnap.exists() ? (docSnap.data() as ClientServiceSheet_Firestore) : null
 }

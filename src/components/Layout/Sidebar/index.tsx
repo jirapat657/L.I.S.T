@@ -57,6 +57,7 @@ export default function Sidebar() {
     getItem('Projects', 'projects', <UnorderedListOutlined />),
     getItem('Scope of Work', 'scope', <FileTextFilled />),
     getItem('Client Service Sheet', 'clientservicesheet', <FileTextFilled />),
+    getItem('Project Change Request', 'projectchangerequest', <FileTextFilled />),
     getItem('Other Document', 'other-document', <FileTextFilled />),
     getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
     getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
