@@ -1,26 +1,38 @@
 // src/pages/ClientServiceSheet/index.tsx
 
 import React from 'react';
-import { Button, Dropdown, Menu, Table, message, Form } from 'antd';
-import { PlusOutlined, MoreOutlined, PrinterOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Menu, Table, message, Row, Col, Input } from 'antd';
+import { PlusOutlined, MoreOutlined, PrinterOutlined, CopyOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { ClientServiceSheetData } from '@/types/clientServiceSheet';
+import type { ClientServiceSheet_Firestore } from '@/types/clientServiceSheet';
 import { getClientServiceSheets, deleteClientServiceSheet } from '@/api/clientServiceSheet';
-import SearchFormWithDropdown from "@/components/SearchFormWithDropdown"; // Optional: if you use search
-import { defaultFilters } from '@/constants/searchFilters'; // Optional: if you use search
 
 const ClientServiceSheet: React.FC = () => {
-  const [searchForm] = Form.useForm();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchProjectsName, setSearchProjectsName] = React.useState('');
+  const [filteredData, setFilteredData] = React.useState<ClientServiceSheet_Firestore[]>([]);
+
+  
 
   // --- Fetch Data ---
   const { data: serviceSheets = [], isLoading } = useQuery({
     queryKey: ['clientServiceSheets'],
     queryFn: getClientServiceSheets,
   });
+
+  React.useEffect(() => {
+    if (searchProjectsName) {
+      const filtered = serviceSheets.filter(item =>
+        item.projectName?.toLowerCase().includes(searchProjectsName.toLowerCase())
+      );
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(serviceSheets);
+    }
+  }, [searchProjectsName, serviceSheets]);
 
   // --- Delete Mutation ---
   const deleteMutation = useMutation({
@@ -43,20 +55,32 @@ const ClientServiceSheet: React.FC = () => {
    * This is the key function. It navigates to the dedicated duplicate page,
    * passing the ID of the sheet to be copied in the URL.
    */
-  const handleDuplicate = (id: string) => {
-    navigate(`/client-service-sheets/duplicate/${id}`);
-  };
-
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handlePrint = (id: string) => {
+  const handlePrint = (id: string | undefined) => {
+    if (!id) {
+      message.error('Invalid service sheet ID');
+      return;
+    }
     navigate(`/service-sheets/print/${id}`);
   };
 
+  const handleDuplicate = (id: string | undefined) => {
+    if (!id) {
+      message.error('Invalid service sheet ID');
+      return;
+    }
+    navigate(`/client-service-sheets/duplicate/${id}`);
+  };
+
+  const handleDelete = (id: string | undefined) => {
+    if (!id) {
+      message.error('Invalid service sheet ID');
+      return;
+    }
+    deleteMutation.mutate(id);
+  };
+
   // --- Dropdown Menu for each row ---
-  const getMoreActionMenu = (record: ClientServiceSheetData) => (
+  const getMoreActionMenu = (record: ClientServiceSheet_Firestore) => (
     <Menu>
       <Menu.Item
         key="print"
@@ -68,7 +92,7 @@ const ClientServiceSheet: React.FC = () => {
       <Menu.Item
         key="duplicate"
         icon={<CopyOutlined />}
-        onClick={() => handleDuplicate(record.id)} // This is the trigger
+        onClick={() => handleDuplicate(record.id)}
       >
         Duplicate
       </Menu.Item>
@@ -89,7 +113,10 @@ const ClientServiceSheet: React.FC = () => {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      render: (val: any) => val?.toDate ? val.toDate().toLocaleDateString('th-TH') : '-',
+      render: (val: Date | { toDate: () => Date } | undefined) =>
+        val && typeof (val as { toDate?: () => Date }).toDate === 'function'
+          ? (val as { toDate: () => Date }).toDate().toLocaleDateString('th-TH')
+          : '-',
     },
     {
       title: 'Project Name',
@@ -110,7 +137,7 @@ const ClientServiceSheet: React.FC = () => {
       title: 'Actions',
       key: 'action',
       align: 'center' as const,
-      render: (_: any, record: ClientServiceSheetData) => (
+      render: (_: unknown, record: ClientServiceSheet_Firestore) => (
         <Dropdown overlay={getMoreActionMenu(record)} trigger={['click']}>
           <Button icon={<MoreOutlined />} />
         </Dropdown>
@@ -120,24 +147,39 @@ const ClientServiceSheet: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2>Client Service Sheet</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
+        
         <Button type="primary" onClick={handleAdd}>
           <PlusOutlined /> Add Service Sheet
         </Button>
       </div>
-      
-      {/* Optional Search Bar */}
-      {/* <SearchFormWithDropdown
-        form={searchForm}
-        // ... other props
-      />
-      */}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button
+          onClick={() => {
+            
+            setSearchProjectsName('')
+          }}
+        >
+          <SyncOutlined /> Clear Search
+        </Button>
+      </div>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        
+        <Col span={12}>
+          <Input
+            placeholder='Search by Project Name'
+            value={searchProjectsName}
+            onChange={(e) => setSearchProjectsName(e.target.value)}
+          />
+        </Col>
+      </Row>
 
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={serviceSheets}
+        dataSource={searchProjectsName ? filteredData : serviceSheets} // ใช้ filteredData เมื่อมีการค้นหา
         loading={isLoading}
         pagination={{ pageSize: 10 }}
       />

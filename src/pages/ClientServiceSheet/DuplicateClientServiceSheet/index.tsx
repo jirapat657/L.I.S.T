@@ -1,10 +1,9 @@
-//src/pages/ClientServiceSheet/DuplicateClientServiceSheet/index.tsx
 import React, { useState, useEffect } from 'react';
 import { Form, message, Spin, Flex } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs'; // [เพิ่ม] import dayjs
+import { Timestamp } from 'firebase/firestore'; // [เพิ่ม] import Timestamp
 import ClientServiceSheetForm from '@/components/ClientServiceSheetForm';
-import type { ClientServiceSheetData } from '@/types/clientServiceSheet';
+import type { ClientServiceSheet_Firestore } from '@/types/clientServiceSheet';
 import { addClientServiceSheet, getClientServiceSheetById } from '@/api/clientServiceSheet';
 
 const DuplicateClientServiceSheet: React.FC = () => {
@@ -12,7 +11,7 @@ const DuplicateClientServiceSheet: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  const [initialData, setInitialData] = useState<Partial<ClientServiceSheetData> | null>(null);
+  const [initialData, setInitialData] = useState<Partial<ClientServiceSheet_Firestore> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,18 +27,18 @@ const DuplicateClientServiceSheet: React.FC = () => {
       try {
         const data = await getClientServiceSheetById(id);
         if (data) {
-          const duplicatedData: Partial<ClientServiceSheetData> = {
+          const duplicatedData: Partial<ClientServiceSheet_Firestore> = {
             ...data,
-            id: undefined,
-            jobCode: data.jobCode ? `${data.jobCode}-COPY` : '',
+            id: undefined, // ล้าง ID เดิมออก
+            jobCode: data.jobCode ? `${data.jobCode}` : '',
             
-            // [แก้ไข] เปลี่ยนค่า date จาก null เป็น dayjs() หรือปล่อยเป็น undefined
-            // เพื่อให้ DatePicker ได้รับค่าเริ่มต้นที่ถูกต้อง
-            date: dayjs(), // ตั้งเป็นวันปัจจุบัน
+            // [แก้ไข] สร้าง Timestamp ของวันปัจจุบันสำหรับเอกสารใหม่
+            date: Timestamp.now(),
 
+            // ล้างข้อมูลลายเซ็นและวันที่ของลูกค้า/ผู้ให้บริการ
             customerInfo: {
               ...data.customerInfo,
-              date: null, // สำหรับ DatePicker ในส่วนนี้ปล่อยเป็น null หรือ undefined ได้ เพราะฟอร์มจัดการได้
+              date: null,
               signature: '',
             },
             serviceByInfo: {
@@ -64,15 +63,22 @@ const DuplicateClientServiceSheet: React.FC = () => {
     fetchOriginalSheet();
   }, [id, navigate]);
 
-  const handleFinish = async (values: ClientServiceSheetData) => {
+  const handleFinish = async (values: ClientServiceSheet_Firestore) => {
     setIsSubmitting(true);
     try {
-      await addClientServiceSheet(values);
+      // [แก้ไข] เพิ่ม comment เพื่อ disable ESLint warning สำหรับบรรทัดนี้โดยเฉพาะ
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...payload } = values;
+      await addClientServiceSheet(payload as ClientServiceSheet_Firestore);
       message.success('Service Sheet duplicated successfully!');
       navigate('/clientservicesheets');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to duplicate service sheet:', err);
-      message.error(err?.message || 'Failed to save data.');
+      if (err instanceof Error) {
+        message.error(err.message || 'Failed to save data.');
+      } else {
+        message.error('Failed to save data.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +88,6 @@ const DuplicateClientServiceSheet: React.FC = () => {
     navigate(-1);
   };
 
-  // [แก้ไข] ลบ prop 'tip' ออกจาก Spin
   if (isLoading) {
     return (
       <Flex justify="center" align="center" style={{ height: '60vh' }}>

@@ -1,4 +1,5 @@
 // src/components/ServiceSheetPDF.tsx
+import type { ClientServiceSheet_PDF } from '@/types/clientServiceSheet'
 import {
   Page, Text, View, Document, StyleSheet, Font, Image
 } from '@react-pdf/renderer'
@@ -12,31 +13,6 @@ Font.register({
     { src: '/fonts/Sarabun-Bold.ttf', fontWeight: 'bold' }
   ]
 })
-
-/* ---------------- Types (ตัวอย่าง) ---------------- */
-type ServiceTask = {
-  description: string
-  type: 'I' | 'T' | 'O' | string
-  status: '0' | '1' | string
-  serviceBy: string
-}
-type PartyInfo = { company?: string; name?: string; date?: any; signature?: string }
-type ClientServiceSheetData = {
-  projectName?: string
-  jobCode?: string
-  date?: any
-  user?: string
-  totalHours?: string | number
-  serviceLocation?: string
-  startTime?: string
-  endTime?: string
-  tasks?: ServiceTask[]
-  remark?: string
-  customerInfo?: PartyInfo    // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
-  serviceByInfo?: PartyInfo // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
-  chargeTypes?: ('included'|'free'|'extra')[] // แก้ไข: เปลี่ยนชื่อให้ตรงกับการใช้งาน
-  extraChargeDescription?: string; // แก้ไข: เพิ่ม property ให้ตรงกับการใช้งาน
-}
 
 /* ---------------- Styles ---------------- */
 const styles = StyleSheet.create({
@@ -122,8 +98,17 @@ const styles = StyleSheet.create({
   codes: { flex: 1 },
   checks: { flex: 1 },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  check: { width: 10, height: 10, borderWidth: 1, borderColor: '#000', marginRight: 6 },
-  checked: { backgroundColor: '#000' },
+  check: {
+    width: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+    marginRight: 6,
+  },
+  checked: {
+    borderColor: '#000',
+    backgroundColor: '#000',
+  },
 
   // Signature blocks
   signRow: { 
@@ -155,16 +140,20 @@ const styles = StyleSheet.create({
 })
 
 /* ---------------- Helpers ---------------- */
-const fmtDate = (d: any) =>
-  d?.toDate ? dayjs(d.toDate()).format('DD/MM/YYYY') : dayjs(d).isValid() ? dayjs(d).format('DD/MM/YYYY') : '-'
-
-// ฟังก์ชัน isChecked ถูกลบไปเนื่องจากไม่มีการเรียกใช้ในโค้ดที่ให้มา
-// หากต้องการใช้ สามารถนำกลับมาได้
-// const isChecked = (flags: ClientServiceSheetData['chargeTypes'], k: 'included'|'free'|'extra') =>
-//   !!flags?.includes(k)
+const fmtDate = (d: Date | string | { toDate?: () => Date } | undefined) => {
+  let dateValue: string | number | Date | null | undefined
+  if (d && typeof d === 'object' && typeof (d as { toDate?: () => Date }).toDate === 'function') {
+    dateValue = (d as { toDate: () => Date }).toDate()
+  } else {
+    dateValue = d as string | number | Date | null | undefined
+  }
+  return dayjs(dateValue).isValid()
+    ? dayjs(dateValue).format('DD/MM/YYYY')
+    : '-'
+}
 
 /* ---------------- Component ---------------- */
-export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetData; logoSrc?: string }) => (
+export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_PDF; logoSrc?: string }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Letterhead */}
@@ -248,15 +237,15 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheetD
 
         <View style={styles.checks}>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('included') && styles.checked]} />
+            <View style={[styles.check, sheet.chargeTypes?.includes('included') ? styles.checked : {}]} />
             <Text>Included in Agreement</Text>
           </View>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('free') && styles.checked]} />
+            <View style={[styles.check, sheet.chargeTypes?.includes('free') ? styles.checked : {}]} />
             <Text>Free of Charge</Text>
           </View>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('extra') && styles.checked]} />
+            <View style={[styles.check, sheet.chargeTypes?.includes('extra') ? styles.checked : {}]} />
             <Text wrap>Extra Charge: {sheet.extraChargeDescription || '__________________'}</Text>
           </View>
         </View>

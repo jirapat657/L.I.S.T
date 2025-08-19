@@ -1,4 +1,3 @@
-//src/components/ClientServiceSheetForm/index.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Form,
@@ -9,26 +8,28 @@ import {
   Col,
   Select,
   Table,
-  Dropdown,
   Popconfirm,
   Checkbox,
   Divider,
   type FormInstance,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Timestamp } from 'firebase/firestore';
+
+// [แก้ไข] นำเข้า Type ที่ถูกต้อง
 import type {
   ServiceTask,
-  ClientServiceSheetData,
+  ClientServiceSheet_Firestore,
 } from '@/types/clientServiceSheet';
 
 /* --------------------------------------------- */
 /* Props Interface                      */
 /* --------------------------------------------- */
 interface ClientServiceSheetFormProps {
-  initialValues?: Partial<ClientServiceSheetData>;
-  onFinish: (values: ClientServiceSheetData) => Promise<void>;
+  // [แก้ไข] ใช้ Type สำหรับ Firestore
+  initialValues?: Partial<ClientServiceSheet_Firestore>;
+  onFinish: (values: ClientServiceSheet_Firestore) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   submitButtonText?: string;
@@ -38,10 +39,36 @@ interface ClientServiceSheetFormProps {
 /* --------------------------------------------- */
 /* Local types & Options                 */
 /* --------------------------------------------- */
-type ChargeFlag = 'included' | 'free' | 'extra';
-type ChargeType = ChargeFlag[];
+type ChargeType = ('included' | 'free' | 'extra')[];
 
-// ตัวอย่าง Options สามารถดึงมาจากที่อื่นได้
+// [เพิ่ม] Type สำหรับค่าที่ได้จาก Form โดยตรง (ก่อนแปลงเป็น Timestamp)
+type FormValues = {
+  projectName?: string;
+  serviceLocation?: string;
+  startTime?: string;
+  endTime?: string;
+  jobCode?: string;
+  date?: dayjs.Dayjs;
+  user?: string;
+  totalHours?: number | string;
+  chargeTypes?: ChargeType;
+  extraChargeDescription?: string;
+  remark?: string;
+  customerInfo?: {
+    company?: string;
+    name?: string;
+    date?: dayjs.Dayjs;
+    signature?: string;
+  };
+  serviceByInfo?: {
+    company?: string;
+    name?: string;
+    date?: dayjs.Dayjs;
+    signature?: string;
+  };
+};
+
+
 const typeOptions = [
   { label: 'Installation', value: 'Installation' },
   { label: 'Maintenance', value: 'Maintenance' },
@@ -63,14 +90,14 @@ const userOptions = [
 /* --------------------------------------------- */
 const ServiceTaskTable: React.FC<{
   tasks: ServiceTask[];
-  onUpdate: (id: string, field: keyof ServiceTask, value: any) => void;
+  onUpdate: (id: string, field: keyof ServiceTask, value: ServiceTask[keyof ServiceTask]) => void;
   onDelete: (id: string) => void;
   userOptions: { label: string; value: string }[];
 }> = ({ tasks, onUpdate, onDelete, userOptions }) => {
   const columns = [
     {
       title: 'No.',
-      render: (_: any, __: any, index: number) => index + 1,
+      render: (_: unknown, __: unknown, index: number) => index + 1,
       width: 60,
     },
     {
@@ -131,7 +158,7 @@ const ServiceTaskTable: React.FC<{
       key: 'actions',
       width: 80,
       align: 'center' as const,
-      render: (_: any, record: ServiceTask) => (
+      render: (_: unknown, record: ServiceTask) => (
         <Popconfirm
           title="Delete this task?"
           onConfirm={() => onDelete(record.id)}
@@ -154,14 +181,12 @@ const ServiceTaskTable: React.FC<{
   );
 };
 
-// [เพิ่ม] สร้าง object ว่างเปล่าคงที่ไว้นอก Component
-const defaultInitialValues = {};
+const defaultInitialValues: Partial<ClientServiceSheet_Firestore> = {};
 
 /* --------------------------------------------- */
 /* Main Form Component               */
 /* --------------------------------------------- */
 const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
-  // [แก้ไข] ให้ default value อ้างอิงจากตัวแปรคงที่
   initialValues = defaultInitialValues,
   onFinish,
   onCancel,
@@ -184,24 +209,24 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       ...initialValues,
       date: initialValues.date
         ? dayjs((initialValues.date as Timestamp).toDate())
-        : null,
+        : undefined,
       customerInfo: {
         ...initialValues.customerInfo,
         date: initialValues.customerInfo?.date
           ? dayjs((initialValues.customerInfo.date as Timestamp).toDate())
-          : null,
+          : undefined,
       },
       serviceByInfo: {
         ...initialValues.serviceByInfo,
         date: initialValues.serviceByInfo?.date
           ? dayjs((initialValues.serviceByInfo.date as Timestamp).toDate())
-          : null,
+          : undefined,
       },
     };
+    form.resetFields();
     form.setFieldsValue(processedValues);
   }, [initialValues, form]);
 
-  /* ---------- Handlers สำหรับตาราง Tasks ---------- */
   const handleAddTask = () =>
     setTasks((prev) => [
       ...prev,
@@ -216,7 +241,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   const handleUpdateTask = (
     id: string,
     field: keyof ServiceTask,
-    value: any
+    value: ServiceTask[keyof ServiceTask]
   ) =>
     setTasks((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
@@ -224,49 +249,58 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   const handleDeleteTask = (id: string) =>
     setTasks((prev) => prev.filter((row) => row.id !== id));
 
-  // Helper สำหรับแปลงข้อมูลวันที่กลับเป็น Timestamp ก่อนส่งเข้า DB
-  const toTimestamp = (val: any): Timestamp | null => {
+  function hasToDate(obj: unknown): obj is { toDate: () => Date } {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'toDate' in obj &&
+      typeof (obj as { toDate: unknown }).toDate === 'function'
+    );
+  }
+
+  const toTimestamp = (
+    val: dayjs.Dayjs | Timestamp | Date | string | null | undefined
+  ): Timestamp | null => {
     if (!val) return null;
-    if (val.toDate) return Timestamp.fromDate(val.toDate()); // dayjs object
-    return Timestamp.fromDate(new Date(val));
+    if (val instanceof Timestamp) return val;
+    if (hasToDate(val)) {
+      return Timestamp.fromDate(val.toDate());
+    }
+    return Timestamp.fromDate(new Date(val as string | Date));
   };
 
-  // เมื่อกดปุ่ม Submit หลักของฟอร์ม
-  const handleFormSubmit = (values: any) => {
-    // [แก้ไข] ตรวจสอบและแปลงข้อมูลก่อนสร้าง payload
-    const payload: ClientServiceSheetData = {
-      projectName: values.projectName,
-      serviceLocation: values.serviceLocation,
-      startTime: values.startTime,
-      endTime: values.endTime,
-      jobCode: values.jobCode , // แปลงค่า `undefined` ของฟิลด์อื่นๆ เป็น `null`
-      date: toTimestamp(values.date) ?? Timestamp.now(),
-      user: values.user,
+  const handleFormSubmit = (values: FormValues) => {
+    const payload: ClientServiceSheet_Firestore = {
+      id: initialValues.id || '',
+      projectName: values.projectName || '',
+      serviceLocation: values.serviceLocation || '',
+      startTime: values.startTime || '',
+      endTime: values.endTime || '',
+      jobCode: values.jobCode || '',
+      extraChargeDescription: values.extraChargeDescription || '',
+      remark: values.remark || '',
+      tasks,
+      date: toTimestamp(values.date) || null,
+      user: values.user || '',
       totalHours: Number(values.totalHours) || 0,
       chargeTypes: values.chargeTypes || [],
-      extraChargeDescription: values.extraChargeDescription || null,
-      remark: values.remark || null,
-      tasks,
-      // สร้าง object ของ customerInfo และ serviceByInfo ขึ้นมาใหม่
-      // เพื่อตรวจสอบและแปลงค่า `undefined` เป็น `null` ในแต่ละฟิลด์
       customerInfo: {
-        company: values.customerInfo?.company || null,
-        name: values.customerInfo?.name || null,
-        date: toTimestamp(values.customerInfo?.date),
-        signature: values.customerInfo?.signature || null,
+        company: values.customerInfo?.company || '',
+        name: values.customerInfo?.name || '',
+        date: toTimestamp(values.customerInfo?.date) || null,
+        signature: values.customerInfo?.signature || '',
       },
       serviceByInfo: {
-        company: values.serviceByInfo?.company || null,
-        name: values.serviceByInfo?.name || null,
-        date: toTimestamp(values.serviceByInfo?.date),
-        signature: values.serviceByInfo?.signature || null,
+        company: values.serviceByInfo?.company || '',
+        name: values.serviceByInfo?.name || '',
+        date: toTimestamp(values.serviceByInfo?.date) || null,
+        signature: values.serviceByInfo?.signature || '',
       },
     };
     
     onFinish(payload);
   };
 
-  // ใช้สำหรับซ่อน/แสดงช่องกรอก "Extra Charge"
   const chargeTypes = Form.useWatch<ChargeType>('chargeTypes', form);
 
   return (
@@ -274,13 +308,13 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       layout="vertical"
       form={form}
       onFinish={handleFormSubmit}
+      // [แก้ไข] นำ `...initialValues` ออกจากส่วนนี้
       initialValues={{
         date: dayjs(),
         chargeTypes: [],
         customerInfo: {},
         serviceByInfo: {},
         remark: '',
-        ...initialValues,
       }}
     >
       {/* ----- Base fields ----- */}
@@ -322,7 +356,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item label="Job Code" name="jobCode" rules={[{ required: true }]}>
+          <Form.Item label="Job Code" name="jobCode">
             <Input placeholder="Enter job code" />
           </Form.Item>
         </Col>
@@ -340,7 +374,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           <Form.Item
             label="Total Hours"
             name="totalHours"
-            rules={[{ required: true }]}
           >
             <Input placeholder="Enter total hours" type="number" min={0} />
           </Form.Item>
@@ -364,7 +397,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           </Col>
           {chargeTypes?.includes('extra') && (
             <Col flex="auto">
-              <Form.Item name="extraChargeDescription" noStyle>
+              <Form.Item name="extraChargeDescription" rules={[{ required: true }]} noStyle>
                 <Input placeholder="Describe the extra charge" />
               </Form.Item>
             </Col>

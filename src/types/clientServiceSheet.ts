@@ -12,33 +12,53 @@ export interface ServiceTask {
 
 export type ChargeFlag = 'included' | 'free' | 'extra'
 
-export interface PartyInfo {
-  company: string | null;
-  name: string | null;
-  date: Timestamp | null;
-  signature: string | null;
-}
+// --- Type สำหรับข้อมูลที่มาจาก Firestore ---
+export type PartyInfo_Firestore = {
+  company?: string;
+  name?: string;
+  date?: Timestamp | null; // Date is a Timestamp
+  signature?: string;
+};
 
-export interface ClientServiceSheetData {
-  id?: string // เพิ่มเป็น optional สำหรับกรณีสร้างใหม่
-  projectName: string
-  serviceLocation: string
-  startTime: string
-  endTime: string
-  jobCode: string
-  date: Timestamp | string
-  user: string
-  totalHours: number
+export type ClientServiceSheet_Firestore = {
+  id: string; // ID ของเอกสาร
+  projectName?: string;
+  jobCode?: string;
+  date?: Timestamp | null; // Date is a Timestamp
+  user?: string;
+  totalHours?: string | number;
+  serviceLocation?: string;
+  startTime?: string;
+  endTime?: string;
+  tasks?: ServiceTask[];
+  remark?: string;
+  customerInfo?: PartyInfo_Firestore;
+  serviceByInfo?: PartyInfo_Firestore;
+  chargeTypes?: ('included' | 'free' | 'extra')[];
+  extraChargeDescription?: string;
+};
 
-  chargeTypes?: ChargeFlag[] // เปลี่ยนเป็น optional
-  extraChargeDescription?: string
+// --- Type สำหรับข้อมูลที่จะส่งให้ PDF Component ---
+export type PartyInfo_PDF = {
+  company?: string;
+  name?: string;
+  date?: Date | string; // Date is now a Date object or string
+  signature?: string;
+};
 
-  tasks?: ServiceTask[]
-
-  remark: string | null;
-  customerInfo: PartyInfo | null;
-  serviceByInfo: PartyInfo | null;
-
-  createdAt?: Timestamp // เปลี่ยนเป็น optional
-  updatedAt?: Timestamp // เปลี่ยนเป็น optional
-}
+export type ClientServiceSheet_PDF = {
+  projectName?: string;
+  jobCode?: string;
+  date?: Date | string; // Date is now a Date object or string
+  user?: string;
+  totalHours?: string | number;
+  serviceLocation?: string;
+  startTime?: string;
+  endTime?: string;
+  tasks?: ServiceTask[];
+  remark?: string;
+  customerInfo?: PartyInfo_PDF;
+  serviceByInfo?: PartyInfo_PDF;
+  chargeTypes?: ('included' | 'free' | 'extra')[];
+  extraChargeDescription?: string;
+};
