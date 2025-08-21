@@ -1,6 +1,8 @@
 // src/components/ProjectChangeRequestPDF/index.tsx
 import {
-  Page, Text, View, Document, StyleSheet, Font, Image
+  Page, Text, View, Document, StyleSheet, Font, Image,
+  Svg,
+  Path
 } from '@react-pdf/renderer';
 import dayjs from 'dayjs';
 import type { ProjectChangeRequest_PDF } from '@/types/projectChangeRequest';
@@ -112,15 +114,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  check: {
-    width: 10,
-    height: 10,
+   // แทนที่ style check เดิมด้วย style ใหม่
+  checkContainer: {
+    width: 12,
+    height: 12,
     borderWidth: 1,
     borderColor: '#000',
     marginRight: 6,
-  },
-  checked: {
-    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   
   // --- Signature Section ---
@@ -190,21 +192,53 @@ export const ProjectChangeRequestPDF = ({ sheet, logoSrc }: { sheet: ProjectChan
         })}
       </View>
 
-      {/* [แก้ไข] อัปเดต Charge Section ให้ดึงข้อมูลจริง */}
-      <View style={styles.chargeBox}>
-        <View style={styles.checkRow}>
-          <View style={[styles.check, sheet.chargeTypes?.includes('included') && styles.checked]} />
-          <Text>Included in Agreement</Text>
+      {/* Charge Section */}
+        <View style={styles.chargeBox}>
+            {/* Included in Agreement */}
+            <View style={styles.checkRow}>
+                <View style={styles.checkContainer}>
+                {sheet.chargeTypes?.includes('included') && (
+                    <Svg width={10} height={10} viewBox="0 0 24 24">
+                    <Path
+                        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                        fill="#000"
+                    />
+                    </Svg>
+                )}
+                </View>
+                <Text>Included in Agreement</Text>
+            </View>
+
+            {/* Free of Charge */}
+            <View style={styles.checkRow}>
+                <View style={styles.checkContainer}>
+                {sheet.chargeTypes?.includes('free') && (
+                    <Svg width={10} height={10} viewBox="0 0 24 24">
+                    <Path
+                        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                        fill="#000"
+                    />
+                    </Svg>
+                )}
+                </View>
+                <Text>Free of Charge</Text>
+            </View>
+
+            {/* Extra Charge */}
+            <View style={styles.checkRow}>
+                <View style={styles.checkContainer}>
+                {sheet.chargeTypes?.includes('extra') && (
+                    <Svg width={10} height={10} viewBox="0 0 24 24">
+                    <Path
+                        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                        fill="#000"
+                    />
+                    </Svg>
+                )}
+                </View>
+                <Text>Extra Charge: {sheet.extraChargeDescription || ''}</Text>
+            </View>
         </View>
-        <View style={styles.checkRow}>
-          <View style={[styles.check, sheet.chargeTypes?.includes('free') && styles.checked]} />
-          <Text>Free of Charge</Text>
-        </View>
-        <View style={styles.checkRow}>
-          <View style={[styles.check, sheet.chargeTypes?.includes('extra') && styles.checked]} />
-          <Text>Extra Charge: {sheet.extraChargeDescription || ''}</Text>
-        </View>
-      </View>
 
       {/* [แก้ไข] อัปเดต Signature Section ให้ดึงข้อมูลจริง */}
       <View style={styles.signRow}>

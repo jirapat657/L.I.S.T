@@ -200,6 +200,7 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       date: initialValues.date
         ? dayjs((initialValues.date as Timestamp).toDate())
         : undefined,
+        chargeTypes: initialValues.chargeTypes || [], // เพิ่มบรรทัดนี้
       customerInfo: {
         ...initialValues.customerInfo,
         date: initialValues.customerInfo?.date
@@ -338,29 +339,35 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       </Form.Item>
 
       {/* Charge Section */}
-      <Divider orientation="left">Charge</Divider>
-      <Form.Item label="Charge Types" style={{ marginBottom: 0 }}>
-        <Row gutter={8} align="middle">
-          <Col>
-            <Form.Item name="chargeTypes" noStyle>
-              <Checkbox.Group
-                options={[
-                  { label: 'Included in Agreement', value: 'included' },
-                  { label: 'Free of Charge', value: 'free' },
-                  { label: 'Extra Charge', value: 'extra' },
-                ]}
-              />
-            </Form.Item>
-          </Col>
-          {chargeTypes?.includes('extra') && (
-            <Col flex="auto">
-              <Form.Item name="extraChargeDescription" noStyle>
-                <Input placeholder="Describe the extra charge" />
-              </Form.Item>
+<Divider orientation="left">Charge</Divider>
+<Form.Item label="Charge Types" style={{ marginBottom: 0 }}>
+  <Row gutter={8} align="middle">
+    <Col>
+      <Form.Item name="chargeTypes" noStyle>
+        <Checkbox.Group>
+          <Row gutter={16}>
+            <Col>
+              <Checkbox value="included">Included in Agreement</Checkbox>
             </Col>
-          )}
-        </Row>
+            <Col>
+              <Checkbox value="free">Free of Charge</Checkbox>
+            </Col>
+            <Col>
+              <Checkbox value="extra">Extra Charge</Checkbox>
+            </Col>
+          </Row>
+        </Checkbox.Group>
       </Form.Item>
+    </Col>
+    {chargeTypes?.includes('extra') && (
+      <Col flex="auto">
+        <Form.Item name="extraChargeDescription" noStyle>
+          <Input placeholder="Describe the extra charge" />
+        </Form.Item>
+      </Col>
+    )}
+  </Row>
+</Form.Item>
 
       <Divider orientation="left">Signatures</Divider>
       <Row gutter={24}>

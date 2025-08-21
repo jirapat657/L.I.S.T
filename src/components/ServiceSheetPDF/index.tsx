@@ -1,10 +1,9 @@
 // src/components/ServiceSheetPDF.tsx
 import type { ClientServiceSheet_PDF } from '@/types/clientServiceSheet'
 import {
-  Page, Text, View, Document, StyleSheet, Font, Image
+  Page, Text, View, Document, StyleSheet, Font, Image, Svg, Path
 } from '@react-pdf/renderer'
 import dayjs from 'dayjs'
-
 
 Font.register({
   family: 'Sarabun',
@@ -13,6 +12,20 @@ Font.register({
     { src: '/fonts/Sarabun-Bold.ttf', fontWeight: 'bold' }
   ]
 })
+
+// คอมโพเนนต์ Checkbox แยก
+const Checkbox = ({ checked }: { checked: boolean }) => (
+  <View style={styles.checkContainer}>
+    {checked && (
+      <Svg width={10} height={10} viewBox="0 0 24 24">
+        <Path
+          d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+          fill="#000"
+        />
+      </Svg>
+    )}
+  </View>
+)
 
 /* ---------------- Styles ---------------- */
 const styles = StyleSheet.create({
@@ -52,16 +65,15 @@ const styles = StyleSheet.create({
   label: { fontWeight: 'bold' },
 
   // Table
-  table: { borderWidth: 1, borderColor: '#000', borderRadius: 4, marginTop: 4, overflow: 'hidden' }, // [เพิ่ม] overflow: 'hidden' เพื่อให้ border-radius แสดงผลถูกต้อง
-  tHead: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderBottomWidth: 1, borderColor: '#000' }, // [แก้ไข] เพิ่มเส้นใต้
+  table: { borderWidth: 1, borderColor: '#000', borderRadius: 4, marginTop: 4, overflow: 'hidden' },
+  tHead: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderBottomWidth: 1, borderColor: '#000' },
   tRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    
-    borderColor: '#f0f0f0', // [แก้ไข] สีเส้นให้อ่อนลง
+    borderColor: '#f0f0f0',
     minHeight: 24
   },
-  tRowLast: { // [เพิ่ม] สไตล์สำหรับแถวสุดท้าย ไม่ต้องมีเส้นใต้
+  tRowLast: {
     flexDirection: 'row',
     alignItems: 'stretch',
     minHeight: 24,
@@ -70,11 +82,11 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#000',
     padding: 6,
-    justifyContent: 'center', // [แก้ไข] จัดกึ่งกลางแนวตั้งสำหรับข้อความสั้นๆ
-    flexGrow: 1, // [แก้ไข] ให้ขยายเต็มพื้นที่
+    justifyContent: 'center',
+    flexGrow: 1,
     flexShrink: 1,
   },
-  cellLast: { // [แก้ไข] ทำให้สไตล์สอดคล้องกัน
+  cellLast: {
     padding: 6,
     justifyContent: 'center',
     flexGrow: 1,
@@ -82,13 +94,13 @@ const styles = StyleSheet.create({
   },
   cNo: { 
     width: 30,
-    flexGrow: 0, // [เพิ่ม] ไม่ต้องขยาย
+    flexGrow: 0,
     textAlign: 'center'
   },
-  cTask: { flexBasis: 240, flexGrow: 1 }, // [แก้ไข] ใช้ flexBasis และ flexGrow
+  cTask: { flexBasis: 240, flexGrow: 1 },
   cType: { width: 60, flexGrow: 0, textAlign: 'center' },
   cStatus: { width: 60, flexGrow: 0, textAlign: 'center' },
-  cServiceBy: { flexBasis: 160, flexGrow: 1 }, // [แก้ไข] ใช้ flexBasis และ flexGrow
+  cServiceBy: { flexBasis: 160, flexGrow: 1 },
 
   // Remark
   remarkBox: { borderWidth: 1, borderColor: '#000', borderRadius: 4, padding: 8, minHeight: 77, marginTop: 10 },
@@ -98,23 +110,22 @@ const styles = StyleSheet.create({
   codes: { flex: 1 },
   checks: { flex: 1 },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  check: {
-    width: 10,
-    height: 10,
+  // เปลี่ยนจาก check และ checked เป็น checkContainer
+  checkContainer: {
+    width: 12,
+    height: 12,
     borderWidth: 1,
     borderColor: '#000',
     marginRight: 6,
-  },
-  checked: {
-    borderColor: '#000',
-    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
 
   // Signature blocks
   signRow: { 
     flexDirection: 'row', 
     gap: 10, 
-    marginTop: 25, // [แก้ไข] เพิ่ม marginTop
+    marginTop: 25,
   },
   signBoxContainer: {
     flex: 1,
@@ -124,7 +135,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     position: 'absolute',
     top: -15, 
-    left: 8, // [เพิ่ม] จัดตำแหน่งให้สวยงาม
+    left: 8,
     backgroundColor: '#fff', 
     paddingHorizontal: 4,
   },
@@ -135,8 +146,6 @@ const styles = StyleSheet.create({
     padding: 8, 
     minHeight: 70,
   },
-
-  
 })
 
 /* ---------------- Helpers ---------------- */
@@ -198,7 +207,6 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
         </View>
 
         {/* Data Rows */}
-        {/* [แก้ไข] เพิ่มการวนลูปสำหรับแถวว่าง และใช้ style ของแถวสุดท้าย */}
         {Array.from({ length: Math.max(9, sheet.tasks?.length || 0) }).map((_, i) => {
             const t = sheet.tasks?.[i]
             const isLastRow = i === Math.max(9, sheet.tasks?.length || 0) - 1
@@ -237,15 +245,15 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
 
         <View style={styles.checks}>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('included') ? styles.checked : {}]} />
+            <Checkbox checked={sheet.chargeTypes?.includes('included') || false} />
             <Text>Included in Agreement</Text>
           </View>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('free') ? styles.checked : {}]} />
+            <Checkbox checked={sheet.chargeTypes?.includes('free') || false} />
             <Text>Free of Charge</Text>
           </View>
           <View style={styles.checkRow}>
-            <View style={[styles.check, sheet.chargeTypes?.includes('extra') ? styles.checked : {}]} />
+            <Checkbox checked={sheet.chargeTypes?.includes('extra') || false} />
             <Text wrap>Extra Charge: {sheet.extraChargeDescription || '__________________'}</Text>
           </View>
         </View>
@@ -273,8 +281,6 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
           </View>
         </View>
       </View>
-
-      
     </Page>
   </Document>
 )

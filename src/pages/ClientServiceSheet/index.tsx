@@ -172,6 +172,7 @@ const ClientServiceSheet: React.FC = () => {
             placeholder='Search by Project Name'
             value={searchProjectsName}
             onChange={(e) => setSearchProjectsName(e.target.value)}
+            allowClear
           />
         </Col>
       </Row>

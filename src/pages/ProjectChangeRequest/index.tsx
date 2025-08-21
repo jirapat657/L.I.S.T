@@ -1,7 +1,7 @@
 //src/pages/ProjectChangeRequest/index.tsx
 import React, { useState, useMemo } from 'react';
-import { Button, Dropdown, Table, message, Input, Flex } from 'antd';
-import { PlusOutlined, MoreOutlined, PrinterOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Table, message, Input, Col, Row } from 'antd';
+import { PlusOutlined, MoreOutlined, PrinterOutlined, CopyOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -121,19 +121,36 @@ const ProjectChangeRequest: React.FC = () => {
 
   return (
     <div>
-      <Flex justify="space-between" align="center" gap="middle" style={{ marginBottom: 24 }}>
-        <h2>Project Change Request</h2>
-        <Input
-          placeholder='Search by Project Name'
-          value={searchProjectName}
-          onChange={(e) => setSearchProjectName(e.target.value)}
-          style={{ maxWidth: 300 }}
-          allowClear
-        />
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
+        
         <Button type="primary" onClick={handleAdd}>
           <PlusOutlined /> Add Change Request
         </Button>
-      </Flex>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button
+          onClick={() => {
+            
+            setSearchProjectName('')
+          }}
+        >
+          <SyncOutlined /> Clear Search
+        </Button>
+      </div>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        
+        <Col span={12}>
+          <Input
+          placeholder='Search by Project Name'
+          value={searchProjectName}
+          onChange={(e) => setSearchProjectName(e.target.value)}
+          allowClear
+        />
+        </Col>
+      </Row>
 
       <Table
         rowKey="id"
