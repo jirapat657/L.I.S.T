@@ -7,7 +7,6 @@ import {
   Button,
   Row,
   Col,
-  Select,
   Table,
   Popconfirm,
   Divider,
@@ -81,15 +80,6 @@ type FormValues = {
     signature?: string;
   };
 };
-
-// --- Placeholder Options (กรุณาแทนที่ด้วยข้อมูลจริง) ---
-const projectStageOptions = [
-  { label: 'Initiation', value: 'Initiation' },
-  { label: 'Planning', value: 'Planning' },
-  { label: 'Execution', value: 'Execution' },
-  { label: 'Closing', value: 'Closing' },
-];
-// ---
 
 const ChangeRequestTaskTable: React.FC<{
   tasks: ChangeRequestTask[];
@@ -325,7 +315,7 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
             name="projectStage"
             rules={[{ required: true }]}
           >
-            <Select options={projectStageOptions} placeholder="Select stage" />
+            <Input placeholder="Enter stage" />
           </Form.Item>
         </Col>
         <Col span={12}>

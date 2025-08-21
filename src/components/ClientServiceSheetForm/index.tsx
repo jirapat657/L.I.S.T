@@ -71,20 +71,15 @@ type FormValues = {
 
 
 const typeOptions = [
-  { label: 'Installation', value: 'Installation' },
-  { label: 'Maintenance', value: 'Maintenance' },
-  { label: 'Repair', value: 'Repair' },
-  { label: 'Onsite Service', value: 'Onsite Service' },
+  { label: 'I', value: 'I' },
+  { label: 'T', value: 'T' },
+  { label: 'O', value: 'O' },
 ];
 const statusOptions = [
-  { label: 'Complete', value: 'Complete' },
-  { label: 'Follow up', value: 'Follow up' },
+  { label: '0', value: '0' },
+  { label: '1', value: '1' },
 ];
-const userOptions = [
-  { label: 'Tech A', value: 'Tech A' },
-  { label: 'Tech B', value: 'Tech B' },
-  { label: 'Support', value: 'Support' },
-];
+
 
 /* --------------------------------------------- */
 /* Subtable Component                */
@@ -93,8 +88,8 @@ const ServiceTaskTable: React.FC<{
   tasks: ServiceTask[];
   onUpdate: (id: string, field: keyof ServiceTask, value: ServiceTask[keyof ServiceTask]) => void;
   onDelete: (id: string) => void;
-  userOptions: { label: string; value: string }[];
-}> = ({ tasks, onUpdate, onDelete, userOptions }) => {
+  
+}> = ({ tasks, onUpdate, onDelete }) => {
   const columns = [
     {
       title: 'No.',
@@ -143,13 +138,10 @@ const ServiceTaskTable: React.FC<{
       title: 'Service By',
       dataIndex: 'serviceBy',
       render: (text: string, record: ServiceTask) => (
-        <Select
+        <Input
           value={text}
-          options={userOptions}
-          onChange={(value) => onUpdate(record.id, 'serviceBy', value)}
-          style={{ width: 180 }}
-          showSearch
-          placeholder="Select user"
+          onChange={(e) => onUpdate(record.id, 'serviceBy', e.target.value)}
+          placeholder="Enter service person"
         />
       ),
       width: 190,
@@ -368,7 +360,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         </Col>
         <Col span={12}>
           <Form.Item label="User" name="user" rules={[{ required: true }]}>
-            <Select showSearch options={userOptions} placeholder="Select user" />
+            <Input placeholder="Enter user name" />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -392,7 +384,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         tasks={tasks}
         onUpdate={handleUpdateTask}
         onDelete={handleDeleteTask}
-        userOptions={userOptions}
+        
       />
 
       {/* ----- Remark section ----- */}
