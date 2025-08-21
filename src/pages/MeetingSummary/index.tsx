@@ -1,5 +1,5 @@
 // src/pages/MeetingSummary/index.tsx
-import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Pagination, Row, Col, Select } from 'antd';
+import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Row, Col, Select } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAllMeetingSummaries, deleteMeetingSummaryById, updateMeetingSummaryById, createMeetingSummary as createMeetingSummaryApi } from '@/api/meetingSummary';
@@ -272,15 +272,10 @@ const MeetingSummary = () => {
         rowKey="id"
         loading={isLoading}
         scroll={{ x: 'max-content' }}
-        pagination={false}
-        footer={() => (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px' }}>
-            <div>ทั้งหมด {filteredMeetingSummaries.length} รายการ</div>
-            <Pagination
-              showSizeChanger={false}
-            />
-          </div>
-        )}
+        pagination={{
+          pageSize :10,
+          showTotal: (total) => <div style={{ position: 'absolute', left: '16px' }}>ทั้งหมด {total} รายการ</div>,
+        }}
       />
 
       <Modal
