@@ -157,7 +157,10 @@ const ProjectChangeRequest: React.FC = () => {
         columns={columns}
         dataSource={filteredData}
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          pageSize :10,
+          showTotal: (total) => <div style={{ position: 'absolute', left: '16px' }}>ทั้งหมด {total} รายการ</div>,
+        }}
       />
     </div>
   );

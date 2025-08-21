@@ -182,7 +182,10 @@ const ClientServiceSheet: React.FC = () => {
         columns={columns}
         dataSource={searchProjectsName ? filteredData : serviceSheets} // ใช้ filteredData เมื่อมีการค้นหา
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          pageSize :10,
+          showTotal: (total) => <div style={{ position: 'absolute', left: '16px' }}>ทั้งหมด {total} รายการ</div>,
+        }}
       />
     </div>
   );
