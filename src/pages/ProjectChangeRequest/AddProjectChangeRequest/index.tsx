@@ -38,6 +38,7 @@ const AddProjectChangeRequest: React.FC = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...payload } = values;
     mutation.mutate(payload as ProjectChangeRequest_Firestore);
+    navigate('/projectchangerequests');
   };
 
   const handleCancel = () => {
