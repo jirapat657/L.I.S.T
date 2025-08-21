@@ -19,24 +19,24 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Sarabun',
-    padding: 30,
-    fontSize: 9,
-    lineHeight: 1.4,
-  },
-  // --- Header ---
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  companyInfo: {
+    padding: 18,
     fontSize: 8,
-    gap: 1,
+    lineHeight: 1.35
   },
-  documentTitle: {
+  // --- letterHead ---
+  letterHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  logo: { width: 75, marginRight: 8, marginBottom: 4 },
+  companyBlock: { flexGrow: 1, gap: 2 },
+  // --- Document Title ---
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginRight: 35,
+    marginBottom: 20
   },
   // --- Info Boxes ---
   infoRow: {
@@ -57,8 +57,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: 'bold',
-    minWidth: 70,
+    minWidth: 55,
   },
+
   // --- Table ---
   table: {
     borderWidth: 1,
@@ -77,11 +78,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     // borderBottomWidth: 1,
     borderColor: '#f0f0f0',
-    minHeight: 25, // Increase row height
+    minHeight: 40, // Increase row height
   },
   tRowLast: {
     flexDirection: 'row',
-    minHeight: 45,
+    minHeight: 24,
   },
   cell: {
     borderRightWidth: 1,
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 40,
   },
    // แทนที่ style check เดิมด้วย style ใหม่
   checkContainer: {
@@ -126,18 +128,33 @@ const styles = StyleSheet.create({
   },
   
   // --- Signature Section ---
-  signRow: {
-    flexDirection: 'row',
-    gap: 20,
-    marginTop: 25,
+  signRow: { 
+    flexDirection: 'row', 
+    gap: 10, 
+    marginTop: 55,
   },
-  signBox: {
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 4,
-    padding: 10,
+  signBoxContainer: {
     flex: 1,
-    gap: 4, // Add gap between text lines
+    position: 'relative', 
+  },
+  signLabel: {
+    fontWeight: 'bold',
+    position: 'absolute',
+    top: -15, 
+    left: 8,
+    backgroundColor: '#fff', 
+    paddingHorizontal: 4,
+  },
+  signBox: { 
+    borderWidth: 1, 
+    borderColor: '#000', 
+    borderRadius: 4, 
+    padding: 8, 
+    minHeight: 70,
+  },
+  signLabelMinor: {
+    fontWeight: 'bold',
+    minWidth: 43,
   },
 });
 
@@ -157,29 +174,31 @@ const fmtDate = (d: Date | string | { toDate?: () => Date } | undefined) => {
 export const ProjectChangeRequestPDF = ({ sheet, logoSrc }: { sheet: ProjectChangeRequest_PDF; logoSrc?: string }) => (
   <Document>
     <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        <View style={styles.companyInfo}>
-          <Image style={{ width: 80, marginBottom: 5 }} src={logoSrc || ''} />
+      <View style={styles.letterHead}>
+        <View style={styles.companyBlock}>
+          {logoSrc ? <Image style={styles.logo} src={logoSrc} /> : <View style={[styles.logo]} />}
           <Text>ลูคัส สแทรททิจี จำกัด (สำนักงานใหญ่) &nbsp;</Text>
           <Text>49 ซอย 12 ถนนโชตนา ตำบลช้างเผือก อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50300 &nbsp;</Text>
-          <Text>เลขประจำตัวผู้เสียภาษีอากร 0505567004571 &nbsp;&nbsp;</Text>
+          <Text>เลขประจำตัวผู้เสียภาษี 0505567004571 &nbsp;&nbsp;</Text>
           <Text>เบอร์มือถือ 064-9978756</Text>
           <Text>www.ls.co.th</Text>
         </View>
-        <Text style={styles.documentTitle}>Project Change request</Text>
+        <Text style={styles.title}>Project Change request</Text>
       </View>
 
+      {/* Top boxes */}
       <View style={styles.infoRow}>
         <View style={styles.infoBox}>
-          <View style={styles.infoLine}><Text style={styles.label}>Project Name</Text><Text>: {sheet.projectName || ''}</Text></View>
-          <View style={styles.infoLine}><Text style={styles.label}>Project Stage</Text><Text>: {sheet.projectStage || ''}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Project Name : </Text><Text>{sheet.projectName || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Project Stage : </Text><Text>{sheet.projectStage || '-'}</Text></View>
         </View>
         <View style={styles.infoBox}>
-          <View style={styles.infoLine}><Text style={styles.label}>Project Code</Text><Text>: {sheet.jobCode || ''}</Text></View>
-          <View style={styles.infoLine}><Text style={styles.label}>Date</Text><Text>: {fmtDate(sheet.date)}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Project Code : </Text><Text>{sheet.jobCode || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Date : </Text><Text>{fmtDate(sheet.date) || '-'}</Text></View>
         </View>
       </View>
 
+      {/* Description Section */}
       <View style={styles.table}>
         <View style={styles.tHead}>
           <View style={[styles.cell, styles.cSeq]}><Text>Seq.</Text></View>
@@ -245,25 +264,33 @@ export const ProjectChangeRequestPDF = ({ sheet, logoSrc }: { sheet: ProjectChan
                     </Svg>
                 )}
                 </View>
-                <Text>Extra Charge: {sheet.extraChargeDescription || ''}</Text>
+                <Text>Extra Charge : {sheet.extraChargeDescription || '__________________'}</Text>
             </View>
         </View>
 
-      {/* [แก้ไข] อัปเดต Signature Section ให้ดึงข้อมูลจริง */}
+      {/* Signatures */}
       <View style={styles.signRow}>
-        <View style={styles.signBox}>
-          <Text>Company: {sheet.customerInfo?.company || '-'}</Text>
-          <Text>Name: {sheet.customerInfo?.name || '-'}</Text>
-          <Text>Date: {fmtDate(sheet.customerInfo?.date)}</Text>
-          <Text>Signature: {sheet.customerInfo?.signature || '-'}</Text>
+        <View style={styles.signBoxContainer}>
+          <Text style={styles.signLabel}>Customer</Text>
+          <View style={styles.signBox}>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Company : </Text><Text>{sheet.customerInfo?.company || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Name : </Text><Text>{sheet.customerInfo?.name || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Date : </Text><Text>{sheet.customerInfo?.date ? fmtDate(sheet.customerInfo.date) : '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Signature : </Text><Text>{sheet.customerInfo?.signature || '-'}</Text></View>
+          </View>
         </View>
-        <View style={styles.signBox}>
-          <Text>Company: {sheet.serviceByInfo?.company || '-'}</Text>
-          <Text>Name: {sheet.serviceByInfo?.name || '-'}</Text>
-          <Text>Date: {fmtDate(sheet.serviceByInfo?.date)}</Text>
-          <Text>Signature: {sheet.serviceByInfo?.signature || '-'}</Text>
+
+        <View style={styles.signBoxContainer}>
+          <Text style={styles.signLabel}>Service by</Text>
+          <View style={styles.signBox}>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Company : </Text><Text>{sheet.serviceByInfo?.company || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Name : </Text><Text>{sheet.serviceByInfo?.name || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Date : </Text><Text>{sheet.serviceByInfo?.date ? fmtDate(sheet.serviceByInfo.date) : '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Signature : </Text><Text>{sheet.serviceByInfo?.signature || '-'}</Text></View>
+          </View>
         </View>
       </View>
+
     </Page>
   </Document>
 );

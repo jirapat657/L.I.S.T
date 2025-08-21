@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8
   },
-  logo: { width: 75, marginRight: 8 },
+  logo: { width: 75, marginRight: 8, marginBottom: 4 },
   companyBlock: { flexGrow: 1, gap: 2 },
 
   title: {
@@ -53,25 +53,42 @@ const styles = StyleSheet.create({
   },
 
   // Info boxes
-  boxRow: { flexDirection: 'row', gap: 8 },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  infoLine: {
+    flexDirection: 'row',
+  },
   box: {
     borderWidth: 1,
     borderColor: '#000',
     padding: 8,
-    marginBottom: 8,
-    borderRadius: 4
+    
+    borderRadius: 4,
+    
+    flex: 1,
+    gap: 4,
   },
   boxCol: { flex: 1 },
-  label: { fontWeight: 'bold' },
+  label: {
+    fontWeight: 'bold',
+    minWidth: 85,
+  },
+  label2: {
+    fontWeight: 'bold',
+    minWidth: 50,
+  },
 
   // Table
   table: { borderWidth: 1, borderColor: '#000', borderRadius: 4, marginTop: 4, overflow: 'hidden' },
-  tHead: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderBottomWidth: 1, borderColor: '#000' },
+  tHead: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#000', textAlign: 'center', fontWeight: 'bold'},
   tRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
     borderColor: '#f0f0f0',
-    minHeight: 24
+    minHeight: 40
   },
   tRowLast: {
     flexDirection: 'row',
@@ -146,6 +163,10 @@ const styles = StyleSheet.create({
     padding: 8, 
     minHeight: 70,
   },
+  signLabelMinor: {
+    fontWeight: 'bold',
+    minWidth: 43,
+  },
 })
 
 /* ---------------- Helpers ---------------- */
@@ -173,25 +194,25 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
           <Text>ลูคัส สแทรททิจี จำกัด (สำนักงานใหญ่) &nbsp;</Text>
           <Text>49 ซอย 12 ถนนโชตนา ตำบลช้างเผือก อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50300 &nbsp;</Text>
           <Text>เลขประจำตัวผู้เสียภาษี 0505567004571 &nbsp;</Text>
-          <Text>เบอร์มือถือ: 064-9978756</Text>
+          <Text>เบอร์มือถือ 064-9978756</Text>
           <Text>www.ls.co.th</Text>
         </View>
         <Text style={styles.title}>Client Service Sheet</Text>
       </View>
 
       {/* Top boxes */}
-      <View style={[styles.boxRow]}>
-        <View style={[styles.box, { flex: 1.2 }]}>
-          <Text><Text style={styles.label}>Project Name : </Text>{sheet.projectName || '-'}</Text>
-          <Text><Text style={styles.label}>Service location : </Text>{sheet.serviceLocation || '-'}</Text>
-          <Text><Text style={styles.label}>Start Time - End Time : </Text>{sheet.startTime || '-'} - {sheet.endTime || '-'}</Text>
+      <View style={[styles.infoRow]}>
+        <View style={[styles.box]}>
+          <View style={styles.infoLine}><Text style={styles.label}>Project Name : </Text><Text>{sheet.projectName || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Service location : </Text><Text>{sheet.serviceLocation || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label}>Start Time - End Time : </Text><Text>{sheet.startTime || '-'} - {sheet.endTime || '-'}</Text></View>
         </View>
 
-        <View style={[styles.box, { flex: 0.9 }]}>
-          <Text><Text style={styles.label}>Job Code : </Text>{sheet.jobCode || '-'}</Text>
-          <Text><Text style={styles.label}>Date : </Text>{fmtDate(sheet.date)}</Text>
-          <Text><Text style={styles.label}>User : </Text>{sheet.user || '-'}</Text>
-          <Text><Text style={styles.label}>Total Hours : </Text>{sheet.totalHours ?? '-'}</Text>
+        <View style={[styles.box]}>
+          <View style={styles.infoLine}><Text style={styles.label2}>Job Code : </Text><Text>{sheet.jobCode || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label2}>Date : </Text><Text>{fmtDate(sheet.date) || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label2}>User : </Text><Text>{sheet.user || '-'}</Text></View>
+          <View style={styles.infoLine}><Text style={styles.label2}>Total Hours : </Text><Text>{sheet.totalHours ?? '-'}</Text></View>
         </View>
       </View>
 
@@ -254,7 +275,7 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
           </View>
           <View style={styles.checkRow}>
             <Checkbox checked={sheet.chargeTypes?.includes('extra') || false} />
-            <Text wrap>Extra Charge: {sheet.extraChargeDescription || '__________________'}</Text>
+            <Text wrap>Extra Charge : {sheet.extraChargeDescription || '__________________'}</Text>
           </View>
         </View>
       </View>
@@ -264,20 +285,20 @@ export const ServiceSheetPDF = ({ sheet, logoSrc }: { sheet: ClientServiceSheet_
         <View style={styles.signBoxContainer}>
           <Text style={styles.signLabel}>Customer</Text>
           <View style={styles.signBox}>
-            <Text wrap>Company: {sheet.customerInfo?.company || '-'}</Text>
-            <Text wrap>Name: {sheet.customerInfo?.name || '-'}</Text>
-            <Text>Date: {sheet.customerInfo?.date ? fmtDate(sheet.customerInfo.date) : '-'}</Text>
-            <Text>Signature: {sheet.customerInfo?.signature || '-'}</Text>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Company : </Text><Text>{sheet.customerInfo?.company || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Name : </Text><Text>{sheet.customerInfo?.name || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Date : </Text><Text>{sheet.customerInfo?.date ? fmtDate(sheet.customerInfo.date) : '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Signature : </Text><Text>{sheet.customerInfo?.signature || '-'}</Text></View>
           </View>
         </View>
 
         <View style={styles.signBoxContainer}>
           <Text style={styles.signLabel}>Service by</Text>
           <View style={styles.signBox}>
-            <Text wrap>Company: {sheet.serviceByInfo?.company || '-'}</Text>
-            <Text wrap>Name: {sheet.serviceByInfo?.name || '-'}</Text>
-            <Text>Date: {sheet.serviceByInfo?.date ? fmtDate(sheet.serviceByInfo.date) : '-'}</Text>
-            <Text>Signature: {sheet.serviceByInfo?.signature || '-'}</Text>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Company : </Text><Text>{sheet.serviceByInfo?.company || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Name : </Text><Text>{sheet.serviceByInfo?.name || '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Date : </Text><Text>{sheet.serviceByInfo?.date ? fmtDate(sheet.serviceByInfo.date) : '-'}</Text></View>
+            <View style={styles.infoLine}><Text style={styles.signLabelMinor}>Signature : </Text><Text>{sheet.serviceByInfo?.signature || '-'}</Text></View>
           </View>
         </View>
       </View>
