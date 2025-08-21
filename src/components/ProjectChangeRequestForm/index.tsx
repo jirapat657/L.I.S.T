@@ -93,7 +93,8 @@ const projectStageOptions = [
 
 const ChangeRequestTaskTable: React.FC<{
   tasks: ChangeRequestTask[];
-  onUpdate: (id: string, field: keyof ChangeRequestTask, value: any) => void;
+  // ✅ แก้ไขโดยใช้ Generics เพื่อให้ Type ปลอดภัย
+  onUpdate: <K extends keyof ChangeRequestTask>(id: string, field: K, value: ChangeRequestTask[K]) => void;
   onDelete: (id: string) => void;
 }> = ({ tasks, onUpdate, onDelete }) => {
   const columns = [
@@ -151,7 +152,7 @@ const ChangeRequestTaskTable: React.FC<{
       key: 'actions',
       width: 80,
       align: 'center' as const,
-      render: (_: any, record: ChangeRequestTask) => (
+      render: (_: unknown, record: ChangeRequestTask) => (
         <Popconfirm
           title="Delete this item?"
           onConfirm={() => onDelete(record.id)}
@@ -230,10 +231,10 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       },
     ]);
 
-  const handleUpdateTask = (
+  const handleUpdateTask = <K extends keyof ChangeRequestTask>(
     id: string,
-    field: keyof ChangeRequestTask,
-    value: any
+    field: K,
+    value: ChangeRequestTask[K] // ✅ 'value' จะต้องมี Type ตรงกับ 'field' เสมอ
   ) =>
     setTasks((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
@@ -242,10 +243,31 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
   const handleDeleteTask = (id: string) =>
     setTasks((prev) => prev.filter((row) => row.id !== id));
 
-  const toTimestamp = (val: any): Timestamp | null => {
-    if (!val) return null;
-    if (val instanceof Timestamp) return val;
-    if (val.toDate) return Timestamp.fromDate(val.toDate());
+  // สร้าง Type guard เพื่อตรวจสอบว่า object มี toDate method หรือไม่
+  function hasToDate(obj: unknown): obj is { toDate: () => Date } {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'toDate' in obj &&
+      typeof (obj as { toDate: unknown }).toDate === 'function'
+    );
+  }
+
+  const toTimestamp = (
+    val: dayjs.Dayjs | Timestamp | Date | string | null | undefined
+  ): Timestamp | null => {
+    if (!val) {
+      return null;
+    }
+    // ถ้าเป็น Timestamp อยู่แล้ว ให้ return ได้เลย
+    if (val instanceof Timestamp) {
+      return val;
+    }
+    // ใช้ Type guard เพื่อตรวจสอบ object ที่มี .toDate() (เช่น dayjs)
+    if (hasToDate(val)) {
+      return Timestamp.fromDate(val.toDate());
+    }
+    // สำหรับ Date object หรือ string
     return Timestamp.fromDate(new Date(val));
   };
 

@@ -142,8 +142,17 @@ const styles = StyleSheet.create({
 });
 
 // [แก้ไข] เปลี่ยนค่าสำรองจากจุดไข่ปลาเป็นขีด (-)
-const fmtDate = (d: any) =>
-  d ? dayjs(d).format('DD/MM/YYYY') : '-';
+const fmtDate = (d: Date | string | { toDate?: () => Date } | undefined) => {
+  let dateValue: string | number | Date | null | undefined
+  if (d && typeof d === 'object' && typeof (d as { toDate?: () => Date }).toDate === 'function') {
+    dateValue = (d as { toDate: () => Date }).toDate()
+  } else {
+    dateValue = d as string | number | Date | null | undefined
+  }
+  return dayjs(dateValue).isValid()
+    ? dayjs(dateValue).format('DD/MM/YYYY')
+    : '-'
+}
 
 export const ProjectChangeRequestPDF = ({ sheet, logoSrc }: { sheet: ProjectChangeRequest_PDF; logoSrc?: string }) => (
   <Document>

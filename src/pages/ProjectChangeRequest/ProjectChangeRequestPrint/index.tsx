@@ -42,6 +42,8 @@ export default function ProjectChangeRequestPrint() {
           const processedData: ProjectChangeRequest_PDF = {
             ...data,
             date: convertToDate(data.date),
+            createdAt: convertToDate(data.createdAt),
+            updatedAt: convertToDate(data.updatedAt),
             customerInfo: data.customerInfo ? {
               ...data.customerInfo,
               date: convertToDate(data.customerInfo.date)
