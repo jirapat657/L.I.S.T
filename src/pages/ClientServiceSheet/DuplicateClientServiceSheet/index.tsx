@@ -99,7 +99,7 @@ const DuplicateClientServiceSheet: React.FC = () => {
 
   return (
     <div>
-      <h2>Duplicate Client Service Sheet</h2>
+      
       <ClientServiceSheetForm
         formInstance={form}
         initialValues={initialData || {}}

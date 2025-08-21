@@ -382,7 +382,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       </Row>
 
       {/* ----- Tasks section ----- */}
-      <Divider orientation="left">Service Tasks</Divider>
+      
       <div style={{ textAlign: 'right', margin: '12px 0' }}>
         <Button onClick={handleAddTask}>
           <PlusOutlined /> Add Task
@@ -396,17 +396,32 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       />
 
       {/* ----- Remark section ----- */}
-      <Divider orientation="left">Remark</Divider>
-      <Form.Item name="remark" label="Additional Notes">
+      
+      <Form.Item name="remark" label="Remark">
         <Input.TextArea
           rows={4}
           placeholder="Enter any additional remarks or notes"
         />
       </Form.Item>
+      
+      {/* Type Code, Status Code */}
+      <Row gutter={16} style={{marginBottom:16}}>
+        <Col span={12}>
+          <h3>Type Code</h3>
+          <p>I = Implementation</p>
+          <p>T = Training</p>
+          <p>O = Onsite Service</p>
+        </Col>
+        <Col span={12}>
+          <h3>Status Code</h3>
+          <p>0 = Complete</p>
+          <p>1 = Follow Up</p>
+        </Col>
+      </Row>
 
       {/* ----- Charge section ----- */}
-      <Divider orientation="left">Charge</Divider>
-      <Form.Item label="Charge Types" style={{ marginBottom: 0 }}>
+      
+      <Form.Item style={{ marginBottom: 0 }}>
         <Row gutter={8} align="middle">
           <Col>
             <Form.Item name="chargeTypes" noStyle>
@@ -430,7 +445,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       </Form.Item>
 
       {/* ----- Signatures section ----- */}
-      <Divider orientation="left">Signatures</Divider>
+      
       <Row gutter={24}>
         <Col span={12}>
           <Divider>Customer</Divider>

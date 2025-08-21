@@ -104,7 +104,7 @@ const DuplicateProjectChangeRequest: React.FC = () => {
 
   return (
     <div>
-      <h2>Duplicate Project Change Request</h2>
+      
       <ProjectChangeRequestForm
         formInstance={form}
         initialValues={initialData || {}}

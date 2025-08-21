@@ -340,7 +340,7 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
         </Col>
       </Row>
 
-      <Divider orientation="left">Change Request Items</Divider>
+      
       <div style={{ textAlign: 'right', margin: '12px 0' }}>
         <Button onClick={handleAddTask}>
           <PlusOutlined /> Add Item
@@ -352,8 +352,8 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
         onDelete={handleDeleteTask}
       />
 
-      <Divider orientation="left">Remark</Divider>
-      <Form.Item name="remark" label="Additional Notes">
+      
+      <Form.Item name="remark" label="Remark">
         <Input.TextArea
           rows={4}
           placeholder="Enter any additional remarks or notes"
@@ -361,37 +361,37 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       </Form.Item>
 
       {/* Charge Section */}
-<Divider orientation="left">Charge</Divider>
-<Form.Item label="Charge Types" style={{ marginBottom: 0 }}>
-  <Row gutter={8} align="middle">
-    <Col>
-      <Form.Item name="chargeTypes" noStyle>
-        <Checkbox.Group>
-          <Row gutter={16}>
-            <Col>
-              <Checkbox value="included">Included in Agreement</Checkbox>
+      
+      <Form.Item style={{ marginBottom: 0 }}>
+        <Row gutter={8} align="middle">
+          <Col>
+            <Form.Item name="chargeTypes" noStyle>
+              <Checkbox.Group>
+                <Row gutter={16}>
+                  <Col>
+                    <Checkbox value="included">Included in Agreement</Checkbox>
+                  </Col>
+                  <Col>
+                    <Checkbox value="free">Free of Charge</Checkbox>
+                  </Col>
+                  <Col>
+                    <Checkbox value="extra">Extra Charge</Checkbox>
+                  </Col>
+                </Row>
+              </Checkbox.Group>
+            </Form.Item>
+          </Col>
+          {chargeTypes?.includes('extra') && (
+            <Col flex="auto">
+              <Form.Item name="extraChargeDescription" noStyle>
+                <Input placeholder="Describe the extra charge" />
+              </Form.Item>
             </Col>
-            <Col>
-              <Checkbox value="free">Free of Charge</Checkbox>
-            </Col>
-            <Col>
-              <Checkbox value="extra">Extra Charge</Checkbox>
-            </Col>
-          </Row>
-        </Checkbox.Group>
+          )}
+        </Row>
       </Form.Item>
-    </Col>
-    {chargeTypes?.includes('extra') && (
-      <Col flex="auto">
-        <Form.Item name="extraChargeDescription" noStyle>
-          <Input placeholder="Describe the extra charge" />
-        </Form.Item>
-      </Col>
-    )}
-  </Row>
-</Form.Item>
 
-      <Divider orientation="left">Signatures</Divider>
+     
       <Row gutter={24}>
         <Col span={12}>
           <Divider>Customer</Divider>
