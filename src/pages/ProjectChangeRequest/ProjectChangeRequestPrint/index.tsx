@@ -93,13 +93,13 @@ export default function ProjectChangeRequestPrint() {
             textDecoration: 'none',
             padding: '6px 12px',
             color: '#fff',
-            backgroundColor: '#1677ff',
+            backgroundColor: '#080808',
             borderRadius: '6px',
             fontSize: '14px'
           }}
         >
           {({ loading: downloadLoading }) =>
-            downloadLoading ? 'Preparing...' : `Download ${fileName}`
+            downloadLoading ? 'Preparing...' : `Download PDF`
           }
         </PDFDownloadLink>
       </div>
