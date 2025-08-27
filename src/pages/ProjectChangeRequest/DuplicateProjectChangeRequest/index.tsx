@@ -36,7 +36,7 @@ const DuplicateProjectChangeRequest: React.FC = () => {
           const duplicatedData: Partial<ProjectChangeRequest_Firestore> = {
             ...data,
             id: undefined, // ล้าง ID เดิมออกเพื่อให้ Firestore สร้างใหม่
-            jobCode: data.jobCode ? `${data.jobCode}-COPY` : '',
+            jobCode: data.jobCode ? `${data.jobCode}` : '',
             
             // ตั้งค่าวันที่เป็นวันปัจจุบันสำหรับเอกสารใหม่
             date: Timestamp.now(),
