@@ -90,7 +90,7 @@ export default function Sidebar() {
   ]
 
   return (
-    <Layout.Sider className={styles.sidebarContainer} width={233}>
+    <Layout.Sider className={styles.sidebarContainer} width={220}>
       <Space direction="vertical">
         <img src='/icons/headerSidebar.png' alt='Logo' className={styles.logo} />
       </Space>
