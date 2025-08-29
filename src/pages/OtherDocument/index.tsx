@@ -94,7 +94,7 @@ const OtherDocument = () => {
         render: (createBy: string) => createBy || 'ไม่ทราบผู้ใช้',  // หาก createBy มีค่า, แสดงชื่อผู้ใช้
     },
     {
-      title: 'Action',
+      title: '',
       key: 'actions',
       render: (_: unknown, record: OtherDocumentData) => {
         const items: MenuProps['items'] = [

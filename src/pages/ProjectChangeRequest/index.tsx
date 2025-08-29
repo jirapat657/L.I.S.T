@@ -84,7 +84,7 @@ const ProjectChangeRequest: React.FC = () => {
       key: 'jobCode',
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'action',
       align: 'center' as const,
       render: (_: unknown, record: ProjectChangeRequest_Firestore) => {

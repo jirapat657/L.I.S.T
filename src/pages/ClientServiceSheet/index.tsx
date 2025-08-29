@@ -134,7 +134,7 @@ const ClientServiceSheet: React.FC = () => {
       key: 'user',
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'action',
       align: 'center' as const,
       render: (_: unknown, record: ClientServiceSheet_Firestore) => (
