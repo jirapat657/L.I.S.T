@@ -46,7 +46,7 @@ export const PAGE_TITLE = Object.freeze({
   SETTING_ADD_PROJECT: 'Add Project',
   SETTING_ADD_USER: 'Add User',
   OTHER_DOCUMENT: 'Other Document',
-  SCHEDULE_MEETING: 'Meeting Summary',
+  SCHEDULE_MEETING: 'Schedule Meeting',
   MEETING_SUMMARY: 'Meeting Summary',
   TODOLIST: 'To Do List'
 });
