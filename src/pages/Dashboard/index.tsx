@@ -49,7 +49,7 @@ function getCountByField(data: IssueData[], field: TypeFieldKey) {
 function getOnTimeLateTimeByProject(data: IssueData[]) {
   const projects: Record<string, { onTime: number; lateTime: number }> = {}
   data.forEach(issue => {
-    const projectName = issue.projectName || 'Unknown Project'
+    const projectName = issue.projectId || 'Unknown Project'
     const status = issue.onLateTime || ''
     if (!status.startsWith('On Time') && !status.startsWith('Late Time')) return
     if (!projects[projectName]) {
@@ -271,12 +271,14 @@ const Dashboard = () => {
       {
         label: 'On Time',
         data: onTimeArr,
-        backgroundColor: '#009B63'
+        backgroundColor: '#009B63',
+        barThickness: 20, // ✅ ปรับขนาดแท่ง
       },
       {
         label: 'Late Time',
         data: lateTimeArr,
-        backgroundColor: '#FC0A18'
+        backgroundColor: '#FC0A18',
+        barThickness: 20, // ✅ ปรับขนาดแท่ง  
       }
     ]
   }
