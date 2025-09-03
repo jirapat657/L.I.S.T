@@ -215,9 +215,10 @@ const Dashboard = () => {
   const barTypeColorMap: Record<string, string> = {
     'Task': '#323232',
     'Bug': '#FC0A18',
-    'Performance': '#1490CE'
+    'Performance': '#1490CE',
+    'Enquiry': '#01B574'
   }
-  const typeOrder = ['Task', 'Bug', 'Performance']
+  const typeOrder = ['Task', 'Bug', 'Performance', 'Enquiry']
   const filteredTypeData = typeOrder
     .map(type => typeData.find(d => d.name === type))
     .filter(Boolean)
