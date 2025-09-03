@@ -101,4 +101,10 @@ import {
   };
     
   
-  
+ export const getAllProjects = async (): Promise<ProjectData[]> => {
+  const snapshot = await getDocs(collection(db, 'LIMProjects'));
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  } as ProjectData));
+};

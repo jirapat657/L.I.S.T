@@ -2,7 +2,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { getAllIssues } from '@/api/issue'
+import { getAllIssuesWithProjectNames } from '@/api/dashboard'
 import type { IssueData } from '@/types/issue'
 import { Card, Row, Col, Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
@@ -49,7 +49,7 @@ function getCountByField(data: IssueData[], field: TypeFieldKey) {
 function getOnTimeLateTimeByProject(data: IssueData[]) {
   const projects: Record<string, { onTime: number; lateTime: number }> = {}
   data.forEach(issue => {
-    const projectName = issue.projectId || 'Unknown Project'
+    const projectName = issue.projectName || 'Unknown Project'
     const status = issue.onLateTime || ''
     if (!status.startsWith('On Time') && !status.startsWith('Late Time')) return
     if (!projects[projectName]) {
@@ -136,7 +136,7 @@ function getTypeTrendByMonth(
 const Dashboard = () => {
   const { data: issues = [], isLoading, isError, error } = useQuery<IssueData[], Error>({
     queryKey: ['LIMIssues'],
-    queryFn: getAllIssues
+    queryFn: getAllIssuesWithProjectNames
   })
 
   if (isLoading) {
