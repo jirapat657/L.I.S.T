@@ -42,7 +42,7 @@ interface ClientServiceSheetFormProps {
   submitButtonText?: string;
   formInstance?: FormInstance;
 
-  mode?: 'create' | 'edit' | 'duplicate'; // ✅ เพิ่ม
+  mode?: 'create' | 'edit' | 'duplicate'; // ✅ ใช้เพื่อควบคุม default date
 }
 
 /* --------------------------------------------- */
@@ -89,9 +89,6 @@ const statusOptions = [
   { label: '1', value: '1' },
 ];
 
-/* --------------------------------------------- */
-/* Subtable Component                            */
-/* --------------------------------------------- */
 const ServiceTaskTable: React.FC<{
   tasks: ServiceTask[];
   onUpdate: (id: string, field: keyof ServiceTask, value: ServiceTask[keyof ServiceTask]) => void;
@@ -193,6 +190,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   isLoading = false,
   submitButtonText = 'Save',
   formInstance,
+  mode = 'create', // ✅ เพิ่มค่า default
 }) => {
   const [form] = Form.useForm(formInstance);
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
@@ -246,7 +244,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       },
     };
 
-
     // ถ้า initialValues มี projectName ให้ลองจับคู่ projectId อัตโนมัติจากชื่อ (ถ้าชื่อตรง)
     if (!processedValues.projectId && processedValues.projectName && projects.length) {
       const found = projects.find(p => p.projectName === processedValues.projectName);
@@ -257,7 +254,15 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
 
     form.resetFields();
     form.setFieldsValue(processedValues);
-  }, [initialValues, projects, form]);
+
+    // ✅ ใส่วันนี้อัตโนมัติ เฉพาะตอน create และกรณีที่ยังไม่มีค่า date ในฟอร์ม
+    if (mode === 'create') {
+      const current = form.getFieldValue('date');
+      if (!current) {
+        form.setFieldsValue({ date: dayjs() });
+      }
+    }
+  }, [initialValues, projects, form, mode]);
 
   // ===== Date & Project watcher สำหรับ auto-generate jobCode =====
   const watchedProjectId = Form.useWatch<string | undefined>('projectId', form);
@@ -381,7 +386,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       form={form}
       onFinish={handleFormSubmit}
       initialValues={{
-        date: dayjs(),
+        date: dayjs(), // ✅ default วันนี้
         chargeTypes: [],
         customerInfo: {},
         serviceByInfo: {},
@@ -450,10 +455,10 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           </Form.Item>
         </Col>
 
-        {/* Job Code: readOnly, auto-generate */}
+        {/* Job Code: auto-generate */}
         <Col span={12}>
           <Form.Item label="Job Code" name="jobCode" rules={[{ required: true }]}>
-            <Input  placeholder="Will be generated from Project & Date" />
+            <Input placeholder="Will be generated from Project & Date" />
           </Form.Item>
         </Col>
 
