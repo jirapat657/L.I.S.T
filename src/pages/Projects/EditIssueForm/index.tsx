@@ -31,7 +31,7 @@ import { duplicateSubtask } from '@/utils/subtaskUtils';
 import { getBATestOptions } from '@/utils/userOptions';
 
 const EditIssueFormPage: React.FC = () => {
-  const { issueId, projectId } = useParams<{ issueId: string; projectId: string }>();
+  const { issueId } = useParams<{ issueId: string; projectId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form] = useForm();
@@ -71,7 +71,7 @@ const EditIssueFormPage: React.FC = () => {
       if (!issueId) return;
       queryClient.invalidateQueries({ queryKey: ['issue', issueId] });
       message.success('บันทึกการแก้ไขสำเร็จ');
-      navigate(`/projects/${projectId}`);
+      navigate(-1);
     },
     onError: () => {
       message.error('บันทึกไม่สำเร็จ กรุณาลองใหม่');
