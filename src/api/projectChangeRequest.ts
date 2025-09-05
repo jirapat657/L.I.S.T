@@ -10,6 +10,8 @@ import {
   orderBy,
   query,
   addDoc,
+  where,
+  limit as qLimit
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { ProjectChangeRequest_Firestore } from '@/types/projectChangeRequest';
@@ -86,3 +88,26 @@ export const getProjectChangeRequestById = async (id: string): Promise<ProjectCh
   const docSnap = await getDoc(docRef);
   return docSnap.exists() ? (docSnap.data() as ProjectChangeRequest_Firestore) : null;
 };
+
+export type ProjectChangeRequestDoc = {
+  id: string;
+  jobCode?: string; // รูปแบบ: {projectId}-{DDMMYYYY}-{NNN}
+  // ...ฟิลด์อื่นตามจริง
+};
+
+export async function getChangeRequestsByPrefix(
+  prefix: string,
+  opt?: { limit?: number }
+): Promise<ProjectChangeRequestDoc[]> {
+  const col = collection(db, COLLECTION_NAME); // ← ตั้งตามชื่อ collection ของ PCR
+  const upperBound = prefix + '\uf8ff';
+  const q = query(
+    col,
+    where('jobCode', '>=', prefix),
+    where('jobCode', '<', upperBound),
+    orderBy('jobCode', 'asc'),
+    qLimit(opt?.limit ?? 50)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<ProjectChangeRequestDoc, 'id'>) }));
+}

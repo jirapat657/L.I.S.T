@@ -1,5 +1,5 @@
-//src/components/ProjectChangeRequestForm/index.tsx
-import React, { useState, useEffect } from 'react';
+// src/components/ProjectChangeRequestForm/index.tsx
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Form,
   Input,
@@ -10,57 +10,32 @@ import {
   Table,
   Popconfirm,
   Divider,
-  Checkbox, // [เพิ่ม] Import Checkbox
+  Checkbox,
   type FormInstance,
+  message,
+  Select,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Timestamp } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 
-// --- Placeholder Types (กรุณาแทนที่ด้วย Type จริงจาก src/types) ---
-type ChangeRequestTask = {
-  id: string;
-  sequence?: string;
-  description?: string;
-  requestedBy?: string;
-  approved?: string;
-};
+// ---- ใช้ Type จากโฟลเดอร์ types ----
+import type {
+  ChangeRequestTask,
+  ProjectChangeRequest_Firestore,
+  ProjectChangeRequestDoc,
+} from '@/types/projectChangeRequest';
 
-type PartyInfo = {
-  company?: string;
-  name?: string;
-  date?: Timestamp | null;
-  signature?: string;
-};
+// ---- External APIs/Types ----
+import type { ProjectData } from '@/types/project';
+import { getProjects } from '@/api/project';
+import { getChangeRequestsByPrefix } from '@/api/projectChangeRequest';
 
-// [แก้ไข] เพิ่มฟิลด์สำหรับ Charge Section
-type ProjectChangeRequest_Firestore = {
-  id: string;
-  projectName?: string;
-  projectStage?: string;
-  jobCode?: string;
-  date?: Timestamp | null;
-  tasks?: ChangeRequestTask[];
-  chargeTypes?: ('included' | 'free' | 'extra')[];
-  extraChargeDescription?: string;
-  remark?: string;
-  customerInfo?: PartyInfo;
-  serviceByInfo?: PartyInfo;
-};
-// --- สิ้นสุดส่วนของ Placeholder ---
-
-interface ProjectChangeRequestFormProps {
-  initialValues?: Partial<ProjectChangeRequest_Firestore>;
-  onFinish: (values: ProjectChangeRequest_Firestore) => Promise<void>;
-  onCancel: () => void;
-  isLoading?: boolean;
-  submitButtonText?: string;
-  formInstance?: FormInstance;
-}
-
-// [แก้ไข] เพิ่มฟิลด์สำหรับ Charge Section
+// ---- Form Values (ค่าที่อยู่บนฟอร์ม ก่อนแปลงเป็น Firestore) ----
 type FormValues = {
-  projectName?: string;
+  projectId?: string;     // ใช้สำหรับ generate jobCode
+  projectName?: string;   // เก็บชื่อไว้ใน Firestore
   projectStage?: string;
   jobCode?: string;
   date?: dayjs.Dayjs;
@@ -81,9 +56,9 @@ type FormValues = {
   };
 };
 
+// =================== Subtable: Tasks ===================
 const ChangeRequestTaskTable: React.FC<{
   tasks: ChangeRequestTask[];
-  // ✅ แก้ไขโดยใช้ Generics เพื่อให้ Type ปลอดภัย
   onUpdate: <K extends keyof ChangeRequestTask>(id: string, field: K, value: ChangeRequestTask[K]) => void;
   onDelete: (id: string) => void;
 }> = ({ tasks, onUpdate, onDelete }) => {
@@ -165,6 +140,18 @@ const ChangeRequestTaskTable: React.FC<{
   );
 };
 
+// =================== Main Form ===================
+interface ProjectChangeRequestFormProps {
+  initialValues?: Partial<ProjectChangeRequest_Firestore>;
+  onFinish: (values: ProjectChangeRequest_Firestore) => Promise<void>;
+  onCancel: () => void;
+  isLoading?: boolean;
+  submitButtonText?: string;
+  formInstance?: FormInstance<FormValues>;
+  /** โหมดฟอร์ม: create จะ auto-generate jobCode, edit/duplicate จะไม่ gen ทับ */
+  mode?: 'create' | 'edit' | 'duplicate';
+}
+
 const defaultInitialValues: Partial<ProjectChangeRequest_Firestore> = {};
 
 const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
@@ -174,11 +161,34 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
   isLoading = false,
   submitButtonText = 'Save',
   formInstance,
+  mode = 'create',
 }) => {
-  const [form] = Form.useForm(formInstance);
+  const [form] = Form.useForm<FormValues>(formInstance);
   const [tasks, setTasks] = useState<ChangeRequestTask[]>([]);
 
+  // ===== โหลดโปรเจกต์สำหรับ Select =====
+  const { data: projects = [], isLoading: isProjectsLoading } = useQuery<ProjectData[]>({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
+
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        label: p.projectName,
+        value: p.projectId, // ใช้ projectId เป็นค่า
+      })),
+    [projects]
+  );
+
+  const idToName = useMemo(
+    () => new Map(projects.map((p) => [p.projectId, p.projectName])),
+    [projects]
+  );
+
+  // ===== Init form & tasks =====
   useEffect(() => {
+    // Table tasks
     const initialTasks =
       initialValues.tasks?.map((task) => ({
         ...task,
@@ -186,12 +196,11 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       })) || [];
     setTasks(initialTasks);
 
-    const processedValues = {
+    // Form values (convert timestamps → dayjs)
+    const processedValues: FormValues = {
       ...initialValues,
-      date: initialValues.date
-        ? dayjs((initialValues.date as Timestamp).toDate())
-        : undefined,
-        chargeTypes: initialValues.chargeTypes || [], // เพิ่มบรรทัดนี้
+      date: initialValues.date ? dayjs((initialValues.date as Timestamp).toDate()) : undefined,
+      chargeTypes: initialValues.chargeTypes || [],
       customerInfo: {
         ...initialValues.customerInfo,
         date: initialValues.customerInfo?.date
@@ -205,67 +214,79 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
           : undefined,
       },
     };
+
+    // ถ้ามี projectName แต่ยังไม่มี projectId ให้ลองจับคู่
+    if (!processedValues.projectId && processedValues.projectName && projects.length) {
+      const found = projects.find((p) => p.projectName === processedValues.projectName);
+      if (found) processedValues.projectId = found.projectId;
+    }
+
     form.resetFields();
     form.setFieldsValue(processedValues);
-  }, [initialValues, form]);
 
-  const handleAddTask = () =>
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: `new-${Date.now()}`,
-        sequence: '',
-        description: '',
-        requestedBy: '',
-        approved: '',
-      },
-    ]);
+    // ให้วันนี้อัตโนมัติในโหมด create หากยังไม่มี date
+    if (mode === 'create') {
+      const current = form.getFieldValue('date');
+      if (!current) form.setFieldsValue({ date: dayjs() });
+    }
+  }, [initialValues, projects, form, mode]);
 
-  const handleUpdateTask = <K extends keyof ChangeRequestTask>(
-    id: string,
-    field: K,
-    value: ChangeRequestTask[K] // ✅ 'value' จะต้องมี Type ตรงกับ 'field' เสมอ
-  ) =>
-    setTasks((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-    );
+  // ===== Watchers สำหรับ auto-generate jobCode =====
+  const watchedProjectId = Form.useWatch<string | undefined>('projectId', form);
+  const watchedDate = Form.useWatch<dayjs.Dayjs | undefined>('date', form);
 
-  const handleDeleteTask = (id: string) =>
-    setTasks((prev) => prev.filter((row) => row.id !== id));
+  useEffect(() => {
+    // สร้างเฉพาะตอน create เท่านั้น (edit/duplicate ไม่ gen ทับ)
+    if (mode !== 'create') return;
+    if (!watchedProjectId) return;
 
-  // สร้าง Type guard เพื่อตรวจสอบว่า object มี toDate method หรือไม่
+    const d = watchedDate || dayjs();
+    const ddMMyyyy = d.format('DDMMYYYY');
+    const prefix = `${watchedProjectId}-${ddMMyyyy}`; // {projectId}-{DDMMYYYY}
+
+    (async () => {
+      try {
+        // Query เฉพาะ collection PCR
+        const existing = await getChangeRequestsByPrefix(prefix);
+        const maxRun = (existing || []).reduce((mx: number, doc: ProjectChangeRequestDoc) => {
+          const m = String(doc.jobCode || '').match(/-(\d{3})$/);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            return n > mx ? n : mx;
+          }
+          return mx;
+        }, 0);
+
+        const nextRun = String(maxRun + 1).padStart(3, '0');
+        const nextCode = `${prefix}-${nextRun}`;
+        form.setFieldsValue({ jobCode: nextCode });
+      } catch (err) {
+        console.error('generate jobCode failed', err);
+        message.error('ไม่สามารถสร้างเลขเอกสารอัตโนมัติได้');
+      }
+    })();
+  }, [watchedProjectId, watchedDate, mode, form]);
+
+  // ===== Helpers =====
   function hasToDate(obj: unknown): obj is { toDate: () => Date } {
-    return (
-      typeof obj === 'object' &&
-      obj !== null &&
-      'toDate' in obj &&
-      typeof (obj as { toDate: unknown }).toDate === 'function'
-    );
+    return typeof obj === 'object' && obj !== null && 'toDate' in obj && typeof (obj as { toDate: unknown }).toDate === 'function';
   }
 
   const toTimestamp = (
     val: dayjs.Dayjs | Timestamp | Date | string | null | undefined
   ): Timestamp | null => {
-    if (!val) {
-      return null;
-    }
-    // ถ้าเป็น Timestamp อยู่แล้ว ให้ return ได้เลย
-    if (val instanceof Timestamp) {
-      return val;
-    }
-    // ใช้ Type guard เพื่อตรวจสอบ object ที่มี .toDate() (เช่น dayjs)
-    if (hasToDate(val)) {
-      return Timestamp.fromDate(val.toDate());
-    }
-    // สำหรับ Date object หรือ string
-    return Timestamp.fromDate(new Date(val));
+    if (!val) return null;
+    if (val instanceof Timestamp) return val;
+    if (hasToDate(val)) return Timestamp.fromDate(val.toDate());
+    return Timestamp.fromDate(new Date(val as string | Date));
   };
 
+  // ===== Submit =====
   const handleFormSubmit = (values: FormValues) => {
-    // [แก้ไข] เพิ่มฟิลด์ใหม่เข้าไปใน payload
     const payload: ProjectChangeRequest_Firestore = {
       id: initialValues.id || '',
-      projectName: values.projectName || '',
+      // เก็บชื่อไว้ใน Firestore ตามเดิม แต่ UI เลือกด้วย projectId
+      projectName: values.projectName || (values.projectId ? idToName.get(values.projectId) || '' : ''),
       projectStage: values.projectStage || '',
       jobCode: values.jobCode || '',
       date: toTimestamp(values.date),
@@ -288,9 +309,26 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
     };
     onFinish(payload);
   };
-  
-  // [เพิ่ม] ใช้ useWatch เพื่อติดตามค่าของ Checkbox
-  const chargeTypes = Form.useWatch('chargeTypes', form);
+
+  // ===== Tasks CRUD =====
+  const handleAddTask = () =>
+    setTasks((prev) => [
+      ...prev,
+      { id: `new-${Date.now()}`, sequence: '', description: '', requestedBy: '', approved: '' },
+    ]);
+
+  const handleUpdateTask = <K extends keyof ChangeRequestTask>(
+    id: string,
+    field: K,
+    value: ChangeRequestTask[K]
+  ) =>
+    setTasks((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+
+  const handleDeleteTask = (id: string) =>
+    setTasks((prev) => prev.filter((row) => row.id !== id));
+
+  // watch สำหรับ Extra Charge
+  const chargeTypes = Form.useWatch<('included' | 'free' | 'extra')[]>('chargeTypes', form);
 
   return (
     <Form
@@ -299,16 +337,40 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       onFinish={handleFormSubmit}
       initialValues={{ date: dayjs(), chargeTypes: [] }}
     >
+      {/* ซ่อน projectId เพื่อใช้ generate jobCode */}
+      <Form.Item name="projectId" hidden>
+        <Input />
+      </Form.Item>
+
       <Row gutter={16}>
         <Col span={12}>
+          {/* Project Select: แสดงชื่อ (label) แต่เซ็ตทั้ง projectId+projectName */}
           <Form.Item
-            label="Project Name"
+            label="Project"
             name="projectName"
-            rules={[{ required: true }]}
+            required
+            tooltip="เลือกโปรเจกต์จาก LIMProjects (ระบบจะตั้งค่า projectId เพื่อสร้าง Job Code)"
           >
-            <Input placeholder="Enter project name" />
+            <Select
+              placeholder="Select project"
+              options={projectOptions}
+              loading={isProjectsLoading}
+              showSearch
+              labelInValue
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(opt) => {
+                // opt = { label: projectName, value: projectId }
+                form.setFieldsValue({
+                  projectId: opt?.value,
+                  projectName: opt?.label,
+                });
+              }}
+            />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item
             label="Project Stage"
@@ -318,11 +380,14 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
             <Input placeholder="Enter stage" />
           </Form.Item>
         </Col>
+
+        {/* Job Code: auto-generate (create mode) */}
         <Col span={12}>
-          <Form.Item label="Job Code" name="jobCode">
-            <Input placeholder="Enter job code" />
+          <Form.Item label="Job Code" name="jobCode" rules={[{ required: true }]}>
+            <Input placeholder="Will be generated from Project & Date" />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item label="Date" name="date" rules={[{ required: true }]}>
             <DatePicker style={{ width: '100%' }} format="DD/MM/YY" />
@@ -330,28 +395,20 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
         </Col>
       </Row>
 
-      
+      {/* Tasks */}
       <div style={{ textAlign: 'right', margin: '12px 0' }}>
         <Button onClick={handleAddTask}>
           <PlusOutlined /> Add Item
         </Button>
       </div>
-      <ChangeRequestTaskTable
-        tasks={tasks}
-        onUpdate={handleUpdateTask}
-        onDelete={handleDeleteTask}
-      />
+      <ChangeRequestTaskTable tasks={tasks} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} />
 
-      
+      {/* Remark */}
       <Form.Item name="remark" label="Remark">
-        <Input.TextArea
-          rows={4}
-          placeholder="Enter any additional remarks or notes"
-        />
+        <Input.TextArea rows={4} placeholder="Enter any additional remarks or notes" />
       </Form.Item>
 
       {/* Charge Section */}
-      
       <Form.Item style={{ marginBottom: 0 }}>
         <Row gutter={8} align="middle">
           <Col>
@@ -381,7 +438,7 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
         </Row>
       </Form.Item>
 
-     
+      {/* Parties */}
       <Row gutter={24}>
         <Col span={12}>
           <Divider>Customer</Divider>
@@ -415,13 +472,8 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
         </Col>
       </Row>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 24,
-        }}
-      >
+      {/* Footer */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
         <Button htmlType="button" onClick={onCancel}>
           Cancel
         </Button>

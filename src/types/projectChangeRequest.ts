@@ -61,3 +61,7 @@ export type ProjectChangeRequest_PDF = {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+export type ProjectChangeRequestDoc = Pick<ProjectChangeRequest_Firestore, 'jobCode'> & {
+  id: string;
+};
