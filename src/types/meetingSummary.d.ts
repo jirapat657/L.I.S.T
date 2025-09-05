@@ -11,7 +11,7 @@ export interface MeetingSummaryData {
   id: string;  // ID ของเอกสารใน Firestore
   meetingDate: FirebaseFirestore.Timestamp ;  // วันที่ของการประชุม
   meetingNo: string;  // หมายเลขการประชุม
-  meetingTime: string;  // เวลาในการประชุม
+  meetingTime: FirebaseFirestore.Timestamp;  // เวลาในการประชุม
   attendees?: string;  // รายชื่อผู้เข้าร่วม
   meetingTopic?: string;  // หัวข้อของการประชุม
   meetingChannel?: string;  // ช่องทางการประชุม (เช่น Zoom, Teams)
@@ -27,7 +27,7 @@ export interface MeetingSummaryData {
 export interface MeetingSummaryPayload {
   meetingDate: FirebaseFirestore.Timestamp ;  // วันที่ของการประชุม
   meetingNo: string;  // หมายเลขการประชุม
-  meetingTime: string;  // เวลาในการประชุม
+  meetingTime: FirebaseFirestore.Timestamp;  // เวลาในการประชุม
   attendees?: string;  // รายชื่อผู้เข้าร่วม
   meetingTopic?: string;  // หัวข้อของการประชุม
   meetingChannel?: string;  // ช่องทางการประชุม
@@ -43,7 +43,7 @@ export interface MeetingSummaryPayload {
 export interface MeetingSummaryFormValues {
   meetingDate: Date ;  // วันที่ของการประชุม (ใช้ในฟอร์ม)
   meetingNo: string;  // หมายเลขการประชุม (ใช้ในฟอร์ม)
-  meetingTime: string;  // เวลาในการประชุม (ใช้ในฟอร์ม)
+  meetingTime: Dayjs;  // เวลาในการประชุม (ใช้ในฟอร์ม)
   attendees?: string;  // รายชื่อผู้เข้าร่วม (ใช้ในฟอร์ม)
   meetingTopic?: string;  // หัวข้อของการประชุม (ใช้ในฟอร์ม)
   meetingChannel?: string;  // ช่องทางการประชุม (ใช้ในฟอร์ม)

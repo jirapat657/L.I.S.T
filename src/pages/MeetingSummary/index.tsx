@@ -1,5 +1,5 @@
 // src/pages/MeetingSummary/index.tsx
-import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Row, Col, Select } from 'antd';
+import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Row, Col, Select, TimePicker } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAllMeetingSummaries, deleteMeetingSummaryById, updateMeetingSummaryById, createMeetingSummary as createMeetingSummaryApi } from '@/api/meetingSummary';
@@ -64,7 +64,19 @@ const MeetingSummary = () => {
       render: (val: Timestamp | Date | null | undefined) => formatFirestoreDate(val),
     },
     { title: 'Meeting No.', dataIndex: 'meetingNo' },
-    { title: 'Meeting Time', dataIndex: 'meetingTime' },
+    {
+      title: 'Meeting Time',
+      dataIndex: 'meetingTime',
+      render: (val: string | Timestamp | null | undefined) => {
+        if (!val) return '-';
+
+        if (val instanceof Timestamp) {
+          return dayjs(val.toDate()).format('HH:mm');
+        }
+
+        return val; // กรณีเป็น string
+      },
+    },
     { 
       title: 'Attendees', 
       dataIndex: 'attendees',
@@ -115,6 +127,7 @@ const MeetingSummary = () => {
               form.setFieldsValue({
                 ...record,
                 meetingDate: record.meetingDate ? dayjs(record.meetingDate.toDate()) : null,
+                meetingTime: record.meetingTime ? dayjs(record.meetingTime.toDate()) : null, // ✅ แปลง Timestamp -> Dayjs
               });
             },
           },
@@ -214,17 +227,16 @@ const MeetingSummary = () => {
     const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
 
     const payload: MeetingSummaryPayload = {
-        meetingDate: Timestamp.fromDate(dayjs(values.meetingDate).toDate()),
-        meetingNo: values.meetingNo,
-        meetingTime: values.meetingTime,
-        // ระบุฟิลด์ที่จำเป็นทั้งหมดแม้จะเป็น optional
-        attendees: values.attendees || '',
-        meetingTopic: values.meetingTopic || 'Meeting',
-        noteTaker: values.noteTaker || '',
-        remark: values.remark || null,
-        files: uploadFiles || [],
-        createdAt: editingMeetingSummary?.createdAt ?? Timestamp.now(),
-        createdBy: displayName
+      meetingDate: Timestamp.fromDate(dayjs(values.meetingDate).toDate()),
+      meetingNo: values.meetingNo,
+      meetingTime: Timestamp.fromDate(values.meetingTime.toDate()),
+      attendees: values.attendees || '',
+      meetingTopic: values.meetingTopic || 'Meeting',
+      noteTaker: values.noteTaker || '',
+      remark: values.remark || null,
+      files: uploadFiles || [],
+      createdAt: editingMeetingSummary?.createdAt ?? Timestamp.now(),
+      createdBy: displayName
     };
 
     if (editingMeetingSummary?.id) {
@@ -310,7 +322,10 @@ const MeetingSummary = () => {
           onFinish={handleFinish}
           initialValues={{ 
             meetingTopic: 'Meeting',
-            meetingDate: dayjs() // ตั้งค่าเริ่มต้นเป็นวันปัจจุบัน
+            meetingDate: dayjs(), // ตั้งค่าเริ่มต้นเป็นวันปัจจุบัน
+            meetingTime: editingMeetingSummary?.meetingTime 
+              ? dayjs(editingMeetingSummary.meetingTime, 'HH:mm')
+              : undefined
          }}
         >
           <Form.Item name="meetingDate" label="Meeting Date" rules={[{ required: true }]}>
@@ -320,7 +335,13 @@ const MeetingSummary = () => {
             />
             </Form.Item>
           <Form.Item name="meetingNo" label="Meeting No." rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="meetingTime" label="Meeting Time" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item
+            name="meetingTime"
+            label="Meeting Time"
+            rules={[{ required: true, message: 'กรุณาเลือกเวลา' }]}
+          >
+            <TimePicker format="HH:mm" />
+          </Form.Item>
           <Form.Item name="meetingChannel" label="Meeting Channel">
             <Select defaultValue="Online">
                 <Select.Option value="Online">Online</Select.Option>

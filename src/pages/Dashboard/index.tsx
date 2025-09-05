@@ -192,7 +192,7 @@ const Dashboard = () => {
     'Task': '#080808',
     'Bug': '#FC0A18',
     'Performance': '#1490CE',
-    'Enquiry': '#01B574'
+    'Enquiry': '#D0D5DD'
   }
   const filteredTargetTypes = targetTypes.filter(type => !!typeColorMap[type])
   const lineData = {
@@ -216,7 +216,7 @@ const Dashboard = () => {
     'Task': '#323232',
     'Bug': '#FC0A18',
     'Performance': '#1490CE',
-    'Enquiry': '#01B574'
+    'Enquiry': '#D0D5DD'
   }
   const typeOrder = ['Task', 'Bug', 'Performance', 'Enquiry']
   const filteredTypeData = typeOrder
