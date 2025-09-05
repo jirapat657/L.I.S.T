@@ -11,6 +11,8 @@ import {
   orderBy,
   query,
   addDoc,
+  where,
+  limit as qLimit,
 } from 'firebase/firestore'
 import { db } from '@/services/firebase'
 // [แก้ไข] นำเข้า Type สำหรับ Firestore โดยเฉพาะ
@@ -91,4 +93,48 @@ export const getClientServiceSheetById = async (id: string): Promise<ClientServi
   const docSnap = await getDoc(docRef)
   // [แก้ไข] ระบุ Type ที่ return ให้ชัดเจน
   return docSnap.exists() ? (docSnap.data() as ClientServiceSheet_Firestore) : null
+}
+
+// ปรับตาม type ที่คุณใช้จริง
+export type ClientServiceSheetDoc = {
+  id: string;
+  jobCode?: string;     // เช่น "PRJ123-05092025-007"
+  projectName?: string; // ถ้าต้องการใช้งานอย่างอื่นด้วย
+  // ... ฟิลด์อื่น ๆ ตามจริง
+};
+
+type GetByPrefixOptions = {
+  limit?: number; // จำนวนสูงสุดที่ต้องการดึง (ดีฟอลต์ 50)
+};
+
+/**
+ * ดึง service-sheets ที่ jobCode เริ่มต้นด้วย prefix ที่กำหนด
+ * ตัวอย่าง prefix = "{projectId}-{DDMMYYYY}"  (ยังไม่รวมเลขรัน)
+ * เช่น "PRJ123-05092025"
+ *
+ * หมายเหตุ:
+ * - ใช้ range query ด้วย where('jobCode', '>=', prefix) & where('jobCode', '<', prefix + '\uf8ff')
+ * - ต้อง orderBy('jobCode') เพื่อให้ range query ใช้งานได้
+ * - ควรสร้าง index ตามที่ Firestore แนะนำ (คอนโซลจะขึ้นลิงก์ให้ถ้าขาด index)
+ */
+export async function getServiceSheetsByPrefix(
+  prefix: string,
+  options?: GetByPrefixOptions
+): Promise<ClientServiceSheetDoc[]> {
+  const col = collection(db, COLLECTION_NAME);
+  const upperBound = prefix + '\uf8ff';
+
+  const q = query(
+    col,
+    where('jobCode', '>=', prefix),
+    where('jobCode', '<', upperBound),
+    orderBy('jobCode', 'asc'),
+    qLimit(options?.limit ?? 50)
+  );
+
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data() as Omit<ClientServiceSheetDoc, 'id'>;
+    return { id: d.id, ...data };
+  });
 }

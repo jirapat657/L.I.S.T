@@ -1,5 +1,5 @@
 // src/components/ClientServiceSheetForm/index.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Form,
   Input,
@@ -13,38 +13,48 @@ import {
   Checkbox,
   Divider,
   type FormInstance,
+  message,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Timestamp } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 
-// [แก้ไข] นำเข้า Type ที่ถูกต้อง
+// Types
 import type {
   ServiceTask,
   ClientServiceSheet_Firestore,
 } from '@/types/clientServiceSheet';
+import type { ProjectData } from '@/types/project';
+
+// APIs
+import { getProjects } from '@/api/project';
+import { getServiceSheetsByPrefix, type ClientServiceSheetDoc } from '@/api/clientServiceSheet';
 
 /* --------------------------------------------- */
-/* Props Interface                      */
+/* Props Interface                               */
 /* --------------------------------------------- */
 interface ClientServiceSheetFormProps {
-  // [แก้ไข] ใช้ Type สำหรับ Firestore
   initialValues?: Partial<ClientServiceSheet_Firestore>;
   onFinish: (values: ClientServiceSheet_Firestore) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   submitButtonText?: string;
   formInstance?: FormInstance;
+
+  mode?: 'create' | 'edit' | 'duplicate'; // ✅ เพิ่ม
 }
 
 /* --------------------------------------------- */
-/* Local types & Options                 */
+/* Local types & Options                         */
 /* --------------------------------------------- */
 type ChargeType = ('included' | 'free' | 'extra')[];
 
-// [เพิ่ม] Type สำหรับค่าที่ได้จาก Form โดยตรง (ก่อนแปลงเป็น Timestamp)
 type FormValues = {
+  // เพิ่ม projectId สำหรับ select และใช้ generate jobCode
+  projectId?: string;
   projectName?: string;
+
   serviceLocation?: string;
   startTime?: string;
   endTime?: string;
@@ -69,7 +79,6 @@ type FormValues = {
   };
 };
 
-
 const typeOptions = [
   { label: 'I', value: 'I' },
   { label: 'T', value: 'T' },
@@ -80,15 +89,13 @@ const statusOptions = [
   { label: '1', value: '1' },
 ];
 
-
 /* --------------------------------------------- */
-/* Subtable Component                */
+/* Subtable Component                            */
 /* --------------------------------------------- */
 const ServiceTaskTable: React.FC<{
   tasks: ServiceTask[];
   onUpdate: (id: string, field: keyof ServiceTask, value: ServiceTask[keyof ServiceTask]) => void;
   onDelete: (id: string) => void;
-  
 }> = ({ tasks, onUpdate, onDelete }) => {
   const columns = [
     {
@@ -177,7 +184,7 @@ const ServiceTaskTable: React.FC<{
 const defaultInitialValues: Partial<ClientServiceSheet_Firestore> = {};
 
 /* --------------------------------------------- */
-/* Main Form Component               */
+/* Main Form Component                           */
 /* --------------------------------------------- */
 const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   initialValues = defaultInitialValues,
@@ -190,6 +197,28 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   const [form] = Form.useForm(formInstance);
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
 
+  // ===== Projects for Select =====
+  const { data: projects = [], isLoading: isProjectsLoading } = useQuery<ProjectData[]>({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
+
+  // options + mapping
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        label: p.projectName,
+        value: p.projectId, // ใช้ projectId เป็นค่า
+        _docId: p.id,
+        _projectName: p.projectName,
+      })),
+    [projects]
+  );
+  const idToName = useMemo(() => new Map(projects.map(p => [p.projectId, p.projectName])), [projects]);
+
+  // ===== Init form/tables =====
+  const isEditing = Boolean(initialValues?.id);
+
   useEffect(() => {
     const initialTasks =
       initialValues.tasks?.map((task) => ({
@@ -198,7 +227,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       })) || [];
     setTasks(initialTasks);
 
-    const processedValues = {
+    const processedValues: FormValues = {
       ...initialValues,
       date: initialValues.date
         ? dayjs((initialValues.date as Timestamp).toDate())
@@ -216,10 +245,57 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
           : undefined,
       },
     };
+
+
+    // ถ้า initialValues มี projectName ให้ลองจับคู่ projectId อัตโนมัติจากชื่อ (ถ้าชื่อตรง)
+    if (!processedValues.projectId && processedValues.projectName && projects.length) {
+      const found = projects.find(p => p.projectName === processedValues.projectName);
+      if (found) {
+        processedValues.projectId = found.projectId;
+      }
+    }
+
     form.resetFields();
     form.setFieldsValue(processedValues);
-  }, [initialValues, form]);
+  }, [initialValues, projects, form]);
 
+  // ===== Date & Project watcher สำหรับ auto-generate jobCode =====
+  const watchedProjectId = Form.useWatch<string | undefined>('projectId', form);
+  const watchedDate = Form.useWatch<dayjs.Dayjs | undefined>('date', form);
+
+  useEffect(() => {
+    // สร้างเฉพาะตอน "สร้างใหม่" เท่านั้น เพื่อไม่ไปแก้ไขเลขในโหมดแก้ไข
+    if (isEditing) return;
+    if (!watchedProjectId) return;
+
+    const d = watchedDate || dayjs();
+    const ddMMyyyy = d.format('DDMMYYYY');
+    const prefix = `${watchedProjectId}-${ddMMyyyy}`; // {projectId}-{DDMMYYYY}
+
+    (async () => {
+      try {
+        // ดึงเอกสารทั้งหมดที่มี jobCode prefix ตรงกัน แล้วหาเลขรันสูงสุด
+        const existing = await getServiceSheetsByPrefix(prefix); // ให้ API นี้ return เฉพาะ fields ที่มี jobCode
+        const maxRun = (existing || []).reduce((mx: number, doc: ClientServiceSheetDoc) => {
+          const m = String(doc.jobCode || '').match(/-(\d{3})$/);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            return n > mx ? n : mx;
+          }
+          return mx;
+        }, 0);
+
+        const nextRun = String(maxRun + 1).padStart(3, '0');
+        const nextCode = `${prefix}-${nextRun}`;
+        form.setFieldsValue({ jobCode: nextCode });
+      } catch (err) {
+        console.error('generate jobCode failed', err);
+        message.error('ไม่สามารถสร้างเลขเอกสารอัตโนมัติได้');
+      }
+    })();
+  }, [watchedProjectId, watchedDate, isEditing, form]);
+
+  // ===== Task CRUD =====
   const handleAddTask = () =>
     setTasks((prev) => [
       ...prev,
@@ -242,6 +318,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
   const handleDeleteTask = (id: string) =>
     setTasks((prev) => prev.filter((row) => row.id !== id));
 
+  // ===== helpers =====
   function hasToDate(obj: unknown): obj is { toDate: () => Date } {
     return (
       typeof obj === 'object' &&
@@ -262,14 +339,16 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
     return Timestamp.fromDate(new Date(val as string | Date));
   };
 
+  // ===== Submit =====
   const handleFormSubmit = (values: FormValues) => {
     const payload: ClientServiceSheet_Firestore = {
       id: initialValues.id || '',
-      projectName: values.projectName || '',
+      // เก็บชื่อไว้ใน Firestore แบบเดิม แต่ UI ใช้ projectId ในการเลือก
+      projectName: values.projectName || (values.projectId ? (idToName.get(values.projectId) || '') : ''),
       serviceLocation: values.serviceLocation || '',
       startTime: values.startTime || '',
       endTime: values.endTime || '',
-      jobCode: values.jobCode || '',
+      jobCode: values.jobCode || '', // ได้จาก auto-generate
       extraChargeDescription: values.extraChargeDescription || '',
       remark: values.remark || '',
       tasks,
@@ -290,7 +369,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         signature: values.serviceByInfo?.signature || '',
       },
     };
-    
+
     onFinish(payload);
   };
 
@@ -301,7 +380,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       layout="vertical"
       form={form}
       onFinish={handleFormSubmit}
-      // [แก้ไข] นำ `...initialValues` ออกจากส่วนนี้
       initialValues={{
         date: dayjs(),
         chargeTypes: [],
@@ -310,17 +388,39 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         remark: '',
       }}
     >
-      {/* ----- Base fields ----- */}
+      {/* ซ่อน projectId สำหรับ generate jobCode */}
+      <Form.Item name="projectId" hidden><Input /></Form.Item>
+
       <Row gutter={16}>
         <Col span={12}>
+          {/* Project Select: แสดงชื่อแต่เก็บ projectId */}
           <Form.Item
-            label="Project Name"
-            name="projectName"
-            rules={[{ required: true }]}
+            label="Project"
+            name="projectName" // เก็บชื่อในฟิลด์นี้ (ตาม type เดิมใน Firestore)
+            required
+            tooltip="เลือกโปรเจกต์จาก LIMProjects (จะตั้งค่า projectId ซ่อนให้เพื่อสร้าง Job Code)"
           >
-            <Input placeholder="Enter project name" />
+            <Select
+              placeholder="Select project"
+              options={projectOptions}
+              loading={isProjectsLoading}
+              showSearch
+              // ใช้ labelInValue เพื่อให้เราได้ทั้ง label และ value แล้ว map กลับ
+              labelInValue
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(opt) => {
+                // opt = { label: projectName, value: projectId }
+                form.setFieldsValue({
+                  projectId: opt?.value,
+                  projectName: opt?.label,
+                });
+              }}
+            />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item
             label="Service Location"
@@ -330,6 +430,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
             <Input placeholder="Enter service location" />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item
             label="Start Time"
@@ -348,33 +449,33 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
             <Input type="time" />
           </Form.Item>
         </Col>
+
+        {/* Job Code: readOnly, auto-generate */}
         <Col span={12}>
-          <Form.Item label="Job Code" name="jobCode">
-            <Input placeholder="Enter job code" />
+          <Form.Item label="Job Code" name="jobCode" rules={[{ required: true }]}>
+            <Input  placeholder="Will be generated from Project & Date" />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item label="Date" name="date" rules={[{ required: true }]}>
             <DatePicker style={{ width: '100%' }} format="DD/MM/YY" />
           </Form.Item>
         </Col>
+
         <Col span={12}>
           <Form.Item label="User" name="user" rules={[{ required: true }]}>
             <Input placeholder="Enter user name" />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item
-            label="Total Hours"
-            name="totalHours"
-          >
+          <Form.Item label="Total Hours" name="totalHours">
             <Input placeholder="Enter total hours" type="number" min={0} />
           </Form.Item>
         </Col>
       </Row>
 
       {/* ----- Tasks section ----- */}
-      
       <div style={{ textAlign: 'right', margin: '12px 0' }}>
         <Button onClick={handleAddTask}>
           <PlusOutlined /> Add Task
@@ -384,20 +485,15 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         tasks={tasks}
         onUpdate={handleUpdateTask}
         onDelete={handleDeleteTask}
-        
       />
 
-      {/* ----- Remark section ----- */}
-      
+      {/* ----- Remark ----- */}
       <Form.Item name="remark" label="Remark">
-        <Input.TextArea
-          rows={4}
-          placeholder="Enter any additional remarks or notes"
-        />
+        <Input.TextArea rows={4} placeholder="Enter any additional remarks or notes" />
       </Form.Item>
-      
-      {/* Type Code, Status Code */}
-      <Row gutter={16} style={{marginBottom:16}}>
+
+      {/* Type / Status legend */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
           <h3>Type Code</h3>
           <p>I = Implementation</p>
@@ -412,7 +508,6 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       </Row>
 
       {/* ----- Charge section ----- */}
-      
       <Form.Item style={{ marginBottom: 0 }}>
         <Row gutter={8} align="middle">
           <Col>
@@ -436,8 +531,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
         </Row>
       </Form.Item>
 
-      {/* ----- Signatures section ----- */}
-      
+      {/* ----- Signatures ----- */}
       <Row gutter={24}>
         <Col span={12}>
           <Divider>Customer</Divider>
@@ -472,13 +566,7 @@ const ClientServiceSheetForm: React.FC<ClientServiceSheetFormProps> = ({
       </Row>
 
       {/* ----- Footer Buttons ----- */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 24,
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
         <Button htmlType="button" onClick={onCancel}>
           Cancel
         </Button>
