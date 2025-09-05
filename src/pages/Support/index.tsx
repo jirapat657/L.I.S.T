@@ -229,7 +229,7 @@ const Support: React.FC = () => {
           {' '}หรือไม่?
         </p>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-          <Button type='primary' danger onClick={handleDeleteConfirm}>
+          <Button type='primary'  onClick={handleDeleteConfirm}>
             ลบ
           </Button>
           <Button onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>
