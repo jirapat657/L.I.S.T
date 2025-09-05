@@ -27,6 +27,7 @@ export interface ScopeData {
   docDate: Timestamp | null;
   docType: string;
   project: string;
+  projectId: string; // ✅ เพิ่มตรงนี้
   customer: string;
   description: string;
   remark?: string;

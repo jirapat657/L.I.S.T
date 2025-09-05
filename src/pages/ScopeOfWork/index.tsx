@@ -4,15 +4,17 @@ import type { MenuProps } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAllScopes, deleteScopeById, updateScopeById, createScope } from '@/api/scope';
+import { getProjects } from '@/api/project';
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
-import dayjs from 'dayjs';
-import { useState } from 'react';
+import dayjs, { Dayjs } from 'dayjs';
+import { useEffect, useMemo, useState } from 'react';
 import type { ScopeData, FileData, ScopePayload, ScopeFormValues } from '@/types/scopeOfWork';
 import { Timestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { formatFirestoreDate } from '@/utils/dateUtils';
 import type { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
+import type { ProjectData } from '@/types/project';
 
 const ScopeOfWork = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
@@ -22,17 +24,29 @@ const ScopeOfWork = () => {
   const [uploadFiles, setUploadFiles] = useState<FileData[]>([]);
   const [search, setSearch] = useState('');
 
+  // ===== queries =====
   const { data: scopes = [], isLoading } = useQuery({
     queryKey: ['scopes'],
     queryFn: getAllScopes,
   });
 
+  const { data: projects = [] } = useQuery<ProjectData[]>({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
+
   const queryClient = useQueryClient();
 
-  const filteredScopes = scopes.filter(scope =>
-    scope.project.toLowerCase().includes(search.toLowerCase())
+  // ===== filter on table =====
+  const filteredScopes = useMemo(
+    () =>
+      scopes.filter(scope =>
+        scope.project?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [scopes, search]
   );
 
+  // ===== table columns =====
   const columns = [
     {
       title: 'Doc.Date',
@@ -45,7 +59,6 @@ const ScopeOfWork = () => {
       title: 'Description',
       dataIndex: 'description',
       render: (desc: string, record: ScopeData) => {
-        // ถ้ามีไฟล์ให้กดได้, ถ้าไม่มีไฟล์ให้เป็นข้อความปกติ
         if (record.files && record.files.length > 0) {
           return (
             <Typography.Link onClick={() => handleDescriptionClick(record.files)}>
@@ -53,8 +66,7 @@ const ScopeOfWork = () => {
             </Typography.Link>
           );
         }
-        // ไม่มีไฟล์ → เป็นข้อความสีจางและคลิกไม่ได้
-        return <span style={{  cursor: 'not-allowed' }}>{desc || 'No Description'}</span>;
+        return <span style={{ cursor: 'not-allowed', opacity: 0.8 }}>{desc || 'No Description'}</span>;
       },
     },
     {
@@ -70,6 +82,10 @@ const ScopeOfWork = () => {
               setUploadFiles(record.files || []);
               form.setFieldsValue({
                 ...record,
+                // map กลับเข้า select: เราไม่มี projectDocId ใน scope เดิม จึงใส่แค่ชื่อไว้
+                // ถ้าคุณเก็บ projectDocId ใน scope ด้วย สามารถ set เพิ่มได้
+                project: record.project,            // ชื่อ (เดิม)
+                projectId: record.projectId,   // ✅ ใช้ตรง ๆ
                 docDate: record.docDate ? dayjs(record.docDate.toDate()) : null,
               });
             },
@@ -81,16 +97,16 @@ const ScopeOfWork = () => {
             onClick: () => handleDelete(record.id),
           },
         ];
-
         return (
           <Dropdown menu={{ items }} trigger={['click']}>
-            <Button ><MoreOutlined /></Button>
+            <Button><MoreOutlined /></Button>
           </Dropdown>
         );
       },
     },
   ];
 
+  // ===== actions =====
   const handleDescriptionClick = (files?: FileData[]) => {
     if (!files || files.length === 0) return;
     if (files.length === 1) {
@@ -118,9 +134,9 @@ const ScopeOfWork = () => {
       setUploadFiles((prev) => prev.filter((file) => file.url !== url));
       message.success('ลบไฟล์แล้ว');
     } catch (err) {
-    console.error('ลบไฟล์ไม่สำเร็จ', err);
-    message.error('ลบไฟล์ไม่สำเร็จ');
-  }
+      console.error('ลบไฟล์ไม่สำเร็จ', err);
+      message.error('ลบไฟล์ไม่สำเร็จ');
+    }
   };
 
   const handleCustomUpload = async ({
@@ -152,12 +168,12 @@ const ScopeOfWork = () => {
     }
   };
 
-  const handleFinish = async (values: ScopeFormValues) => {
-    const payload: ScopePayload = {
+  const handleFinish = async (values: ScopeFormValues & { projectId?: string }) => {
+    const payload: ScopePayload & { projectId?: string } = {
       ...values,
       files: uploadFiles,
       docDate: values.docDate ? Timestamp.fromDate(values.docDate.toDate()) : null,
-      createdAt: editingScope?.createdAt ?? Timestamp.now(), // ✅ สำคัญ
+      createdAt: editingScope?.createdAt ?? Timestamp.now(),
     };
 
     try {
@@ -165,7 +181,7 @@ const ScopeOfWork = () => {
         await updateScopeById(editingScope.id, payload);
         message.success('อัปเดตสำเร็จ');
       } else {
-        await createScope(payload); // ✅ เพิ่มส่วนนี้เพื่อสร้างใหม่
+        await createScope(payload);
         message.success('เพิ่มข้อมูลสำเร็จ');
       }
 
@@ -178,6 +194,63 @@ const ScopeOfWork = () => {
     }
   };
 
+  // ===== auto-generate Doc.No. =====
+  // ใช้ Form.useWatch เพื่อติดตามค่า projectId และ docDate
+  const watchedProjectId: string | undefined = Form.useWatch('projectId', form);
+  const watchedDocDate: Dayjs | null = Form.useWatch('docDate', form);
+
+  useEffect(() => {
+    // เงื่อนไข: generate ตอนสร้างใหม่เท่านั้น (ไม่ใช่โหมดแก้ไข)
+    const isCreateMode = !editingScope?.id;
+
+    // ถ้าอยากให้ "แก้ไขแล้ว regenerate ใหม่" เมื่อเปลี่ยนโปรเจกต์/เดือน ให้เอาคอมเมนต์บรรทัดต่อไปนี้ออก
+    // const isCreateOrEditRegenerate = true;
+    // if (!isCreateOrEditRegenerate) return;
+
+    if (!isCreateMode) return;
+    if (!watchedProjectId) return;
+
+    const yyyymm = (watchedDocDate ? watchedDocDate : dayjs()).format('YYYYMM');
+    const prefix = `SOW-${watchedProjectId}-${yyyymm}`;
+
+    // หาเลขรันสูงสุดจาก scopes ที่มีอยู่ (filter ด้วย prefix)
+    const filtered = scopes.filter((s) => s.docNo?.startsWith(prefix));
+    const maxRun = filtered.reduce((mx, s) => {
+      const m = s.docNo?.match(/(\d{3})$/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        return n > mx ? n : mx;
+      }
+      return mx;
+    }, 0);
+
+    const nextRun = String(maxRun + 1).padStart(3, '0');
+    const nextDocNo = `${prefix}${nextRun}`;
+
+    // set ลง form
+    // หมายเหตุ: ถ้าอยากจะ lock ไม่ให้ผู้ใช้พิมพ์ทับ ให้ทำ Input เป็น readOnly
+    form.setFieldsValue({ docNo: nextDocNo });
+  }, [watchedProjectId, watchedDocDate, scopes, form, editingScope?.id]);
+
+  // ===== helper: options ของ Select Project =====
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        label: p.projectName,
+        value: p.projectId,     // ใช้ projectId เป็น value สำหรับ generate
+        // ถ้าต้องการใช้ doc id ก็เก็บเพิ่มใน option object ไว้ได้
+        _docId: p.id,
+        _projectName: p.projectName,
+      })),
+    [projects]
+  );
+
+  // สร้าง mapping id → name
+  const idToName = useMemo(
+    () => new Map(projects.map(p => [p.projectId, p.projectName])),
+    [projects]
+  );
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
@@ -185,11 +258,13 @@ const ScopeOfWork = () => {
           type="primary"
           onClick={() => {
             setEditingScope({
-              id: '', docNo: '', docDate: null, docType: '', project: '', customer: '',
-              description: '', remark: '', files: [], createdAt: Timestamp.now()
+              id: '', docNo: '', docDate: null, docType: 'Scope of Work', project: '', projectId: '', 
+              customer: '', description: '', remark: '', files: [], createdAt: Timestamp.now()
             });
             form.resetFields();
             setUploadFiles([]);
+            // ค่าตั้งต้น docDate = วันนี้ (ถ้าต้องการ)
+            form.setFieldsValue({ docType: 'Scope of Work', docDate: dayjs() });
           }}
         >
           <PlusOutlined /> Add SOW
@@ -210,10 +285,12 @@ const ScopeOfWork = () => {
         loading={isLoading}
         scroll={{ x: 'max-content' }}
         pagination={{
-          pageSize :10,
+          pageSize: 10,
           showTotal: (total) => <div style={{ position: 'absolute', left: '16px' }}>ทั้งหมด {total} รายการ</div>,
         }}
       />
+
+      {/* modal เลือกไฟล์ */}
       <Modal
         open={fileModalOpen}
         onCancel={() => setFileModalOpen(false)}
@@ -232,22 +309,33 @@ const ScopeOfWork = () => {
         />
       </Modal>
 
+      {/* modal เพิ่ม/แก้ไข */}
       <Modal
         open={!!editingScope}
         onCancel={() => setEditingScope(null)}
         title={editingScope?.id ? (<><EditOutlined /> แก้ไข Scope</>) : (<><PlusOutlined /> เพิ่ม Scope</>)}
         footer={null}
-        width={600}
+        width={640}
         destroyOnClose
       >
         <Form
           layout="vertical"
           form={form}
           onFinish={handleFinish}
-          initialValues={{ docType: 'Scope of work' }}
+          initialValues={{ docType: 'Scope of Work' }}
         >
-          <Form.Item name="docNo" label="Doc. No." rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="docDate" label="Doc. Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY"/></Form.Item>
+          {/* ซ่อน projectId ไว้ใช้ generate */}
+          <Form.Item name="projectId" hidden><Input /></Form.Item>
+
+          {/* Doc. No. จะถูก generate อัตโนมัติ */}
+          <Form.Item name="docNo" label="Doc. No." rules={[{ required: true }]}>
+            <Input readOnly />
+          </Form.Item>
+
+          <Form.Item name="docDate" label="Doc. Date" rules={[{ required: true }]}>
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
+
           <Form.Item name="docType" label="Doc. Type" rules={[{ required: true }]}>
             <Select
               placeholder="เลือกประเภทเอกสาร"
@@ -256,10 +344,35 @@ const ScopeOfWork = () => {
               ]}
             />
           </Form.Item>
-          <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
+
+          {/* Project Select: แสดงชื่อ แต่ค่าที่เก็บเพื่อ generate คือ projectId */}
+          <Form.Item
+            name="project"  // ⚠ ถ้าช่องนี้คือ Select ที่เก็บ projectId จริง ๆ แนะนำเปลี่ยนชื่อเป็น 'projectId'
+            label="Project"
+            required
+            tooltip="เลือกโปรเจกต์จาก LIMProjects"
+          >
+            <Select
+              placeholder="เลือกโปรเจกต์"
+              options={projectOptions} // [{label: projectName, value: projectId}]
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(value: string) => {
+                // value คือ projectId
+                form.setFieldsValue({
+                  projectId: value,
+                  project: idToName.get(value) ?? '', // ถ้าต้องการเก็บชื่อไว้ในอีก field
+                });
+              }}
+            />
+          </Form.Item>
+
           <Form.Item name="customer" label="Customer" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={1} /></Form.Item>
           <Form.Item name="remark" label="Remark"><Input.TextArea rows={4} /></Form.Item>
+
           <Form.Item label="Upload Files">
             <Upload
               customRequest={handleCustomUpload}
@@ -289,6 +402,7 @@ const ScopeOfWork = () => {
               )}
             />
           </Form.Item>
+
           <Form.Item>
             <Button htmlType="submit" type="primary" block>
               บันทึก
