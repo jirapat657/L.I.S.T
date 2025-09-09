@@ -20,15 +20,37 @@ export type AuthContextType = {
   loading: boolean
 }
 
+/**
+ * ดึงโปรไฟล์ผู้ใช้จาก Firestore:
+ * - ถ้ามีเอกสาร -> คืนค่า UserData พร้อม id = docSnap.id และ uid = currentUser.uid
+ * - ถ้าไม่มี -> คืน null
+ */
 async function getUserProfileFromCloudFunction(): Promise<UserData | null> {
   try {
     const uid = auth?.currentUser?.uid
-    const userProfileColelctionRef: DocumentData = await getDoc(doc(db, 'LIMUsers', uid ?? ''))
+    if (!uid) return null
 
-    return { ...userProfileColelctionRef.data(), uid: uid }
+    const snap = await getDoc(doc(db, 'LIMUsers', uid))
+    if (!snap.exists()) return null
+
+    const data = snap.data() as DocumentData
+
+    // สร้างให้ครบฟิลด์ที่จำเป็นตาม UserData
+    const userData: UserData = {
+      id: snap.id, // ★ สำคัญ: ใช้ docSnap.id เป็น id
+      userId: data.userId ?? uid,
+      userName: data.userName ?? '',
+      email: data.email ?? '',
+      role: data.role ?? '',
+      jobPosition: data.jobPosition ?? '',
+      status: (data.status as UserData['status']) ?? 'Active',
+      createdAt: data.createdAt ?? Timestamp.now(),
+      uid, // ★ ให้ชัดเจน: uid ของผู้ใช้
+    }
+
+    return userData
   } catch (error) {
     console.log('errorAuthContextProvider:', error)
-    // ถ้าไม่พบ user หรือ error อื่น ๆ
     return null
   }
 }
@@ -40,20 +62,20 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // เช็ก email ก่อนเรียก cloud function
+        // กรณีไม่มี email — ทำ fallback profile แต่ต้องมี id และ uid ให้ครบ
         if (!user.email) {
-          // fallback profile สำหรับ user ที่ไม่มี email
           setCurrentUser({
             user,
             profile: {
+              id: user.uid,               // ★ เพิ่ม
               userId: user.uid,
               userName: '',
               email: '',
               role: '',
               jobPosition: '',
               status: 'Active',
-              createdAt: Timestamp.fromDate(new Date()),
-              uid: '',
+              createdAt: Timestamp.now(),
+              uid: user.uid,              // ★ อย่าให้เป็น ''
             },
             accessToken: await user.getIdToken(),
           })
@@ -62,7 +84,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-          // มี email แล้วค่อยเรียก cloud function
+          // มี email แล้วค่อยดึงข้อมูล + token พร้อมกัน
           const [rawUserData, getToken] = await Promise.all([
             getUserProfileFromCloudFunction(),
             user.getIdToken(),
@@ -71,22 +93,25 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
           let profile: UserData
 
           if (rawUserData) {
+            // จากฐานข้อมูล: ensure id/uid/createdAt
             profile = {
               ...rawUserData,
-              createdAt: rawUserData.createdAt
-                ? rawUserData.createdAt
-                : Timestamp.fromDate(new Date()),
+              id: rawUserData.id ?? user.uid,                 // ★ สำรอง
+              uid: rawUserData.uid ?? user.uid,               // ★ สำรอง
+              createdAt: rawUserData.createdAt ?? Timestamp.now(),
             }
           } else {
+            // ไม่มีเอกสาร → fallback
             profile = {
+              id: user.uid,                                   // ★ เพิ่ม
               userId: user.uid,
               userName: '',
               email: user.email,
               role: '',
               jobPosition: '',
               status: 'Active',
-              createdAt: Timestamp.fromDate(new Date()),
-              uid: '',
+              createdAt: Timestamp.now(),
+              uid: user.uid,                                  // ★ อย่าให้เป็น ''
             }
           }
 
@@ -100,14 +125,15 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
 
           const getToken = await user.getIdToken()
           const fallbackProfile: UserData = {
+            id: user.uid,                                     // ★ เพิ่ม
             userId: user.uid,
             userName: '',
             email: user.email ?? '',
             role: '',
             jobPosition: '',
             status: 'Active',
-            createdAt: Timestamp.fromDate(new Date()),
-            uid: '',
+            createdAt: Timestamp.now(),
+            uid: user.uid,                                    // ★ อย่าให้เป็น ''
           }
 
           setCurrentUser({
