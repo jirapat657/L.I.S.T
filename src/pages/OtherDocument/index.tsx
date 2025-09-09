@@ -391,7 +391,7 @@ const OtherDocument = () => {
           </Form.Item>
           <Form.Item>
             <Button htmlType="submit" type="primary" block>
-              Save
+              บันทึก
             </Button>
           </Form.Item>
         </Form>
