@@ -25,6 +25,7 @@ export const getAllScopes = async (): Promise<ScopeData[]> => {
         docNo: data.docNo || '',
         docDate: data.docDate || null,
         docType: data.docType || '',
+        projectId: data.projectId ?? '', 
         project: data.project || '',
         customer: data.customer || '',
         description: data.description || '',

@@ -9,15 +9,15 @@ import { getDateRange } from "./dateFilters";
 import type { Issue } from "@/types/projectDetail";
 import type { FilterValues } from "@/types/filter";
 
-function getDayjsDate(d: Date | string | { toDate: () => Date } | undefined | null) {
-  if (!d) return undefined;
+function getDayjsDate(d: Date | string | { toDate: () => Date }  | null) {
+  if (!d) return null;
   if (typeof d === "object" && typeof (d as { toDate?: () => Date }).toDate === "function") {
     return dayjs((d as { toDate: () => Date }).toDate());
   }
   if (typeof d === "string" || d instanceof Date) {
     return dayjs(d);
   }
-  return undefined;
+  return null;
 }
 
 export function filterIssues(issues: Issue[], filters: FilterValues) {
