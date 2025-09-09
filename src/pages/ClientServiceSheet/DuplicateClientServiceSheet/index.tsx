@@ -106,7 +106,7 @@ const DuplicateClientServiceSheet: React.FC = () => {
         onFinish={handleFinish}
         onCancel={handleCancel}
         isLoading={isSubmitting}
-        submitButtonText="Save as Duplicate"
+        submitButtonText="บันทึกสำเนา"
       />
     </div>
   );

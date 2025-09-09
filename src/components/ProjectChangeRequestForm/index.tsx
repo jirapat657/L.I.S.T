@@ -475,7 +475,7 @@ const ProjectChangeRequestForm: React.FC<ProjectChangeRequestFormProps> = ({
       {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
         <Button htmlType="button" onClick={onCancel}>
-          Cancel
+          ยกเลิก
         </Button>
         <Button type="primary" htmlType="submit" loading={isLoading}>
           {submitButtonText}

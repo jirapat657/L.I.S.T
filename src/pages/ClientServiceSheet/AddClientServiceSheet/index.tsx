@@ -51,7 +51,7 @@ const AddClientServiceSheet: React.FC = () => {
         onFinish={handleFinish}
         onCancel={handleCancel}
         isLoading={isSubmitting}
-        submitButtonText="Create Sheet"
+        submitButtonText="บันทึก"
       />
     </div>
   );

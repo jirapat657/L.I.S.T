@@ -54,7 +54,7 @@ const AddProjectChangeRequest: React.FC = () => {
         onCancel={handleCancel}
         // [แก้ไข] ใช้ isPending จาก mutation เพื่อแสดงสถานะ loading
         isLoading={mutation.isPending}
-        submitButtonText="Create Request"
+        submitButtonText="บันทึก"
       />
     </div>
   );
