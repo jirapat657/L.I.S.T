@@ -55,13 +55,10 @@ export default function Sidebar() {
     getItem('Dashboard', 'dashboard', <BsTable />),
     getItem('Support', 'support', <HddFilled />),
     getItem('Projects', 'projects', <UnorderedListOutlined />),
+    getItem('To Do List', 'todolist', <EditOutlined />),
     getItem('Scope of Work', 'scope', <FileTextFilled />),
-    getItem('Client Service Sheet', 'clientservicesheet', <FileTextFilled />),
-    getItem('Project Change Request', 'projectchangerequest', <FileTextFilled />),
-    getItem('Other Document', 'other-document', <FileTextFilled />),
     getItem('Schedule Meeting', 'schedule-meeting', <CalendarOutlined />),
     getItem('Meeting Summary', 'meeting-summary', <WechatOutlined />),
-    getItem('To Do List', 'todolist', <EditOutlined />),
     getItem(
       <span style={{ color: 'white' }}>Setting</span>,
       'setting',
@@ -87,7 +84,18 @@ export default function Sidebar() {
           : []),
       ]
     ),
+
+    // ✅ รวม Document เป็นเมนูหลักแล้วมี children
+    getItem(
+      <span style={{ color: 'white' }}>Documents</span>,
+      'documents',
+      <FileTextFilled />, [
+      getItem('Client Service Sheet', 'clientservicesheet', null),
+      getItem('Project Change Request', 'projectchangerequest', null),
+      getItem('Other Document', 'other-document', null),
+    ]),
   ]
+
 
   return (
     <Layout.Sider className={styles.sidebarContainer} width={220}>
