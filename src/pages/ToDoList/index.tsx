@@ -1,5 +1,5 @@
 // src/pages/ToDoList/index.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   useMutation,
   useQuery,
@@ -11,44 +11,66 @@ import {
   updateToDo,
   deleteToDo,
 } from "@/api/toDoList";
-import { Input, Button, List, Checkbox, Typography, Space, message, Modal, Spin } from "antd";
+import { Input, Button, List, Checkbox, Typography, Space, message, Modal, Spin, Segmented } from "antd";
 import type { ToDoItem } from "@/types/toDoList";
-import { Timestamp } from "firebase/firestore";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { auth } from "@/services/firebase"; // ★ ต้อง export auth มาจาก services/firebase
+import { groupTasksByDate } from "@/utils/groupTasksByDate";
 
 const { Title, Text } = Typography;
 
-// สร้าง queryOptions แยกเพื่อจัดการ error
-const todoQueryOptions = {
-  queryKey: ['todos'],
-  queryFn: getToDoList,
-  // ตัวเลือกอื่นๆ เช่น staleTime, retry, etc.
-};
+type StatusFilter = 'all' | 'active' | 'completed';
 
 const ToDoList: React.FC = () => {
   const [input, setInput] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null); // สำหรับ controlled modal
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const queryClient = useQueryClient();
 
-  // ใช้ useQuery แบบถูกต้องใน v5+
+  // ★ ดึง uid จาก Firebase Auth (ถ้าคุณมี useAuth hook ก็ใช้แทนได้)
+  const uid = auth.currentUser?.uid;
+
+  // ถ้าไม่มี uid ให้แจ้งผู้ใช้ (กันเคสยังไม่ล็อกอิน)
+  useEffect(() => {
+    if (!uid) {
+      message.warning("กรุณาเข้าสู่ระบบเพื่อใช้งาน To-Do");
+    }
+  }, [uid]);
+
+  // ★ queryOptions ต้องผูกกับ uid (key ควรรวม uid เพื่อแยก cache ต่อผู้ใช้)
+  const todoQueryOptions = {
+    queryKey: ['todos', uid],
+    queryFn: () => {
+      if (!uid) throw new Error("ยังไม่พบผู้ใช้ (uid)");
+      return getToDoList(uid);
+    },
+    enabled: !!uid, // รอจนมี uid ก่อนค่อยยิง
+    // staleTime, retry ฯลฯ ใส่เพิ่มได้
+  };
+
   const {
     data: tasks = [],
     isLoading,
     error: queryError
   } = useQuery(todoQueryOptions);
 
-  // แสดง error ถ้ามี
-  React.useEffect(() => {
-    if (queryError) {
+  useEffect(() => {
+    if (queryError instanceof Error) {
       message.error(`โหลดข้อมูลไม่สำเร็จ: ${queryError.message}`);
     }
   }, [queryError]);
 
-  // Mutation สำหรับเพิ่มข้อมูล
+  // ★ เพิ่มข้อมูล (อย่าส่ง createdAt จาก client — API จะใส่ serverTimestamp ให้)
   const addMutation = useMutation({
-    mutationFn: (newTodo: Omit<ToDoItem, 'id'>) => addToDo(newTodo),
+    mutationFn: async (payload: { text: string }) => {
+      if (!uid) throw new Error("ยังไม่พบผู้ใช้ (uid)");
+      return addToDo(uid, {
+        text: payload.text,
+        completed: false,
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todos', uid] });
       message.success("เพิ่มสำเร็จ");
       setInput("");
     },
@@ -57,24 +79,28 @@ const ToDoList: React.FC = () => {
     }
   });
 
-  // Mutation สำหรับอัปเดต
+  // ★ อัปเดต (ส่ง uid เข้า API เสมอ)
   const updateMutation = useMutation({
-    mutationFn: (params: { id: string } & Partial<ToDoItem>) =>
-      updateToDo(params),
+    mutationFn: async (params: { id: string } & Partial<ToDoItem>) => {
+      if (!uid) throw new Error("ยังไม่พบผู้ใช้ (uid)");
+      // ไม่ต้องแนบ updatedAt จาก client
+      return updateToDo(uid, params);
+    },
     onMutate: async (updatedTodo) => {
       await queryClient.cancelQueries(todoQueryOptions);
-      const previousTodos = queryClient.getQueryData(todoQueryOptions.queryKey);
+      const previousTodos = queryClient.getQueryData<ToDoItem[]>(todoQueryOptions.queryKey);
 
-      queryClient.setQueryData(todoQueryOptions.queryKey, (old: ToDoItem[] | undefined) =>
-        old?.map(item =>
+      // optimistic update
+      queryClient.setQueryData<ToDoItem[]>(todoQueryOptions.queryKey, (old = []) =>
+        old.map(item =>
           item.id === updatedTodo.id ? { ...item, ...updatedTodo } : item
-        ) || []
+        )
       );
 
       return { previousTodos };
     },
     onError: (error, _variables, context) => {
-      message.error(`อัปเดตไม่สำเร็จ: ${error.message}`);
+      message.error(`อัปเดตไม่สำเร็จ: ${(error as Error).message}`);
       if (context?.previousTodos) {
         queryClient.setQueryData(todoQueryOptions.queryKey, context.previousTodos);
       }
@@ -84,9 +110,12 @@ const ToDoList: React.FC = () => {
     }
   });
 
-  // Mutation สำหรับลบ
+  // ★ ลบ (ส่ง uid เข้า API)
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteToDo(id),
+    mutationFn: async (id: string) => {
+      if (!uid) throw new Error("ยังไม่พบผู้ใช้ (uid)");
+      return deleteToDo(uid, id);
+    },
     onSuccess: () => {
       message.success("ลบสำเร็จ");
       queryClient.invalidateQueries(todoQueryOptions);
@@ -103,25 +132,17 @@ const ToDoList: React.FC = () => {
       message.warning("กรุณากรอกข้อความ");
       return;
     }
-
-    addMutation.mutate({
-      text,
-      completed: false,
-      createdAt: Timestamp.now()
-    });
+    addMutation.mutate({ text });
   };
 
   const handleToggle = (item: ToDoItem) => {
     if (!item.id) return;
-
     updateMutation.mutate({
       id: item.id,
       completed: !item.completed,
-      updatedAt: Timestamp.now()
     });
   };
 
-  // กด "ลบ" ในแต่ละรายการ: เปิด modal ลบ
   const handleDeleteRequest = (id?: string) => {
     if (!id) {
       message.error("ไม่พบ id ของรายการนี้");
@@ -130,42 +151,65 @@ const ToDoList: React.FC = () => {
     setDeleteId(id);
   };
 
-  // ยืนยันลบใน modal
   const handleConfirmDelete = () => {
     if (!deleteId) return;
     deleteMutation.mutate(deleteId);
     setDeleteId(null);
   };
 
-  // ยกเลิก modal
   const handleCancelDelete = () => setDeleteId(null);
 
-  // --- Group tasks by date ---
-  const tasksByDate = groupTasksByDate(tasks);
-  // เรียงวันที่ (ล่าสุดอยู่บน)
-  const dateKeys = Object.keys(tasksByDate).sort((a, b) =>
-    new Date(b).getTime() - new Date(a).getTime()
+  // ★ กรองตามสถานะ
+  const filteredTasks = useMemo(() => {
+    switch (statusFilter) {
+      case 'active':
+        return tasks.filter(t => !t.completed);
+      case 'completed':
+        return tasks.filter(t => !!t.completed);
+      default:
+        return tasks;
+    }
+  }, [tasks, statusFilter]);
+
+  // ★ Group tasks by date (ใช้ memo ลดคำนวณซ้ำ)
+  const tasksByDate = useMemo(() => groupTasksByDate(filteredTasks), [filteredTasks]);
+  const dateKeys = useMemo(() =>
+    Object.keys(tasksByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
+    [tasksByDate]
   );
 
   return (
     <div style={{ maxWidth: 1000, margin: "24px auto", padding: "0 16px" }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+        <Space.Compact style={{ flex: 1 }}>
+          <Input
+            placeholder="My Todo's"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onPressEnter={handleAdd}
+            disabled={addMutation.isPending || !uid}
+          />
+          <Button
+            type="primary"
+            onClick={handleAdd}
+            loading={addMutation.isPending}
+            disabled={!uid}
+          >
+            <PlusOutlined /> Add
+          </Button>
+        </Space.Compact>
 
-      <Space.Compact style={{ width: "100%", marginBottom: 24 }}>
-        <Input
-          placeholder="My Todo's"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onPressEnter={handleAdd}
-          disabled={addMutation.isPending}
+        {/* ★ ตัวกรองสถานะ */}
+        <Segmented<StatusFilter>
+          options={[
+            { label: 'All', value: 'all' },
+            { label: 'Active', value: 'active' },
+            { label: 'Completed', value: 'completed' },
+          ]}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as StatusFilter)}
         />
-        <Button
-          type="primary"
-          onClick={handleAdd}
-          loading={addMutation.isPending}
-        >
-          <PlusOutlined /> Add
-        </Button>
-      </Space.Compact>
+      </div>
 
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '24px' }}>
@@ -192,6 +236,7 @@ const ToDoList: React.FC = () => {
                         size="small"
                         onClick={() => handleDeleteRequest(task.id)}
                         loading={deleteMutation.variables === task.id && deleteMutation.isPending}
+                        disabled={!uid}
                       >
                         <DeleteOutlined /> Delete
                       </Button>
@@ -200,7 +245,7 @@ const ToDoList: React.FC = () => {
                     <Checkbox
                       checked={task.completed}
                       onChange={() => handleToggle(task)}
-                      disabled={updateMutation.isPending}
+                      disabled={updateMutation.isPending || !uid}
                     />
                     <Text
                       style={{
@@ -230,17 +275,11 @@ const ToDoList: React.FC = () => {
         <div style={{ textAlign: "center", fontSize: 16 }}>
           คุณต้องการลบ To-Do นี้จริงหรือไม่?
         </div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 24
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
           <Button type="primary" onClick={handleConfirmDelete} loading={deleteMutation.isPending}>
             Yes
           </Button>
-          <Button onClick={handleCancelDelete}>
-            Cancel
-          </Button>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
         </div>
       </Modal>
     </div>
@@ -248,16 +287,3 @@ const ToDoList: React.FC = () => {
 };
 
 export default ToDoList;
-
-
-// ==== utility function สำหรับ group ตามวัน ====
-function groupTasksByDate(tasks: ToDoItem[]): Record<string, ToDoItem[]> {
-  return tasks.reduce((acc, item) => {
-    const dateObj = item.createdAt?.toDate?.() || new Date();
-    // yyyy-mm-dd ของไทย (หรือจะใช้ en-US ก็ได้)
-    const dateStr = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    if (!acc[dateStr]) acc[dateStr] = [];
-    acc[dateStr].push(item);
-    return acc;
-  }, {} as Record<string, ToDoItem[]>);
-}
