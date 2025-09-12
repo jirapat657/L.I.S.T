@@ -9,6 +9,7 @@ export interface OtherDocumentData {
   docDate: Timestamp | null;
   docType: string;
   project: string;
+  projectId?: string; 
   customer: string;
   description: string;
   remark?: string;
@@ -22,6 +23,7 @@ export interface OtherDocumentPayload {
   docDate: Timestamp | null;
   docType: string;
   project: string;
+  projectId: string; 
   customer: string;
   description: string;
   remark?: string | null; // ใช้ null แทน undefined เพื่อความชัดเจน
@@ -36,6 +38,7 @@ export interface OtherDocumentFormValues {
   docDate: Dayjs | null;
   docType: string;
   project: string;
+  projectId: string; 
   customer: string;
   description: string;
   remark?: string | null;

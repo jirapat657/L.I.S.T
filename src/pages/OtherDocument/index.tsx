@@ -2,19 +2,20 @@
 import { Table, Button, Modal, List, Typography, Dropdown, message, Form, Input, DatePicker, Upload, Select, Row, Col } from 'antd';
 import type { MenuProps } from 'antd';
 import { UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, EditOutlined, MoreOutlined, SyncOutlined } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { getAllOtherDocuments, deleteOtherDocumentById, updateOtherDocumentById, createOtherDocument, getUniqueDocumentTypes } from '@/api/otherDocument';
+import { getProjects } from '@/api/project';
 import { deleteFileFromStorage } from '@/utils/deleteFileFromStorage';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { OtherDocumentData, FileData, OtherDocumentPayload, OtherDocumentFormValues } from '@/types/otherDocument';
+import type { ProjectData } from '@/types/project';
 import { Timestamp } from 'firebase/firestore';
 import { formatFirestoreDate } from '@/utils/dateUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import type { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
-import { useMutation } from '@tanstack/react-query';
 
 const OtherDocument = () => {
   const [fileModalOpen, setFileModalOpen] = useState(false);
@@ -24,46 +25,75 @@ const OtherDocument = () => {
   const [uploadFiles, setUploadFiles] = useState<FileData[]>([]);
   const [searchFileName, setSearchFileName] = useState('');
   const [searchProjectsName, setSearchProjectsName] = useState('');
-  const [docTypes, setDocTypes] = useState<string[]>([]);  // สถานะสำหรับเก็บประเภทเอกสาร
-      const [isNewType, setIsNewType] = useState(false);  // ใช้สำหรับควบคุมการแสดงช่องกรอกประเภทใหม่
+  const [docTypes, setDocTypes] = useState<string[]>([]);
+  const [isNewType, setIsNewType] = useState(false);
 
   const { data: otherDocuments = [], isLoading } = useQuery({
     queryKey: ['otherDocuments'],
     queryFn: getAllOtherDocuments,
   });
 
+  const { data: projects = [] } = useQuery<ProjectData[]>({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
+
   const queryClient = useQueryClient();
 
+  // filter
   const filteredDocuments = otherDocuments.filter(document =>
     document.description.toLowerCase().includes(searchFileName.toLowerCase()) &&
     document.project.toLowerCase().includes(searchProjectsName.toLowerCase())
   );
 
-    useEffect(() => {
-        const fetchDocTypes = async () => {
-        try {
-            const types = await getUniqueDocumentTypes();  // ดึงประเภทเอกสารที่ไม่ซ้ำ
-            setDocTypes(types);
-        } catch (err) {
-            console.error('Error fetching document types:', err);
-            message.error('เกิดข้อผิดพลาดในการดึงประเภทเอกสาร');
-        }
-        };
+  // docTypes
+  useEffect(() => {
+    const fetchDocTypes = async () => {
+      try {
+        const types = await getUniqueDocumentTypes();
+        setDocTypes(types);
+      } catch (err) {
+        console.error('Error fetching document types:', err);
+        message.error('เกิดข้อผิดพลาดในการดึงประเภทเอกสาร');
+      }
+    };
+    fetchDocTypes();
+  }, []);
 
-        fetchDocTypes();
-    }, []);
+  // project options
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        label: p.projectName,
+        value: p.projectId,
+      })),
+    [projects]
+  );
+  const idToName = useMemo(() => new Map(projects.map(p => [p.projectId, p.projectName])), [projects]);
+  const nameToId = useMemo(() => new Map(projects.map(p => [p.projectName, p.projectId])), [projects]);
+  const toDayjs = (val: Timestamp | Date | null | undefined) => {
+    if (!val) return null;
 
+    if (val instanceof Date) {
+      return dayjs(val);
+    }
+
+    // ถ้าเป็น Firestore Timestamp
+    if (typeof val === 'object' && val !== null && 'toDate' in val) {
+      return dayjs((val as Timestamp).toDate());
+    }
+
+    return null;
+  };
   const columns = [
     {
       title: 'File Name',
       dataIndex: 'files',
       render: (files: FileData[], record: OtherDocumentData) => {
         const { description } = record;
-
         if (files.length === 0) {
           return <span style={{ cursor: 'not-allowed' }}>{description || 'No File'}</span>;
         }
-
         if (files.length === 1) {
           return (
             <Typography.Link onClick={() => window.open(files[0].url, '_blank')}>
@@ -71,7 +101,6 @@ const OtherDocument = () => {
             </Typography.Link>
           );
         }
-
         return (
           <Typography.Link onClick={() => {
             setCurrentFiles(files);
@@ -89,9 +118,9 @@ const OtherDocument = () => {
     },
     { title: 'Project', dataIndex: 'project' },
     {
-        title: 'Added By',  // คอลัมน์ใหม่ที่เพิ่มขึ้น
-        dataIndex: 'createBy',  // ดึงข้อมูลจาก field createBy ใน Firestore
-        render: (createBy: string) => createBy || 'ไม่ทราบผู้ใช้',  // หาก createBy มีค่า, แสดงชื่อผู้ใช้
+      title: 'Added By',
+      dataIndex: 'createBy',
+      render: (createBy: string) => createBy || 'ไม่ทราบผู้ใช้',
     },
     {
       title: '',
@@ -106,7 +135,9 @@ const OtherDocument = () => {
               setUploadFiles(record.files || []);
               form.setFieldsValue({
                 ...record,
-                docDate: record.docDate ? dayjs(record.docDate.toDate()) : null,
+                projectId: record.projectId || (record.project ? nameToId.get(record.project) : undefined),
+                project: record.project,
+                docDate: toDayjs(record.docDate),
               });
             },
           },
@@ -117,7 +148,6 @@ const OtherDocument = () => {
             onClick: () => handleDelete(record.id),
           },
         ];
-
         return (
           <Dropdown menu={{ items }} trigger={['click']}>
             <Button ><MoreOutlined /></Button>
@@ -149,15 +179,10 @@ const OtherDocument = () => {
     }
   };
 
-  const handleCustomUpload = async ({
-    file,
-    onSuccess,
-    onError,
-  }: UploadRequestOption) => {
+  const handleCustomUpload = async ({ file, onSuccess, onError }: UploadRequestOption) => {
     const storage = getStorage();
     const uniqueName = `${uuidv4()}-${(file as RcFile).name}`;
     const storageRef = ref(storage, `otherDocuments/${uniqueName}`);
-
     try {
       const uploadTask = uploadBytesResumable(storageRef, file as File);
       uploadTask.on(
@@ -178,59 +203,54 @@ const OtherDocument = () => {
     }
   };
 
-    const { mutate: createDocument } = useMutation<void, Error, OtherDocumentPayload>({
-    mutationFn: createOtherDocument, // ใช้ฟังก์ชันการสร้างเอกสาร
+  const { mutate: createDocument } = useMutation<void, Error, OtherDocumentPayload>({
+    mutationFn: createOtherDocument,
     onSuccess: () => {
-        message.success('เพิ่มข้อมูลสำเร็จ');
-        queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
+      message.success('เพิ่มข้อมูลสำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
     },
     onError: () => {
-        message.error('เกิดข้อผิดพลาดในการบันทึก');
+      message.error('เกิดข้อผิดพลาดในการบันทึก');
     },
-    });
+  });
 
-    const { mutate: updateDocument } = useMutation<void, Error, { id: string, payload: OtherDocumentPayload }>({
-    mutationFn: ({ id, payload }) => updateOtherDocumentById(id, payload), // เรียกใช้ฟังก์ชันการอัปเดตเอกสาร
+  const { mutate: updateDocument } = useMutation<void, Error, { id: string, payload: OtherDocumentPayload }>({
+    mutationFn: ({ id, payload }) => updateOtherDocumentById(id, payload),
     onSuccess: () => {
-        message.success('อัปเดตสำเร็จ');
-        queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
+      message.success('อัปเดตสำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['otherDocuments'] });
     },
     onError: () => {
-        message.error('เกิดข้อผิดพลาดในการบันทึก');
+      message.error('เกิดข้อผิดพลาดในการบันทึก');
     },
-    });
+  });
 
-  const handleFinish = async (values: OtherDocumentFormValues) => {
-    const auth = getAuth();  // ดึงข้อมูลจาก Firebase Authentication
-    const currentUser = auth.currentUser;  // ดึงข้อมูลผู้ใช้ที่เข้าสู่ระบบ
-    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';  // ใช้ displayName หรือ email
+  const handleFinish = async (values: OtherDocumentFormValues & { projectId?: string }) => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    const displayName = currentUser?.displayName || currentUser?.email || 'ไม่ทราบผู้ใช้';
 
-   // ถ้าผู้ใช้เลือก "เพิ่มประเภทใหม่" และกรอกประเภทใหม่
-    const docType = isNewType ? values.newType : values.docType;  // ใช้ `newType` ถ้าผู้ใช้กรอกประเภทใหม่
-
-   // ตรวจสอบว่า `docType` มีค่า และไม่เป็น undefined หรือ null
+    const docType = isNewType ? values.newType : values.docType;
     if (!docType || docType.trim() === '') {
-        message.error('กรุณากรอกประเภทเอกสาร');
-        return;
+      message.error('กรุณากรอกประเภทเอกสาร');
+      return;
     }
 
-    const payload: OtherDocumentPayload = {
-        ...values,
-        files: uploadFiles,
-        // ตรวจสอบว่า docDate เป็น Date ของ JavaScript หรือ Firebase Timestamp
-        docDate: values.docDate  ? Timestamp.fromDate(values.docDate.toDate()) : null,  // แปลง Date เป็น Timestamp
-        createdAt: editingDocument?.createdAt ?? Timestamp.now(),
-        createBy: displayName,  // เก็บชื่อผู้ที่เพิ่มเอกสาร
-        remark: values.remark || null,  // ถ้า remark เป็น undefined, ให้เป็น null แทน
-        docType,  // ใช้ docType ที่กรอก
+    const payload: OtherDocumentPayload & { projectId?: string } = {
+      ...values,
+      files: uploadFiles,
+      docDate: values.docDate ? Timestamp.fromDate(values.docDate.toDate()) : null,
+      createdAt: editingDocument?.createdAt ?? Timestamp.now(),
+      createBy: displayName,
+      remark: values.remark || null,
+      docType,
+      projectId: values.projectId ?? null,
     };
 
     if (editingDocument?.id) {
-        // อัปเดตเอกสาร
-        updateDocument({ id: editingDocument.id, payload });
+      updateDocument({ id: editingDocument.id, payload });
     } else {
-        // สร้างเอกสารใหม่
-        createDocument(payload);
+      createDocument(payload);
     }
 
     setEditingDocument(null);
@@ -249,6 +269,7 @@ const OtherDocument = () => {
             });
             form.resetFields();
             setUploadFiles([]);
+            form.setFieldsValue({ docDate: dayjs() });
           }}
         >
           <PlusOutlined /> Add Other Document
@@ -257,8 +278,8 @@ const OtherDocument = () => {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button
           onClick={() => {
-            setSearchFileName('')
-            setSearchProjectsName('')
+            setSearchFileName('');
+            setSearchProjectsName('');
           }}
         >
           <SyncOutlined /> Clear Search
@@ -325,41 +346,66 @@ const OtherDocument = () => {
           onFinish={handleFinish}
           initialValues={{ docType: 'Other Document' }}
         >
-          <Form.Item name="project" label="Project" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="docDate" label="Date" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY"/></Form.Item>
-         <Form.Item name="docType" label="Type" rules={[{ required: true }]}>
-          {/* ถ้าเลือกเพิ่มประเภทใหม่จะให้แสดง Input */}
-          <Select
-            placeholder="เลือกประเภทเอกสาร"
-            onChange={(value) => {
-              if (value === 'เพิ่มประเภทใหม่') {
-                setIsNewType(true);  // เปลี่ยนให้กรอกประเภทใหม่
-              } else {
-                setIsNewType(false);  // กลับไปเลือกประเภทที่มี
-              }
-            }}
-          >
-            {docTypes.map((type) => (
-              <Select.Option key={type} value={type}>
-                {type}
-              </Select.Option>
-            ))}
-            <Select.Option value="เพิ่มประเภทใหม่" style={{ color: '#1890FF', fontWeight: 'bold' }}><PlusOutlined></PlusOutlined> Add</Select.Option> {/* เพิ่มตัวเลือกเพื่อให้กรอกประเภทใหม่ */}
-          </Select>
-        </Form.Item>
+          {/* ซ่อน projectId */}
+          <Form.Item name="projectId" hidden><Input /></Form.Item>
 
-        {/* แสดงช่องกรอกประเภทใหม่เมื่อผู้ใช้เลือก "เพิ่มประเภทใหม่" */}
-        {isNewType && (
-          <Form.Item name="newType" label="New Type" rules={[{ required: true }]}>
-            <Input
-              name="newType"
-              placeholder="กรอกประเภทใหม่"
-              autoFocus
+          <Form.Item
+            name="project"
+            label="Project"
+            required
+            tooltip="เลือกโปรเจกต์จาก LIMProjects"
+          >
+            <Select
+              placeholder="เลือกโปรเจกต์"
+              options={projectOptions}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(value: string) => {
+                form.setFieldsValue({
+                  projectId: value,
+                  project: idToName.get(value) ?? '',
+                });
+              }}
             />
           </Form.Item>
-        )}
+
+          <Form.Item name="docDate" label="Date" rules={[{ required: true }]}>
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY"/>
+          </Form.Item>
+
+          <Form.Item name="docType" label="Type" rules={[{ required: true }]}>
+            <Select
+              placeholder="เลือกประเภทเอกสาร"
+              onChange={(value) => {
+                if (value === 'เพิ่มประเภทใหม่') {
+                  setIsNewType(true);
+                } else {
+                  setIsNewType(false);
+                }
+              }}
+            >
+              {docTypes.map((type) => (
+                <Select.Option key={type} value={type}>
+                  {type}
+                </Select.Option>
+              ))}
+              <Select.Option value="เพิ่มประเภทใหม่" style={{ color: '#1890FF', fontWeight: 'bold' }}>
+                <PlusOutlined /> Add
+              </Select.Option>
+            </Select>
+          </Form.Item>
+
+          {isNewType && (
+            <Form.Item name="newType" label="New Type" rules={[{ required: true }]}>
+              <Input name="newType" placeholder="กรอกประเภทใหม่" autoFocus />
+            </Form.Item>
+          )}
+
           <Form.Item name="description" label="Description" rules={[{ required: true }]}><Input.TextArea rows={1} /></Form.Item>
           <Form.Item name="remark" label="Remark"><Input.TextArea rows={4} /></Form.Item>
+
           <Form.Item label="Upload Files">
             <Upload
               customRequest={handleCustomUpload}
