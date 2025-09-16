@@ -1,153 +1,171 @@
-const functions = require('firebase-functions')
-const { Timestamp } = require('firebase-admin/firestore')
-const { db, authen } = require('./services/firebase')
+// functions/index.js
+const admin = require('firebase-admin')
+const { setGlobalOptions } = require('firebase-functions/v2')
+const { onCall, HttpsError } = require('firebase-functions/v2/https')
 
-// ฟังก์ชันสำหรับสร้างผู้ใช้ใหม่
-exports.createUser = functions.https.onRequest(async (req, res) => {
-  console.log('REQ BODY:', JSON.stringify(req.body, null, 2))
-  const payload = req.body.data || req.body
+if (!admin.apps.length) admin.initializeApp()
+const db = admin.firestore()
+const authen = admin.auth()
+const { FieldValue } = require('firebase-admin/firestore')
+
+// ✅ ตั้ง region global ครั้งเดียว
+setGlobalOptions({ region: 'asia-southeast1' })
+
+// ===== createUser (onCall) =====
+exports.createUser = onCall(async (req) => {
+  const data = req.data || {}
+
+  // ใส่ค่า default กัน undefined ตั้งแต่ต้น
+  const {
+    email,
+    password,
+    userName,
+    role = 'Staff',
+    jobPosition = '',
+    userId = '',
+    status = 'Active',
+  } = data
+
+  if (!email || !password || !userName) {
+    throw new HttpsError('invalid-argument', 'Missing required fields')
+  }
+
+  let uid = null
+
   try {
-    const { email, password, userName, role, jobPosition, userId, status } = payload
-    if (!email || !password || !userName) {
-      return res.status(400).send({ message: 'Missing required fields', reqBody: payload })
-    }
+    // 1) สร้างใน Auth
+    const userRecord = await authen.createUser({ email, password, displayName: userName })
+    uid = userRecord.uid
 
-    // สร้าง user ใน Auth
-    const userRecord = await authen.createUser({
-      email,
-      password,
-      displayName: userName,
-    })
-
-    // เก็บ Firestore
-    await db.collection('LIMUsers').doc(userRecord.uid).set({
+    // 2) เตรียมเอกสารแบบ “ไม่มี undefined” และใช้ new Date() (กันปัญหา FieldValue)
+    const rawDoc = {
       email,
       userName,
       role,
       jobPosition,
       userId,
       status,
-      createdAt: Timestamp.now(),
-    })
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    const doc = Object.fromEntries(Object.entries(rawDoc).filter(([, v]) => v !== undefined))
 
-    res.status(200).send({ message: 'User created successfully', userId: userRecord.uid })
+    // log ให้เห็น payload ที่กำลังเขียน (ไม่ log password)
+    console.log('[createUser] write doc', { uid, ...doc })
+
+    // 3) เขียน Firestore
+    await db.collection('LIMUsers').doc(uid).set(doc)
+
+    console.log('[createUser] done', { uid })
+    return { success: true, uid }
   } catch (error) {
-    console.error('[ERROR] creating user:', error)
-    res.status(500).send({ message: 'Failed to create user', error: error.message })
+    // ถ้า Auth สำเร็จแล้ว แต่ Firestore ล้ม → rollback ผู้ใช้ที่เพิ่งสร้าง
+    if (uid) {
+      try {
+        await authen.deleteUser(uid)
+        console.warn('[createUser] rollback: deleted auth user', { uid })
+      } catch (e) {
+        console.error('[createUser] rollback failed', { code: e?.code, message: e?.message })
+      }
+    }
+
+    console.error('[createUser] error', { code: error?.code, message: error?.message, stack: error?.stack })
+
+    // map error ที่พบบ่อยให้อ่านง่าย
+    switch (error?.code) {
+      case 'auth/email-already-exists':
+        throw new HttpsError('already-exists', 'อีเมลนี้ถูกใช้งานแล้ว')
+      case 'auth/invalid-password':
+        throw new HttpsError('invalid-argument', 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร')
+      case 'auth/invalid-email':
+        throw new HttpsError('invalid-argument', 'รูปแบบอีเมลไม่ถูกต้อง')
+      default:
+        // ถ้าเป็นเคส Firestore ไม่ยอม (เช่น undefined ใน doc) message จะบอกชัด
+        throw new HttpsError('internal', error?.message || 'Failed to create user')
+    }
   }
 })
 
-// ฟังก์ชัน: อัปเดตข้อมูลโปรไฟล์ (userName, role, jobPosition, ...)แบบไม่protectอะไรเลย hardcode
-exports.updateUserProfile = functions.https.onCall(async (data) => {
-  const uid = data.uid || data.data?.uid
-  const profileData = data.profileData || data.data?.profileData
-  console.log('uid:', uid)
-  console.log('profileData:', profileData)
-
+// ===== updateUserProfile =====
+exports.updateUserProfile = onCall(async (req) => {
+  const { uid, profileData } = req.data || {}
   if (!uid || !profileData) {
-    throw new functions.https.HttpsError('invalid-argument', 'ต้องระบุ uid และ profileData')
+    throw new HttpsError('invalid-argument', 'ต้องระบุ uid และ profileData')
   }
-
-  try {
-    await db.collection('LIMUsers').doc(uid).update(profileData)
-    return { success: true }
-  } catch (err) {
-    throw new functions.https.HttpsError('internal', 'Update failed')
-  }
+  await db.collection('LIMUsers').doc(uid).update({
+    ...profileData,
+    updatedAt: FieldValue.serverTimestamp(),
+  })
+  return { success: true }
 })
 
-// ฟังก์ชัน: อัปเดตอีเมล (เฉพาะ admin เท่านั้น)
-exports.updateUserEmail = functions.https.onCall(async (data) => {
-  const uid = data.uid || data.data?.uid
-  const newEmail = data.newEmail || data.data?.newEmail
-  console.log('uid:', uid)
-  console.log('newEmail:', newEmail)
+// ===== updateUserEmail =====
+exports.updateUserEmail = onCall(async (req) => {
+  const { uid, newEmail } = req.data || {}
   if (!uid || !newEmail) {
-    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
+    throw new HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
   }
-
-  // 3. อัปเดตอีเมลใน Auth
   try {
     await authen.updateUser(uid, { email: newEmail })
-    // อัปเดต Firestore ให้ตรงกันด้วย (ถ้าเก็บอีเมลใน Firestore)
-    await db.collection('LIMUsers').doc(uid).update({ email: newEmail })
+    await db.collection('LIMUsers').doc(uid).update({
+      email: newEmail,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
     return { success: true }
   } catch (error) {
-    throw new functions.https.HttpsError('internal', error.message || 'Update email failed')
+    if (error?.code === 'auth/email-already-exists') {
+      throw new HttpsError('already-exists', 'อีเมลนี้ถูกใช้งานแล้ว')
+    }
+    throw new HttpsError('internal', error.message || 'Update email failed')
   }
 })
 
-// ฟังก์ชัน: อัปเดตรหัสผ่าน (เฉพาะ admin เท่านั้น)
-exports.updateUserPassword = functions.https.onCall(async (data) => {
-  const uid = data.uid || data.data?.uid
-  const newPassword = data.newPassword || data.data?.newPassword
+// ===== updateUserPassword =====
+exports.updateUserPassword = onCall(async (req) => {
+  const { uid, newPassword } = req.data || {}
   if (!uid || !newPassword) {
-    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
+    throw new HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
   }
-
-  try {
-    await authen.updateUser(uid, { password: newPassword })
-    return { success: true }
-  } catch (error) {
-    throw new functions.https.HttpsError('internal', error.message || 'Update password failed')
-  }
+  await authen.updateUser(uid, { password: newPassword })
+  return { success: true }
 })
 
-// Cloud Function: อัปเดต displayName ใน Auth และ userName ใน Firestore
-exports.updateUserDisplayName = functions.https.onCall(async (data) => {
-  const uid = data.uid || data.data?.uid
-  const newDisplayName = data.newDisplayName || data.data?.newDisplayName
+// ===== updateUserDisplayName =====
+exports.updateUserDisplayName = onCall(async (req) => {
+  const { uid, newDisplayName } = req.data || {}
   if (!uid || !newDisplayName) {
-    throw new functions.https.HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
+    throw new HttpsError('invalid-argument', 'ข้อมูลไม่ครบ')
   }
-
-  try {
-    // 1. อัปเดต displayName ใน Authentication
-    await authen.updateUser(uid, { displayName: newDisplayName })
-
-    // 2. อัปเดต userName ใน Firestore (หากเก็บไว้)
-    await db.collection('LIMUsers').doc(uid).update({ userName: newDisplayName })
-
-    return { success: true }
-  } catch (error) {
-    throw new functions.https.HttpsError('internal', error.message || 'Update displayName failed')
-  }
+  await authen.updateUser(uid, { displayName: newDisplayName })
+  await db.collection('LIMUsers').doc(uid).update({
+    userName: newDisplayName,
+    updatedAt: FieldValue.serverTimestamp(),
+  })
+  return { success: true }
 })
 
-// ฟังก์ชันสำหรับลบผู้ใช้
-exports.deleteUser = functions.https.onCall(async (data) => {
-  // รับ id มาจาก client
-  const uid = data.uid || data.data?.uid || data.id || data.data?.id
-  console.log('deleteUser called with uid:', uid)
-
-  if (!uid) {
-    console.error('No uid provided')
-    throw new functions.https.HttpsError('invalid-argument', 'Missing user uid')
+// ===== deleteUser =====
+exports.deleteUser = onCall(async (req) => {
+  const { uid, id } = req.data || {}
+  const target = uid || id
+  if (!target) {
+    throw new HttpsError('invalid-argument', 'Missing user uid')
   }
-
-  try {
-    // 1. ลบใน Firebase Authentication
-    await authen.deleteUser(uid)
-    console.log('Deleted user from Auth:', uid)
-
-    // 2. ลบใน Firestore
-    await db.collection('LIMUsers').doc(uid).delete()
-    console.log('Deleted user doc from Firestore:', uid)
-
-    return { success: true }
-  } catch (error) {
-    console.error('Error deleting user:', error)
-    throw new functions.https.HttpsError('internal', error.message || 'Delete failed')
-  }
+  await authen.deleteUser(target)
+  await db.collection('LIMUsers').doc(target).delete()
+  return { success: true }
 })
 
-exports.updateUserStatus = functions.https.onCall(async (data) => {
-  const uid = data.id || data.data?.id
-  const status = data.status || data.data?.status
-
-  if (!uid || !status) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing id or status')
+// ===== updateUserStatus =====
+exports.updateUserStatus = onCall(async (req) => {
+  const { uid, id, status } = req.data || {}
+  const target = uid || id
+  if (!target || !status || !['Active', 'Inactive'].includes(status)) {
+    throw new HttpsError('invalid-argument', 'Missing or invalid id/status')
   }
-  await db.collection('LIMUsers').doc(uid).update({ status })
+  await db.collection('LIMUsers').doc(target).update({
+    status,
+    updatedAt: FieldValue.serverTimestamp(),
+  })
   return { success: true }
 })

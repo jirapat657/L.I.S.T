@@ -24,8 +24,6 @@ export const getUsers = async (): Promise<UserData[]> => {
     // ใช้ doc.id เป็น uid
     ...(doc.data() as Omit<UserData, 'id'>), // ข้อมูลจาก Firestore
   }));
-
-  console.log("Fetched Users:", users);  // ตรวจสอบข้อมูลที่ดึงมา
   return users;
 };
 
