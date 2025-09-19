@@ -38,3 +38,9 @@ firebase-tools/*.json
 *.key.json
 .env
 .env.*
+
+firebase-tools/*.json
+*.serviceaccount.json
+*.key.json
+.env
+.env.*
