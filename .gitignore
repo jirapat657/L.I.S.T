@@ -27,4 +27,8 @@ dist-ssr
 .env
 .env.prod
 
-/.firebase
+/.firebasenode_modules
+dist
+.env
+.env.*
+.DS_Store
