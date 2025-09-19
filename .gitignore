@@ -32,3 +32,9 @@ dist
 .env
 .env.*
 .DS_Store
+
+firebase-tools/*.json
+*.serviceaccount.json
+*.key.json
+.env
+.env.*
